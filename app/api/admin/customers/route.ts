@@ -34,11 +34,11 @@ export async function GET() {
       const bookings = customer.bookings || []
       const totalBookings = bookings.length
       const lastBooking = bookings.length > 0 
-        ? bookings.sort((a, b) => new Date(b.booking_date).getTime() - new Date(a.booking_date).getTime())[0]
+        ? bookings.sort((a: { booking_date: string }, b: { booking_date: string }) => new Date(b.booking_date).getTime() - new Date(a.booking_date).getTime())[0]
         : null
       const totalSpent = bookings
-        .filter(b => b.status === 'completed')
-        .reduce((sum, b) => sum + (b.price_charged || 0), 0)
+        .filter((b: { status: string }) => b.status === 'completed')
+        .reduce((sum: number, b: { price_charged?: number }) => sum + (b.price_charged || 0), 0)
 
       return {
         ...customer,

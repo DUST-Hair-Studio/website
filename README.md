@@ -12,6 +12,8 @@ A comprehensive booking platform for DUST Hair Studio that replaces Squarespace,
 - **Booking System**: Full multi-step booking flow with customer information capture
 - **Admin Dashboard**: Complete admin portal with booking management, customer tracking, and analytics
 - **Service Filtering**: Smart service display based on customer type and service availability
+- **Schedule Management**: Business hours configuration with Google Calendar integration
+- **Google Calendar Sync**: Two-way synchronization between bookings and Google Calendar
 - **Production Deployment**: Fully built and tested with 19 routes working
 
 ## Tech Stack
@@ -70,6 +72,8 @@ Current services configured:
 - **Service Status Control**: Activate/deactivate services with dedicated inactive section
 - **Service Categories**: Organize services by category for better management
 - **Customer Type Targeting**: Granular control over which customer types can access each service
+- **Schedule Management**: Configure business hours (Fri-Sun 11am-8pm PST)
+- **Google Calendar Integration**: Two-way sync with automatic booking creation and availability blocking
 - **Analytics Dashboard**: Revenue tracking, customer counts, booking statistics
 - **Status Management**: Update booking status (pending → confirmed → completed)
 - **Search & Filtering**: Find bookings by customer, service, or status
@@ -111,12 +115,21 @@ Current services configured:
 ### Environment Variables
 Create `.env.local`:
 ```bash
+# Supabase Configuration
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+
+# Google Calendar Integration
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-**Note**: The `SUPABASE_SERVICE_ROLE_KEY` is required for admin operations that bypass Row Level Security (RLS). This key can be found in your Supabase project settings under "API" → "Service Role Key".
+**Required Keys:**
+- `SUPABASE_SERVICE_ROLE_KEY`: Found in Supabase project settings under "API" → "Service Role Key"
+- `GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET`: Create in [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → Credentials
+- `NEXT_PUBLIC_APP_URL`: Your app's base URL (use `https://yourdomain.com` in production)
 
 ### Installation
 ```bash
@@ -152,6 +165,11 @@ npm run dev
 - `GET /api/admin/services/[id]` - Get single service details
 - `PATCH /api/admin/services/[id]` - Update service (including activation/deactivation)
 - `DELETE /api/admin/services/[id]` - Delete service (if no bookings exist)
+- `GET /api/admin/business-hours` - Get business hours configuration
+- `POST /api/admin/business-hours` - Update business hours
+- `GET /api/admin/google-calendar` - Get Google Calendar connection status
+- `POST /api/admin/google-calendar` - Connect Google Calendar (OAuth callback)
+- `GET /api/admin/availability` - Get available time slots based on business hours and calendar
 
 ### Auth APIs
 - `POST /api/auth/admin/login` - Admin authentication
@@ -185,7 +203,18 @@ npm start
 - ✅ **Email Reminder Update** - Changed SMS reminder to email reminder in confirmation message
 - ✅ **Service Selection Bug Fix** - Fixed pricing display bug when changing services in booking flow
 
-#### Admin Customer Management (Latest - January 2025)
+#### Phase 1 Schedule Management (Latest - January 2025)
+- ✅ **Business Hours Management** - Complete admin interface for configuring operating hours (Fri-Sun 11am-8pm PST)
+- ✅ **Google Calendar OAuth Integration** - Full OAuth 2.0 flow with Google Calendar API
+- ✅ **Two-Way Calendar Synchronization** - Bookings automatically create Google Calendar events
+- ✅ **Availability Blocking** - Blocked time in Google Calendar automatically blocks system availability
+- ✅ **Schedule Management UI** - Professional admin interface for managing business hours and calendar connection
+- ✅ **OAuth Callback Handling** - Seamless Google Calendar connection with proper error handling
+- ✅ **Calendar Event Creation** - New bookings automatically sync to Google Calendar with customer details
+- ✅ **Token Management** - Secure storage and refresh of Google Calendar access tokens
+- ✅ **Admin Schedule Dashboard** - Complete schedule management with connection status and controls
+
+#### Admin Customer Management (January 2025)
 - ✅ **Complete Admin Customer CRUD** - Full customer management interface with edit capabilities
 - ✅ **Customer Search & Filtering** - Search by name, email, phone with type filtering (new/existing)
 - ✅ **Customer Statistics Dashboard** - Total customers, new vs existing breakdown, booking counts, revenue tracking
@@ -241,17 +270,12 @@ npm start
 
 ## Future Enhancements (Planned)
 
-### Phase 3: Calendar & Payments
-- Google Calendar OAuth integration
+### Phase 3: Payments & Communications
 - Square Checkout API for payment links
-- Real-time availability checking
-
-### Phase 4: Communications
 - Twilio SMS integration for confirmations
 - Automated reminders and follow-ups
-- Customizable message templates
 
-### Phase 5: Advanced Features
+### Phase 4: Advanced Features
 - Customer loyalty tracking
 - Advanced reporting and analytics
 - Multi-staff scheduling support
@@ -259,7 +283,7 @@ npm start
 ---
 
 **Last Updated**: January 2025  
-**Status**: Production Ready - Full Booking Platform Complete  
-**Admin Portal**: Fully functional with complete service management, customer management, and booking management  
+**Status**: Production Ready - Phase 1 Complete with Google Calendar Integration  
+**Admin Portal**: Fully functional with complete service management, customer management, booking management, and schedule management  
 **Customer Portal**: Complete booking flow with dynamic pricing  
-**Latest Feature**: Complete Admin Customer Management System with CRUD operations, search/filtering, bulk operations, and customer editing
+**Latest Feature**: Phase 1 Schedule Management - Google Calendar integration with two-way sync, business hours management, and availability blocking

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Service } from '@/types'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
@@ -435,7 +435,7 @@ export default function AdminServicesPage() {
                       <AlertDialogHeader>
                         <AlertDialogTitle>Delete Service</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Are you sure you want to delete "{service.name}"? This action cannot be undone.
+                          Are you sure you want to delete &quot;{service.name}&quot;? This action cannot be undone.
                           {service.is_active && (
                             <span className="block mt-2 text-yellow-600">
                               ⚠️ This service is currently active and visible to customers.
@@ -552,7 +552,7 @@ export default function AdminServicesPage() {
                           <AlertDialogHeader>
                             <AlertDialogTitle>Delete Service</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Are you sure you want to delete "{service.name}"? This action cannot be undone.
+                              Are you sure you want to delete &quot;{service.name}&quot;? This action cannot be undone.
                               If this service has existing bookings, it cannot be deleted and should remain deactivated instead.
                             </AlertDialogDescription>
                           </AlertDialogHeader>

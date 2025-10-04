@@ -1,14 +1,13 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { Switch } from '@/components/ui/switch'
 import { Loader2, Search, Users, UserCheck, UserX, Calendar, DollarSign, Eye, Filter, CheckSquare, Square, Edit } from 'lucide-react'
 import { toast } from 'sonner'
@@ -109,7 +108,7 @@ export default function AdminCustomersPage() {
         throw new Error('Failed to update customer')
       }
 
-      const data = await response.json()
+      await response.json()
       
       // Update local state
       setCustomers(prev => prev.map(c => 

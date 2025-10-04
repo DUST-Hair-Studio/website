@@ -13,6 +13,7 @@ export function AdminNavigation() {
     { href: '/admin/bookings', label: 'Bookings', icon: '📅' },
     { href: '/admin/customers', label: 'Customers', icon: '👥' },
     { href: '/admin/services', label: 'Services', icon: '✂️' },
+    { href: '/admin/schedule', label: 'Schedule', icon: '🗓️' },
     { href: '/admin/settings', label: 'Settings', icon: '⚙️' },
   ]
 

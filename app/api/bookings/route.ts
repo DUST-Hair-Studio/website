@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { GoogleCalendarService } from '@/lib/google-calendar'
 
 export async function POST(request: NextRequest) {
   try {
@@ -145,7 +146,19 @@ export async function POST(request: NextRequest) {
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
       .insert(bookingData)
-      .select('*')
+      .select(`
+        *,
+        services (
+          name,
+          duration_minutes
+        ),
+        customers (
+          first_name,
+          last_name,
+          email,
+          phone
+        )
+      `)
       .single()
 
     if (bookingError) {
@@ -153,8 +166,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create booking' }, { status: 500 })
     }
 
+    // Create Google Calendar event if connected
+    try {
+      const googleCalendar = new GoogleCalendarService()
+      const isConnected = await googleCalendar.isConnected()
+      
+      if (isConnected && booking) {
+        await googleCalendar.createBookingEvent(booking)
+      }
+    } catch (error) {
+      console.error('Error creating Google Calendar event:', error)
+      // Don't fail the booking creation if calendar sync fails
+    }
+
     // TODO: Generate Square payment link
-    // TODO: Create Google Calendar event
     // TODO: Send SMS confirmation
 
     return NextResponse.json({ 
