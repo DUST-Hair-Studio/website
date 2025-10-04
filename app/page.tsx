@@ -154,13 +154,20 @@ export default function Home() {
                   console.log('🔍 Homepage - customer?.is_existing_customer:', customer?.is_existing_customer)
                   console.log('🔍 Homepage - All services:', services)
                   
-                  // Filter services based on customer type and is_existing_customer_only
+                  // Filter services based on customer type and service restrictions
                   const filteredServices = services.filter(service => {
-                    console.log(`🔍 Service: ${service.name}, is_existing_customer_only: ${service.is_existing_customer_only}`)
+                    console.log(`🔍 Service: ${service.name}, is_existing_customer_only: ${service.is_existing_customer_only}, is_new_customer_only: ${service.is_new_customer_only}`)
                     
+                    // Hide new-customer-only services for existing customers
+                    if (service.is_new_customer_only && customer?.is_existing_customer) {
+                      console.log(`❌ Hiding service: ${service.name} (new customer only, but customer is existing)`)
+                      return false
+                    }
+                    
+                    // Hide existing-customer-only services for new customers
                     if (service.is_existing_customer_only && !customer?.is_existing_customer) {
                       console.log(`❌ Hiding service: ${service.name} (existing customer only, but customer is not existing)`)
-                      return false // Hide existing-customer-only services for new customers
+                      return false
                     }
                     
                     console.log(`✅ Showing service: ${service.name}`)
@@ -188,9 +195,15 @@ export default function Home() {
                           <p className="dust-mono text-sm text-gray-600 mb-2 leading-relaxed">
                             {service.description}
                           </p>
-                          <p className="dust-mono text-sm text-gray-600">
+                          <p className="dust-mono text-sm text-gray-600 mb-3">
                             {formattedPrice} • {durationText}
                           </p>
+                          <Button 
+                            onClick={() => window.location.href = `/book?serviceId=${service.id}`}
+                            className="w-full"
+                          >
+                            Book Now
+                          </Button>
                         </div>
                         {index < filteredServices.length - 1 && <hr className="border-gray-200" />}
                       </div>
