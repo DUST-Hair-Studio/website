@@ -9,28 +9,38 @@ export function Navigation() {
   const { user, loading, signOut } = useAuth()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [customer, setCustomer] = useState<{ is_existing_customer: boolean; name?: string } | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
 
-  // Fetch customer data when user is available
+  // Fetch customer data and check admin status when user is available
   useEffect(() => {
-    const fetchCustomer = async () => {
+    const fetchUserData = async () => {
       if (!user) {
         setCustomer(null)
+        setIsAdmin(false)
         return
       }
 
       try {
-        const response = await fetch('/api/customer/me')
-        const data = await response.json()
+        // Fetch customer data
+        const customerResponse = await fetch('/api/customer/me')
+        const customerData = await customerResponse.json()
         
-        if (data.customer) {
-          setCustomer(data.customer)
+        if (customerData.customer) {
+          setCustomer(customerData.customer)
         }
+
+        // Check admin status
+        const adminResponse = await fetch('/api/admin/check-access')
+        const adminData = await adminResponse.json()
+        
+        setIsAdmin(adminData.isAdmin || false)
       } catch (error) {
-        console.error('Error fetching customer data:', error)
+        console.error('Error fetching user data:', error)
+        setIsAdmin(false)
       }
     }
 
-    fetchCustomer()
+    fetchUserData()
   }, [user])
 
   if (loading) {
@@ -73,6 +83,13 @@ export function Navigation() {
                 <Link href="/book">
                   <Button variant="outline">Book Appointment</Button>
                 </Link>
+                {isAdmin && (
+                  <Link href="/admin">
+                    <Button variant="outline" className="bg-gray-900 text-white hover:bg-gray-800">
+                      Admin Portal
+                    </Button>
+                  </Link>
+                )}
                 <div className="flex items-center space-x-2">
                   <span className="text-sm text-gray-700">
                     Welcome, {user?.email}
@@ -126,6 +143,15 @@ export function Navigation() {
                       Book Appointment
                     </Link>
                   )}
+                  {isAdmin && (
+                    <Link 
+                      href="/admin" 
+                      className="block px-3 py-2 text-base font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-md"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Admin Portal
+                    </Link>
+                  )}
                   <div className="px-3 py-2">
                     <div className="text-sm text-gray-700 mb-2">
                       Welcome, {customer?.name || user?.email}
@@ -137,6 +163,11 @@ export function Navigation() {
                       {customer && customer.is_existing_customer && (
                         <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
                           Existing Customer
+                        </span>
+                      )}
+                      {isAdmin && (
+                        <span className="ml-2 text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                          Admin
                         </span>
                       )}
                     </div>
