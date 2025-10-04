@@ -17,17 +17,23 @@
     --border: 0 0% 89%;
     --input: 0 0% 89%;
     --ring: 0 0% 0%;
+    
+    --black-hsl: 240 2.43902439% 16.07843137%;
+    --dust-black: #28282A;
   }
 }
 
 @layer components {
   .dust-heading {
-    font-family: Impact, "Arial Black", sans-serif;
+    font-family: "pragmatica-extended", "Helvetica Neue", Arial, sans-serif;
     font-weight: 900;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.08em;
+    text-transform: uppercase;
   }
   
   .dust-mono {
-    font-family: "Courier New", monospace;
+    font-family: "SF Mono", "Monaco", "Inconsolata", "Roboto Mono", "Courier New", monospace;
+    font-size: 0.875rem;
+    line-height: 1.5;
   }
 }
