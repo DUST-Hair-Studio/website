@@ -26,6 +26,7 @@ function BookPageContent() {
     email: '',
     phone: ''
   })
+  const [customer, setCustomer] = useState<{ is_existing_customer: boolean } | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [step, setStep] = useState(1) // 1: Service, 2: Date/Time, 3: Details, 4: Confirmation
 
@@ -69,6 +70,7 @@ function BookPageContent() {
             email: data.customer.email || '',
             phone: data.customer.phone || ''
           })
+          setCustomer(data.customer)
         }
       } catch (error) {
         console.error('Error fetching customer data:', error)
@@ -132,8 +134,8 @@ function BookPageContent() {
 
   const getPrice = () => {
     if (!selectedService) return 0
-    // You'll need to get customer type from API
-    return selectedService.new_customer_price // For now, use new customer price
+    // Use existing customer price if user is an existing customer, otherwise use new customer price
+    return customer?.is_existing_customer ? selectedService.existing_customer_price : selectedService.new_customer_price
   }
 
   const formatPrice = (price: number) => {
@@ -156,27 +158,6 @@ function BookPageContent() {
           <p className="text-gray-600">Choose your service and preferred time</p>
         </div>
 
-        {/* Step Indicator */}
-        <div className="flex justify-center mb-8">
-          <div className="flex items-center space-x-4">
-            {[1, 2, 3, 4].map((stepNumber) => (
-              <div key={stepNumber} className="flex items-center">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  step >= stepNumber 
-                    ? 'bg-black text-white' 
-                    : 'bg-gray-200 text-gray-600'
-                }`}>
-                  {stepNumber}
-                </div>
-                {stepNumber < 4 && (
-                  <div className={`w-16 h-1 mx-2 ${
-                    step > stepNumber ? 'bg-black' : 'bg-gray-200'
-                  }`} />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
 
         {/* Step 1: Service Selection */}
         {step === 1 && (
@@ -186,50 +167,90 @@ function BookPageContent() {
               <CardDescription>Choose the service you&apos;d like to book</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {services.map((service) => (
-                <div
-                  key={service.id}
-                  onClick={() => handleServiceSelect(service)}
-                  className="p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-medium text-lg">{service.name}</h3>
-                      <p className="text-gray-600 text-sm mt-1">{service.description}</p>
-                      <p className="text-gray-500 text-sm mt-2">{formatDuration(service.duration_minutes)}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium">{formatPrice(getPrice())}</p>
-                      <Button variant="outline" size="sm" className="mt-2">
-                        Select
-                      </Button>
+              {services.map((service) => {
+                // Calculate correct price for each service based on customer type
+                const servicePrice = customer?.is_existing_customer ? service.existing_customer_price : service.new_customer_price;
+                
+                return (
+                  <div
+                    key={service.id}
+                    onClick={() => handleServiceSelect(service)}
+                    className="p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-medium text-lg">{service.name}</h3>
+                        <p className="text-gray-600 text-sm mt-1">{service.description}</p>
+                        <p className="text-gray-500 text-sm mt-2">{formatDuration(service.duration_minutes)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium">{formatPrice(servicePrice)}</p>
+                        <Button variant="outline" size="sm" className="mt-2">
+                          Select
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </CardContent>
           </Card>
         )}
 
         {/* Step 2: Date & Time Selection */}
         {step === 2 && selectedService && (
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            {/* Service Information Panel */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Selected Service</CardTitle>
+                <CardDescription>Your booking details</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <h3 className="font-medium text-lg">{selectedService.name}</h3>
+                  <p className="text-gray-600 text-sm mt-1">{selectedService.description}</p>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Duration:</span>
+                    <span className="text-sm font-medium">{formatDuration(selectedService.duration_minutes)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Price:</span>
+                    <span className="text-sm font-medium">{formatPrice(getPrice())}</span>
+                  </div>
+                </div>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setStep(1)}
+                  className="w-full"
+                >
+                  Change Service
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Date Selection */}
             <Card>
               <CardHeader>
                 <CardTitle>Select Date</CardTitle>
                 <CardDescription>Choose your preferred date</CardDescription>
               </CardHeader>
-              <CardContent>
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={handleDateSelect}
-                  disabled={(date) => date < new Date()}
-                  className="rounded-md border"
-                />
+              <CardContent className="p-0">
+                <div className="w-full">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={handleDateSelect}
+                    disabled={(date) => date < new Date()}
+                    className="border-t border-b w-full"
+                  />
+                </div>
               </CardContent>
             </Card>
 
+            {/* Time Selection */}
             <Card>
               <CardHeader>
                 <CardTitle>Select Time</CardTitle>
@@ -237,7 +258,7 @@ function BookPageContent() {
               </CardHeader>
               <CardContent>
                 {selectedDate ? (
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 gap-2">
                     {['9:00 AM', '10:00 AM', '11:00 AM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM'].map((time) => (
                       <Button
                         key={time}
@@ -344,7 +365,7 @@ function BookPageContent() {
             <CardContent className="space-y-4">
               <p className="text-gray-600">
                 We&apos;ve sent you a confirmation email with all the details. 
-                You&apos;ll receive an SMS reminder 24 hours before your appointment.
+                You&apos;ll receive an email reminder 24 hours before your appointment.
               </p>
               <Button onClick={() => window.location.href = '/'}>
                 Back to Home

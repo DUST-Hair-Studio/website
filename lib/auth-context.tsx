@@ -15,10 +15,11 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
+  const [isSigningOut, setIsSigningOut] = useState(false)
 
   useEffect(() => {
     console.log('🔍 AuthContext: Starting auth setup')
+    const supabase = createClient()
     
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -33,15 +34,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('🔍 Auth state changed:', event, session?.user?.email)
         setUser(session?.user ?? null)
         setLoading(false)
+        setIsSigningOut(false)
       }
     )
 
     return () => subscription.unsubscribe()
-  }, [supabase.auth])
+  }, [])
 
   const signOut = async () => {
+    if (isSigningOut) {
+      console.log('🔍 Sign out already in progress, skipping')
+      return
+    }
+    
     console.log('🔍 Sign out called')
-    await supabase.auth.signOut()
+    setIsSigningOut(true)
+    
+    try {
+      const supabase = createClient()
+      await supabase.auth.signOut()
+    } catch (error) {
+      console.error('Error during sign out:', error)
+      setIsSigningOut(false)
+    }
   }
 
   const value = {

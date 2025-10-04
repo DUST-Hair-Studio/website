@@ -209,10 +209,16 @@ export default function Home() {
                             {service.description}
                           </p>
                           <p className="dust-mono text-sm text-gray-600 mb-3">
-                            {formattedPrice} • {durationText}
+                            {isLoggedIn ? `${formattedPrice} • ${durationText}` : durationText}
                           </p>
                           <Button 
-                            onClick={() => window.location.href = `/book?serviceId=${service.id}`}
+                            onClick={() => {
+                              if (isLoggedIn) {
+                                window.location.href = `/book?serviceId=${service.id}`
+                              } else {
+                                window.location.href = '/login'
+                              }
+                            }}
                             className="w-full"
                           >
                             Book Now

@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# Stop script for DUST Hair Studio development servers
+# Usage: ./stop
+
+echo "🛑 Stopping all development servers..."
+
+# Kill npm processes
+echo "Killing npm processes..."
+pkill -f "npm run dev" 2>/dev/null || echo "No npm dev processes found"
+
+# Kill Next.js processes
+echo "Killing Next.js processes..."
+pkill -f "next" 2>/dev/null || echo "No Next.js processes found"
+
+# Kill any processes on common development ports
+echo "Killing processes on development ports..."
+for port in 3000 3001 3002 3003 3004 3005; do
+  pid=$(lsof -ti:$port 2>/dev/null)
+  if [ ! -z "$pid" ]; then
+    echo "Killing process on port $port (PID: $pid)"
+    kill -9 $pid 2>/dev/null
+  fi
+done
+
+# Alternative method to kill any remaining Node.js dev processes
+echo "Killing any remaining Node.js development processes..."
+pkill -f "node.*dev" 2>/dev/null || echo "No Node.js dev processes found"
+
+echo "✅ All development servers stopped!"
+echo ""
+echo "Remaining Node.js processes (should only be IDE language servers):"
+ps aux | grep -E "(npm|node|next)" | grep -v grep | grep -v "Windsurf\|Cursor" || echo "None found"

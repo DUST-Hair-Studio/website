@@ -80,9 +80,6 @@ export function Navigation() {
           <div className="hidden md:flex items-center space-x-4">
             {isLoggedIn ? (
               <>
-                <Link href="/book">
-                  <Button variant="outline">Book Appointment</Button>
-                </Link>
                 {isAdmin && (
                   <Link href="/admin">
                     <Button variant="outline" className="bg-gray-900 text-white hover:bg-gray-800">
@@ -134,15 +131,6 @@ export function Navigation() {
             <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 border-t border-gray-200">
               {isLoggedIn ? (
                 <>
-                  {customer && (
-                    <Link 
-                      href="/book" 
-                      className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      Book Appointment
-                    </Link>
-                  )}
                   {isAdmin && (
                     <Link 
                       href="/admin" 

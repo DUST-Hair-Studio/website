@@ -105,7 +105,8 @@ export default function AdminLoginPage() {
 
               <Button 
                 type="submit" 
-                className="w-full" 
+                variant="ghost"
+                className="w-full text-sm font-normal px-4 py-2 border border-black rounded bg-white hover:bg-gray-50" 
                 disabled={loading}
               >
                 {loading ? 'Signing in...' : 'Sign In'}

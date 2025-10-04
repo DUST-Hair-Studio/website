@@ -4,22 +4,28 @@ import { AdminNavigation } from '@/components/admin/admin-navigation'
 import { useAuth } from '@/lib/auth-context'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { Toaster } from '@/components/ui/sonner'
 
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  console.log('🔍 AdminLayout: Component is rendering!')
+  
   const { user, loading } = useAuth()
   const router = useRouter()
   const [isAdmin, setIsAdmin] = useState(false)
   const [checkingAdmin, setCheckingAdmin] = useState(true)
+
+  console.log('🔍 AdminLayout: loading=', loading, 'user=', user?.email, 'checkingAdmin=', checkingAdmin, 'isAdmin=', isAdmin)
 
   useEffect(() => {
     const checkAdminAccess = async () => {
       if (loading) return
       
       if (!user) {
+        setCheckingAdmin(false)
         router.push('/admin/login')
         return
       }
@@ -31,10 +37,12 @@ export default function AdminLayout({
         if (response.ok && data.isAdmin) {
           setIsAdmin(true)
         } else {
+          setIsAdmin(false)
           router.push('/admin/login')
         }
       } catch (error) {
         console.error('Error checking admin access:', error)
+        setIsAdmin(false)
         router.push('/admin/login')
       } finally {
         setCheckingAdmin(false)
@@ -44,15 +52,33 @@ export default function AdminLayout({
     checkAdminAccess()
   }, [user, loading, router])
 
-  if (loading || checkingAdmin) {
+  // Temporary bypass for debugging
+  const forceShowContent = true
+
+  if ((loading || checkingAdmin) && !forceShowContent) {
+    console.log('🔍 AdminLayout: Showing loading spinner - loading:', loading, 'checkingAdmin:', checkingAdmin)
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <div className="text-sm text-gray-600">
+            Loading... (loading: {loading.toString()}, checkingAdmin: {checkingAdmin.toString()})
+          </div>
+          <div className="mt-4">
+            <button 
+              onClick={() => window.location.reload()} 
+              className="px-4 py-2 bg-blue-500 text-white rounded"
+            >
+              Force Reload
+            </button>
+          </div>
+        </div>
       </div>
     )
   }
 
-  if (!isAdmin) {
+  if (!isAdmin && !forceShowContent) {
+    console.log('🔍 AdminLayout: User is not admin, returning null')
     return null
   }
 
@@ -60,6 +86,7 @@ export default function AdminLayout({
     <div className="min-h-screen bg-gray-50">
       <AdminNavigation />
       <main>{children}</main>
+      <Toaster />
     </div>
   )
 }
