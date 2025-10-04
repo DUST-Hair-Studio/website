@@ -3,11 +3,35 @@
 import { useAuth } from '@/lib/auth-context'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export function Navigation() {
   const { user, loading, signOut } = useAuth()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [customer, setCustomer] = useState<{ is_existing_customer: boolean; name?: string } | null>(null)
+
+  // Fetch customer data when user is available
+  useEffect(() => {
+    const fetchCustomer = async () => {
+      if (!user) {
+        setCustomer(null)
+        return
+      }
+
+      try {
+        const response = await fetch('/api/customer/me')
+        const data = await response.json()
+        
+        if (data.customer) {
+          setCustomer(data.customer)
+        }
+      } catch (error) {
+        console.error('Error fetching customer data:', error)
+      }
+    }
+
+    fetchCustomer()
+  }, [user])
 
   if (loading) {
     return (
