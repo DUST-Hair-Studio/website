@@ -111,9 +111,10 @@ export function RegisterForm() {
           setSuccess(true)
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Registration error:', error)
-      if (error.message?.includes('timed out')) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      if (errorMessage.includes('timed out')) {
         setError('Connection timed out. Please check your internet connection and try again.')
       } else {
         setError('An unexpected error occurred')

@@ -15,7 +15,7 @@ export async function checkSupabaseHealth(): Promise<SupabaseHealthStatus> {
     console.log('🔍 Checking Supabase connection health...')
     
     // Simple health check - try to get the current user
-    const { data, error } = await supabase.auth.getUser()
+    const { error } = await supabase.auth.getUser()
     
     const responseTime = Date.now() - startTime
     
@@ -33,13 +33,14 @@ export async function checkSupabaseHealth(): Promise<SupabaseHealthStatus> {
       responseTime,
       projectStatus: 'Connected'
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     const responseTime = Date.now() - startTime
     console.error('❌ Supabase health check failed:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     
     return {
       isConnected: false,
-      error: error.message || 'Unknown connection error',
+      error: errorMessage || 'Unknown connection error',
       responseTime
     }
   }
@@ -53,7 +54,7 @@ export async function testSupabaseAuth(): Promise<{ success: boolean; error?: st
     
     // Test auth state change listener (this should work immediately)
     let listenerCalled = false
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       listenerCalled = true
       console.log('✅ Auth state change listener working:', event)
     })
@@ -68,11 +69,12 @@ export async function testSupabaseAuth(): Promise<{ success: boolean; error?: st
     } else {
       return { success: false, error: 'Auth state listener not responding' }
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Supabase auth test failed:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return { 
       success: false, 
-      error: error.message || 'Auth test failed' 
+      error: errorMessage || 'Auth test failed' 
     }
   }
 }
