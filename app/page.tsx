@@ -154,24 +154,37 @@ export default function Home() {
                   console.log('🔍 Homepage - customer?.is_existing_customer:', customer?.is_existing_customer)
                   console.log('🔍 Homepage - All services:', services)
                   
-                  // Filter services based on customer type and service restrictions
+                  // Filter services based on customer type restrictions
                   const filteredServices = services.filter(service => {
-                    console.log(`🔍 Service: ${service.name}, is_existing_customer_only: ${service.is_existing_customer_only}, is_new_customer_only: ${service.is_new_customer_only}`)
+                    console.log(`🔍 Service: ${service.name}, is_existing_customer: ${service.is_existing_customer}, is_new_customer: ${service.is_new_customer}`)
                     
-                    // Hide new-customer-only services for existing customers
-                    if (service.is_new_customer_only && customer?.is_existing_customer) {
-                      console.log(`❌ Hiding service: ${service.name} (new customer only, but customer is existing)`)
+                    const isExistingCustomer = customer?.is_existing_customer || false
+                    
+                    // Show service if:
+                    // 1. Available to both customer types (both flags true)
+                    // 2. Available to existing customers AND user is existing customer
+                    // 3. Available to new customers AND user is NOT existing customer
+                    
+                    const isAvailableToExisting = service.is_existing_customer
+                    const isAvailableToNew = service.is_new_customer
+                    
+                    if (isAvailableToExisting && isAvailableToNew) {
+                      // Available to both - always show
+                      console.log(`✅ Showing service: ${service.name} (available to both)`)
+                      return true
+                    } else if (isAvailableToExisting && isExistingCustomer) {
+                      // Only for existing customers and user is existing
+                      console.log(`✅ Showing service: ${service.name} (existing customer only)`)
+                      return true
+                    } else if (isAvailableToNew && !isExistingCustomer) {
+                      // Only for new customers and user is new
+                      console.log(`✅ Showing service: ${service.name} (new customer only)`)
+                      return true
+                    } else {
+                      // Not available to this customer type
+                      console.log(`❌ Hiding service: ${service.name} (not available to ${isExistingCustomer ? 'existing' : 'new'} customers)`)
                       return false
                     }
-                    
-                    // Hide existing-customer-only services for new customers
-                    if (service.is_existing_customer_only && !customer?.is_existing_customer) {
-                      console.log(`❌ Hiding service: ${service.name} (existing customer only, but customer is not existing)`)
-                      return false
-                    }
-                    
-                    console.log(`✅ Showing service: ${service.name}`)
-                    return true
                   })
                   
                   console.log('🔍 Homepage - Filtered services:', filteredServices)

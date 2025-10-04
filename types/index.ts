@@ -36,8 +36,8 @@ export interface Service {
   new_customer_price: number; // in cents
   existing_customer_price: number; // in cents
   is_active: boolean;
-  is_existing_customer_only: boolean;
-  is_new_customer_only: boolean;
+  is_existing_customer: boolean;
+  is_new_customer: boolean;
   category?: string;
   sort_order: number;
   created_at: string;

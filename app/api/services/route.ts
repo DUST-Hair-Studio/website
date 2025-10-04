@@ -16,7 +16,7 @@ export async function GET() {
     
     if (services) {
       services.forEach(service => {
-        console.log(`🔍 Service: ${service.name}, is_existing_customer_only: ${service.is_existing_customer_only}`)
+        console.log(`🔍 Service: ${service.name}, is_existing_customer: ${service.is_existing_customer}, is_new_customer: ${service.is_new_customer}`)
       })
     }
 
