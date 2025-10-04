@@ -2,18 +2,17 @@
 
 import { Navigation } from '@/components/navigation'
 import { useAuth } from '@/lib/auth-context'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { Service } from '@/types'
 import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Calendar } from '@/components/ui/calendar'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
-export default function BookPage() {
-  const { user, loading } = useAuth()
+function BookPageContent() {
+  const { user } = useAuth()
   const searchParams = useSearchParams()
   const serviceId = searchParams.get('serviceId')
   
@@ -133,7 +132,6 @@ export default function BookPage() {
 
   const getPrice = () => {
     if (!selectedService) return 0
-    const isLoggedIn = !!user
     // You'll need to get customer type from API
     return selectedService.new_customer_price // For now, use new customer price
   }
@@ -185,7 +183,7 @@ export default function BookPage() {
           <Card className="max-w-2xl mx-auto">
             <CardHeader>
               <CardTitle>Select a Service</CardTitle>
-              <CardDescription>Choose the service you'd like to book</CardDescription>
+              <CardDescription>Choose the service you&apos;d like to book</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {services.map((service) => (
@@ -345,8 +343,8 @@ export default function BookPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-gray-600">
-                We've sent you a confirmation email with all the details. 
-                You'll receive an SMS reminder 24 hours before your appointment.
+                We&apos;ve sent you a confirmation email with all the details. 
+                You&apos;ll receive an SMS reminder 24 hours before your appointment.
               </p>
               <Button onClick={() => window.location.href = '/'}>
                 Back to Home
@@ -356,5 +354,13 @@ export default function BookPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function BookPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <BookPageContent />
+    </Suspense>
   )
 }

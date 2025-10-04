@@ -3,15 +3,15 @@ import { createServerSupabaseClient } from '@/lib/supabase-server'
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createServerSupabaseClient()
-    const { id } = params
+    const { id } = await params
     const body = await request.json()
     const { status, admin_notes } = body
 
-    const updateData: any = {
+    const updateData: { updated_at: string; status?: string; admin_notes?: string } = {
       updated_at: new Date().toISOString()
     }
 
@@ -45,11 +45,11 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createServerSupabaseClient()
-    const { id } = params
+    const { id } = await params
 
     const { error } = await supabase
       .from('bookings')

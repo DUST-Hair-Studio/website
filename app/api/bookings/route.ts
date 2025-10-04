@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // Create new customer or find existing one
-      const { data: existingCustomer, error: findError } = await supabase
+      const { data: existingCustomer } = await supabase
         .from('customers')
         .select('id')
         .eq('email', customerInfo.email)
@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const supabase = await createServerSupabaseClient()
     

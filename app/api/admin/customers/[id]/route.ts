@@ -3,11 +3,11 @@ import { createServerSupabaseClient } from '@/lib/supabase-server'
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createServerSupabaseClient()
-    const { id } = params
+    const { id } = await params
     const body = await request.json()
     const { is_existing_customer } = body
 
