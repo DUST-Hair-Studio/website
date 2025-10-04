@@ -22,7 +22,7 @@ export function LoginForm() {
     setError('')
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
@@ -33,7 +33,8 @@ export function LoginForm() {
         // Login successful - let the auth context handle the redirect
         router.push('/')
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      console.error('Login error:', error)
       setError('An unexpected error occurred')
     } finally {
       setLoading(false)

@@ -12,7 +12,7 @@ export default function Home() {
   const { user, loading } = useAuth()
   const [services, setServices] = useState<Service[]>([])
   const [servicesLoading, setServicesLoading] = useState(true)
-  const [customer, setCustomer] = useState<any>(null)
+  const [customer, setCustomer] = useState<{ is_existing_customer: boolean } | null>(null)
 
   // Fetch customer data when user is available
   useEffect(() => {

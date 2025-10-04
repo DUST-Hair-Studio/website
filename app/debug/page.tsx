@@ -15,7 +15,7 @@ export default function DebugPage() {
         
         <div className="text-center text-sm text-gray-500">
           <p>
-            If you're experiencing hanging issues, check the console logs and 
+            If you&apos;re experiencing hanging issues, check the console logs and 
             run the diagnostics above to identify the problem.
           </p>
         </div>
