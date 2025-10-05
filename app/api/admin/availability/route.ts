@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminSupabaseClient } from '@/lib/supabase-server'
 import { GoogleCalendarService } from '@/lib/google-calendar'
+import { generateAvailableSlots } from '@/lib/schedule-utils'
 
 // GET available time slots for a given date range
 export async function GET(request: NextRequest) {
   try {
     const supabase = createAdminSupabaseClient()
     const { searchParams } = new URL(request.url)
-    const startDate = searchParams.get('start_date')
-    const endDate = searchParams.get('end_date')
-    const duration = parseInt(searchParams.get('duration') || '60')
+    const startDate = searchParams.get('startDate') || searchParams.get('start_date')
+    const endDate = searchParams.get('endDate') || searchParams.get('end_date')
+    const duration = parseInt(searchParams.get('serviceDuration') || searchParams.get('duration') || '60')
 
     if (!startDate || !endDate) {
       return NextResponse.json({ error: 'start_date and end_date are required' }, { status: 400 })
@@ -47,14 +48,18 @@ export async function GET(request: NextRequest) {
 
     const businessHours = DAYS.map(day => {
       const dayData = businessHoursData[day.name] || {}
-      return {
+      const hours = {
         day_of_week: day.value,
         is_open: dayData.is_open || false,
         open_time: dayData.start || '',
         close_time: dayData.end || '',
         timezone: timezone
       }
+      console.log(`Day ${day.name} (${day.value}):`, dayData, '→', hours)
+      return hours
     }).filter(hours => hours.is_open)
+    
+    console.log('Filtered business hours (open days only):', businessHours)
 
     // Get existing bookings in the date range
     const { data: bookings, error: bookingsError } = await supabase
@@ -84,15 +89,36 @@ export async function GET(request: NextRequest) {
       // Continue without blocked time if calendar sync fails
     }
 
+    // Transform bookings to the correct format for generateAvailableSlots
+    const transformedBookings = bookings.map(b => ({
+      date: b.booking_date,
+      start_time: b.booking_time,
+      duration_minutes: (b.services as Array<{ duration_minutes: number }>)?.[0]?.duration_minutes || 0
+    }))
+
+    // Debug logging
+    console.log('Availability API Debug:', {
+      startDate,
+      endDate,
+      duration,
+      businessHoursCount: businessHours.length,
+      businessHours,
+      bookingsCount: transformedBookings.length,
+      blockedTimeSlotsCount: blockedTimeSlots.length
+    })
+
     // Generate available time slots
     const availableSlots = generateAvailableSlots(
       startDate,
       endDate,
       businessHours,
-      bookings,
+      transformedBookings,
       blockedTimeSlots,
       duration
     )
+
+    console.log('Generated available slots:', availableSlots)
+    console.log('Final response:', { availableSlots })
 
     return NextResponse.json({ availableSlots })
   } catch (error) {
@@ -101,93 +127,3 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function generateAvailableSlots(
-  startDate: string,
-  endDate: string,
-  businessHours: Array<{ day_of_week: number; open_time: string; close_time: string; timezone: string }>,
-  bookings: Array<{ booking_date: string; booking_time: string; services: { duration_minutes: number }[] | null }>,
-  blockedTimeSlots: Array<{ date: string; start_time: string; end_time: string }>,
-  duration: number
-): Array<{ date: string; time: string; available: boolean }> {
-  const slots: Array<{ date: string; time: string; available: boolean }> = []
-  
-  const start = new Date(startDate)
-  const end = new Date(endDate)
-  
-  // Create a map of business hours by day
-  const hoursMap = businessHours.reduce((acc, hours) => {
-    acc[hours.day_of_week] = {
-      open_time: hours.open_time,
-      close_time: hours.close_time,
-      timezone: hours.timezone || 'America/Los_Angeles'
-    }
-    return acc
-  }, {} as Record<number, { open_time: string; close_time: string; timezone: string }>)
-
-  // Create a map of existing bookings by date and time
-  const bookingsMap = bookings.reduce((acc, booking) => {
-    const key = `${booking.booking_date}_${booking.booking_time}`
-    acc[key] = booking.services?.[0]?.duration_minutes || 60
-    return acc
-  }, {} as Record<string, number>)
-
-  // Generate slots for each day in the range
-  for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
-    const dayOfWeek = date.getDay() // 0 = Sunday, 1 = Monday, etc.
-    const hours = hoursMap[dayOfWeek]
-    
-    if (!hours) continue // Skip days when not open
-    
-    const dateStr = date.toISOString().split('T')[0]
-    
-    // Generate 30-minute slots between open and close times
-    const openTime = parseTime(hours.open_time)
-    const closeTime = parseTime(hours.close_time)
-    
-    for (let time = new Date(openTime); time < closeTime; time.setMinutes(time.getMinutes() + 30)) {
-      const timeStr = time.toTimeString().slice(0, 5)
-      // Check if this slot conflicts with existing bookings
-      const hasConflict = Object.keys(bookingsMap).some(bookingKey => {
-        const [bookingDate, bookingTime] = bookingKey.split('_')
-        if (bookingDate !== dateStr) return false
-        
-        const bookingStart = parseTime(bookingTime)
-        const bookingDuration = bookingsMap[bookingKey]
-        const bookingEnd = new Date(bookingStart.getTime() + bookingDuration * 60000)
-        
-        const slotStart = parseTime(timeStr)
-        const slotEnd = new Date(slotStart.getTime() + duration * 60000)
-        
-        // Check for overlap
-        return (slotStart < bookingEnd && slotEnd > bookingStart)
-      })
-      
-      // Check if this slot conflicts with blocked time
-      const hasBlockedTime = blockedTimeSlots.some(blocked => {
-        if (blocked.date !== dateStr) return false
-        
-        const blockedStart = parseTime(blocked.start_time)
-        const blockedEnd = parseTime(blocked.end_time)
-        const slotStart = parseTime(timeStr)
-        const slotEnd = new Date(slotStart.getTime() + duration * 60000)
-        
-        return (slotStart < blockedEnd && slotEnd > blockedStart)
-      })
-      
-      slots.push({
-        date: dateStr,
-        time: timeStr,
-        available: !hasConflict && !hasBlockedTime
-      })
-    }
-  }
-  
-  return slots
-}
-
-function parseTime(timeStr: string): Date {
-  const [hours, minutes] = timeStr.split(':').map(Number)
-  const date = new Date()
-  date.setHours(hours, minutes, 0, 0)
-  return date
-}

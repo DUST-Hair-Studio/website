@@ -28,6 +28,9 @@ function BookPageContent() {
   })
   const [customer, setCustomer] = useState<{ is_existing_customer: boolean } | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [availableTimes, setAvailableTimes] = useState<string[]>([])
+  const [loadingTimes, setLoadingTimes] = useState(false)
+  const [businessHours, setBusinessHours] = useState<{day_of_week: number; is_open: boolean; open_time: string; close_time: string; timezone: string}[]>([])
   const [step, setStep] = useState(1) // 1: Service, 2: Date/Time, 3: Details, 4: Confirmation
 
   // Fetch services
@@ -80,14 +83,97 @@ function BookPageContent() {
     fetchCustomer()
   }, [user])
 
+  // Fetch business hours
+  useEffect(() => {
+    const fetchBusinessHours = async () => {
+      try {
+        const response = await fetch('/api/admin/business-hours')
+        if (response.ok) {
+          const data = await response.json()
+          console.log('Business hours loaded:', data.businessHours)
+          setBusinessHours(data.businessHours || [])
+        }
+      } catch (error) {
+        console.error('Error fetching business hours:', error)
+      }
+    }
+
+    fetchBusinessHours()
+  }, [])
+
   const handleServiceSelect = (service: Service) => {
     setSelectedService(service)
     setStep(2)
+    
+    // If a date is already selected, fetch available times for this service
+    if (selectedDate) {
+      fetchAvailableTimes(selectedDate)
+    }
+  }
+
+  const isBusinessDay = (date: Date) => {
+    // If business hours haven't loaded yet, allow all dates temporarily
+    if (businessHours.length === 0) {
+      return true
+    }
+    
+    const dayOfWeek = date.getDay() // 0 = Sunday, 1 = Monday, etc.
+    const dayHours = businessHours.find(hours => hours.day_of_week === dayOfWeek)
+    const isOpen = dayHours && dayHours.is_open
+    
+    // console.log(`Date: ${date.toDateString()}, Day: ${dayOfWeek}, IsOpen: ${isOpen}`)
+    return isOpen
   }
 
   const handleDateSelect = (date: Date | undefined) => {
+    // Only allow selection of business days
+    if (date && !isBusinessDay(date)) {
+      console.log('Selected date is not a business day, ignoring selection')
+      return
+    }
+    
     setSelectedDate(date)
     setSelectedTime('') // Reset time when date changes
+    
+    // Fetch available times when date is selected
+    if (date && selectedService) {
+      fetchAvailableTimes(date)
+    }
+  }
+
+  const fetchAvailableTimes = async (date: Date) => {
+    console.log('fetchAvailableTimes called with:', { date, selectedService })
+    if (!selectedService) {
+      console.log('No selected service, returning early')
+      return
+    }
+    
+    setLoadingTimes(true)
+    try {
+      const dateStr = date.toISOString().split('T')[0] // Format as YYYY-MM-DD
+      const url = `/api/admin/availability?startDate=${dateStr}&endDate=${dateStr}&serviceDuration=${selectedService.duration_minutes}`
+      console.log('Fetching availability from:', url)
+      const response = await fetch(url)
+      
+      if (response.ok) {
+        const data = await response.json() as { availableSlots: string[] }
+        console.log('Available slots data:', data.availableSlots)
+        
+        // Ensure we have an array of strings and remove duplicates
+        const slots = data.availableSlots || []
+        const uniqueSlots = [...new Set(slots)]
+        
+        setAvailableTimes(uniqueSlots)
+      } else {
+        console.error('Failed to fetch available times')
+        setAvailableTimes([])
+      }
+    } catch (error) {
+      console.error('Error fetching available times:', error)
+      setAvailableTimes([])
+    } finally {
+      setLoadingTimes(false)
+    }
   }
 
   const handleTimeSelect = (time: string) => {
@@ -124,6 +210,8 @@ function BookPageContent() {
         setStep(4)
       } else {
         console.error('Booking failed:', result.error)
+        console.error('Error details:', result.details)
+        console.error('Error code:', result.code)
       }
     } catch (error) {
       console.error('Error creating booking:', error)
@@ -243,7 +331,7 @@ function BookPageContent() {
                     mode="single"
                     selected={selectedDate}
                     onSelect={handleDateSelect}
-                    disabled={(date) => date < new Date()}
+                    disabled={(date) => date < new Date() || !isBusinessDay(date)}
                     className="border-t border-b w-full"
                   />
                 </div>
@@ -259,16 +347,22 @@ function BookPageContent() {
               <CardContent>
                 {selectedDate ? (
                   <div className="grid grid-cols-1 gap-2">
-                    {['9:00 AM', '10:00 AM', '11:00 AM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM'].map((time) => (
-                      <Button
-                        key={time}
-                        variant={selectedTime === time ? "default" : "outline"}
-                        onClick={() => handleTimeSelect(time)}
-                        className="w-full"
-                      >
-                        {time}
-                      </Button>
-                    ))}
+                    {loadingTimes ? (
+                      <p className="text-gray-500 text-center py-4">Loading available times...</p>
+                    ) : availableTimes.length > 0 ? (
+                      availableTimes.map((time, index) => (
+                        <Button
+                          key={`${time}-${index}`}
+                          variant={selectedTime === time ? "default" : "outline"}
+                          onClick={() => handleTimeSelect(time)}
+                          className="w-full"
+                        >
+                          {time}
+                        </Button>
+                      ))
+                    ) : (
+                      <p className="text-gray-500 text-center py-4">No available times for this date</p>
+                    )}
                   </div>
                 ) : (
                   <p className="text-gray-500">Please select a date first</p>

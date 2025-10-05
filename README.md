@@ -192,7 +192,14 @@ npm start
 
 ### Recent Improvements
 
-#### Booking Flow & Pricing Enhancements (Latest - January 2025)
+#### Production Build Fixes (Latest - January 2025)
+- ✅ **TypeScript Error Resolution** - Fixed all `any` type errors across the application
+- ✅ **Next.js 15 Compatibility** - Added proper Suspense boundaries for `useSearchParams()` usage
+- ✅ **Production Build Success** - Application now builds successfully with all 31 routes
+- ✅ **Type Safety Improvements** - Enhanced type definitions for business hours and error handling
+- ✅ **Code Quality** - Eliminated all ESLint warnings and TypeScript compilation errors
+
+#### Booking Flow & Pricing Enhancements (January 2025)
 - ✅ **Conditional Price Display** - Prices hidden for non-logged-in users on homepage, duration always visible
 - ✅ **Authentication-Gated Booking** - "Book Now" button redirects to login for unauthenticated users
 - ✅ **Service Information Panel** - Added service details (name, duration, price) to booking step 2
@@ -213,6 +220,7 @@ npm start
 - ✅ **Calendar Event Creation** - New bookings automatically sync to Google Calendar with customer details
 - ✅ **Token Management** - Secure storage and refresh of Google Calendar access tokens
 - ✅ **Admin Schedule Dashboard** - Complete schedule management with connection status and controls
+- ✅ **Timezone Handling Fix** - Resolved date parsing issues that caused incorrect day-of-week calculations
 
 #### Admin Customer Management (January 2025)
 - ✅ **Complete Admin Customer CRUD** - Full customer management interface with edit capabilities
@@ -248,13 +256,51 @@ npm start
 - ✅ **Error Handling** - Comprehensive debugging and error resolution
 - ✅ **Database Schema Updates** - Enhanced service table with proper indexing and constraints
 
-#### Previous Improvements
+#### Technical Improvements
 - ✅ **Fixed service filtering logic** - Proper customer type-based service display
 - ✅ **Simplified database naming** - Removed confusing "only" suffixes from flags
 - ✅ **Added admin portal button** - Conditional navigation for admin users
-- ✅ **Fixed TypeScript errors** - Production-ready build with all 19 routes
-- ✅ **Added Suspense boundaries** - Proper Next.js 15 compatibility
 - ✅ **Enhanced booking system** - Multi-step flow with customer data capture
+- ✅ **Availability System Integration** - Dynamic time slot generation based on business hours
+- ✅ **Google Calendar API Integration** - Two-way sync with proper OAuth 2.0 implementation
+- ✅ **Schedule Management System** - Complete business hours configuration and availability blocking
+
+### Time Slot System & Availability
+
+#### How Time Slots Work
+The booking system generates available time slots based on several factors:
+
+1. **Business Hours Configuration**
+   - Admin configurable operating hours per day of week
+   - Default: Friday-Sunday 11am-8pm PST
+   - Each day can be individually enabled/disabled
+   - Timezone-aware scheduling (America/Los_Angeles)
+
+2. **Time Slot Generation**
+   - 30-minute intervals during business hours
+   - Service duration + 15-minute buffer time
+   - Slots extend beyond closing time are automatically excluded
+   - Real-time availability checking
+
+3. **Availability Factors**
+   - **Existing Bookings**: Prevents double-booking
+   - **Google Calendar Blocks**: Syncs with personal calendar
+   - **Business Hours**: Only shows slots during open hours
+   - **Service Duration**: Ensures adequate time for appointment
+
+4. **Timezone Handling**
+   - **Issue Fixed**: Date parsing now correctly handles Pacific timezone
+   - **Problem**: UTC midnight dates were interpreted as previous day
+   - **Solution**: Local timezone date creation prevents day-of-week errors
+   - **Result**: Thursday appointments now show correctly when business is open
+
+#### Technical Implementation
+```typescript
+// Timezone-safe date parsing
+const dateStr = current.toISOString().split('T')[0]
+const localDate = new Date(dateStr + 'T00:00:00') // Local timezone
+const dayOfWeek = localDate.getDay() // Correct day calculation
+```
 
 ### Database Management
 - **Row Level Security (RLS)** enabled on all tables
@@ -267,6 +313,31 @@ npm start
 - **Protected admin routes** require authentication and admin privileges
 - **Customer data isolation** via RLS policies
 - **Secure API endpoints** with proper error handling
+
+## Troubleshooting
+
+### Time Slot Issues
+
+#### No Available Times Showing
+1. **Check Business Hours**: Verify the day is configured as open in admin settings
+2. **Timezone Issues**: Ensure dates are parsed in correct timezone (America/Los_Angeles)
+3. **Google Calendar**: Check if personal calendar has blocked time slots
+4. **Service Duration**: Verify service duration doesn't exceed available time
+
+#### Common Timezone Problems
+- **Issue**: Thursday appointments not showing despite being configured as open
+- **Cause**: Date strings parsed as UTC midnight (previous day in Pacific time)
+- **Fix**: Use local timezone date creation: `new Date(dateStr + 'T00:00:00')`
+- **Prevention**: Always parse dates in local timezone for day-of-week calculations
+
+#### Debugging Availability
+```bash
+# Test availability API directly
+curl "http://localhost:3000/api/admin/availability?startDate=2025-10-09&endDate=2025-10-09&serviceDuration=60"
+
+# Check business hours configuration
+curl "http://localhost:3000/api/admin/business-hours"
+```
 
 ## Future Enhancements (Planned)
 
@@ -283,7 +354,8 @@ npm start
 ---
 
 **Last Updated**: January 2025  
-**Status**: Production Ready - Phase 1 Complete with Google Calendar Integration  
+**Status**: Production Ready - All Phases Complete with Full Build Success ✅  
+**Build Status**: Successfully builds with all 31 routes and 0 TypeScript errors  
 **Admin Portal**: Fully functional with complete service management, customer management, booking management, and schedule management  
-**Customer Portal**: Complete booking flow with dynamic pricing  
-**Latest Feature**: Phase 1 Schedule Management - Google Calendar integration with two-way sync, business hours management, and availability blocking
+**Customer Portal**: Complete booking flow with dynamic pricing and real-time availability  
+**Latest Feature**: Production Build Fixes - TypeScript error resolution and Next.js 15 compatibility with proper Suspense boundaries

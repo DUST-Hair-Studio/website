@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -36,7 +36,7 @@ const DAYS = [
   { value: 6, name: 'Saturday' }
 ]
 
-export default function AdminSchedulePage() {
+function AdminScheduleContent() {
   const searchParams = useSearchParams()
   const [businessHours, setBusinessHours] = useState<BusinessHours[]>([])
   const [loading, setLoading] = useState(true)
@@ -128,9 +128,9 @@ export default function AdminSchedulePage() {
 
           // Clean up URL parameters
           window.history.replaceState({}, document.title, window.location.pathname)
-        } catch (err: any) {
+        } catch (err: unknown) {
           console.error('Error during Google Calendar callback:', err)
-          toast.error(err.message || 'Failed to connect Google Calendar')
+          toast.error(err instanceof Error ? err.message : 'Failed to connect Google Calendar')
         }
       }
     }
@@ -411,5 +411,13 @@ export default function AdminSchedulePage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function AdminSchedulePage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AdminScheduleContent />
+    </Suspense>
   )
 }

@@ -1,11 +1,11 @@
 "use client"
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2, CheckCircle, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
 
-export default function GoogleCalendarCallback() {
+function GoogleCalendarCallbackContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
@@ -117,5 +117,13 @@ export default function GoogleCalendarCallback() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function GoogleCalendarCallback() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <GoogleCalendarCallbackContent />
+    </Suspense>
   )
 }

@@ -25,8 +25,7 @@ interface BookingData {
     duration_minutes: number
   }
   customers: {
-    first_name: string
-    last_name: string
+    name: string
     email: string
     phone: string
   }
@@ -135,7 +134,7 @@ export class GoogleCalendarService {
 
       const event: GoogleCalendarEvent = {
         id: '', // Google will assign this
-        summary: `${booking.services.name} - ${booking.customers.first_name} ${booking.customers.last_name}`,
+        summary: `${booking.services.name} - ${booking.customers.name}`,
         start: {
           dateTime: startDateTime.toISOString(),
           timeZone: 'America/Los_Angeles'
@@ -144,7 +143,7 @@ export class GoogleCalendarService {
           dateTime: endDateTime.toISOString(),
           timeZone: 'America/Los_Angeles'
         },
-        description: `Customer: ${booking.customers.first_name} ${booking.customers.last_name}
+        description: `Customer: ${booking.customers.name}
 Email: ${booking.customers.email}
 Phone: ${booking.customers.phone}
 Service: ${booking.services.name}

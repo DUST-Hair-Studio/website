@@ -153,8 +153,7 @@ export async function POST(request: NextRequest) {
           duration_minutes
         ),
         customers (
-          first_name,
-          last_name,
+          name,
           email,
           phone
         )
@@ -163,7 +162,12 @@ export async function POST(request: NextRequest) {
 
     if (bookingError) {
       console.error('Booking creation error:', bookingError)
-      return NextResponse.json({ error: 'Failed to create booking' }, { status: 500 })
+      console.error('Booking data that failed:', bookingData)
+      return NextResponse.json({ 
+        error: 'Failed to create booking', 
+        details: bookingError.message,
+        code: bookingError.code 
+      }, { status: 500 })
     }
 
     // Create Google Calendar event if connected
