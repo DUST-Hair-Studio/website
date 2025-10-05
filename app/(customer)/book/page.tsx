@@ -4,7 +4,7 @@ import { Navigation } from '@/components/navigation'
 import { useAuth } from '@/lib/auth-context'
 import { useState, useEffect, Suspense } from 'react'
 import { Service } from '@/types'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Calendar } from '@/components/ui/calendar'
@@ -12,8 +12,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 function BookPageContent() {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
   const searchParams = useSearchParams()
+  const router = useRouter()
   const serviceId = searchParams.get('serviceId')
   
   const [selectedService, setSelectedService] = useState<Service | null>(null)
@@ -32,6 +33,14 @@ function BookPageContent() {
   const [loadingTimes, setLoadingTimes] = useState(false)
   const [businessHours, setBusinessHours] = useState<{day_of_week: number; is_open: boolean; open_time: string; close_time: string; timezone: string}[]>([])
   const [step, setStep] = useState(1) // 1: Service, 2: Date/Time, 3: Details, 4: Confirmation
+
+  // Handle authentication state changes - MUST be before other useEffects
+  useEffect(() => {
+    if (!loading && !user) {
+      // User is not authenticated, redirect to login
+      router.push('/login')
+    }
+  }, [user, loading, router])
 
   // Fetch services
   useEffect(() => {
@@ -91,6 +100,7 @@ function BookPageContent() {
         if (response.ok) {
           const data = await response.json()
           console.log('Business hours loaded:', data.businessHours)
+          console.log('Open days:', data.businessHours?.filter((h: { is_open: boolean }) => h.is_open))
           setBusinessHours(data.businessHours || [])
         }
       } catch (error) {
@@ -121,7 +131,7 @@ function BookPageContent() {
     const dayHours = businessHours.find(hours => hours.day_of_week === dayOfWeek)
     const isOpen = dayHours && dayHours.is_open
     
-    // console.log(`Date: ${date.toDateString()}, Day: ${dayOfWeek}, IsOpen: ${isOpen}`)
+    console.log(`Date: ${date.toDateString()}, Day: ${dayOfWeek}, IsOpen: ${isOpen}`)
     return isOpen
   }
 
@@ -150,7 +160,11 @@ function BookPageContent() {
     
     setLoadingTimes(true)
     try {
-      const dateStr = date.toISOString().split('T')[0] // Format as YYYY-MM-DD
+      // Format date as YYYY-MM-DD in local timezone to avoid UTC conversion issues
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const dateStr = `${year}-${month}-${day}`
       const url = `/api/admin/availability?startDate=${dateStr}&endDate=${dateStr}&serviceDuration=${selectedService.duration_minutes}`
       console.log('Fetching availability from:', url)
       const response = await fetch(url)
@@ -188,11 +202,24 @@ function BookPageContent() {
   const handleSubmit = async () => {
     if (!selectedService || !selectedDate || !selectedTime) return
 
+    // Check if user is still authenticated before submitting
+    if (!user) {
+      alert('You have been signed out. Please sign in again to complete your booking.')
+      router.push('/login')
+      return
+    }
+
     setIsSubmitting(true)
     try {
+      // Format date as YYYY-MM-DD in local timezone to avoid UTC conversion issues
+      const year = selectedDate.getFullYear()
+      const month = String(selectedDate.getMonth() + 1).padStart(2, '0')
+      const day = String(selectedDate.getDate()).padStart(2, '0')
+      const dateStr = `${year}-${month}-${day}`
+
       const bookingData = {
         serviceId: selectedService.id,
-        date: selectedDate.toISOString().split('T')[0],
+        date: dateStr,
         time: selectedTime,
         customerInfo,
         isLoggedIn: !!user
@@ -234,6 +261,37 @@ function BookPageContent() {
     const hours = Math.floor(minutes / 60)
     const mins = minutes % 60
     return hours > 0 ? `${hours} hr${mins > 0 ? ` ${mins} min` : ''}` : `${mins} min`
+  }
+
+  // Show loading while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // If not authenticated, show a message and redirect
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-6">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <h2 className="text-lg font-semibold text-red-800 mb-2">Session Expired</h2>
+            <p className="text-red-600 mb-4">
+              You have been signed out. Please sign in again to continue with your booking.
+            </p>
+            <Button onClick={() => router.push('/login')} className="bg-red-600 hover:bg-red-700">
+              Sign In Again
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

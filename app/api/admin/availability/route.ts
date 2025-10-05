@@ -64,10 +64,17 @@ export async function GET(request: NextRequest) {
     // Get existing bookings in the date range
     const { data: bookings, error: bookingsError } = await supabase
       .from('bookings')
-      .select('booking_date, booking_time, services(duration_minutes)')
+      .select('booking_date, booking_time, duration_minutes')
       .gte('booking_date', startDate)
       .lte('booking_date', endDate)
       .in('status', ['pending', 'confirmed'])
+
+    console.log('Availability API - Bookings query:', {
+      startDate,
+      endDate,
+      bookingsFound: bookings?.length || 0,
+      bookings: bookings
+    })
 
     if (bookingsError) {
       console.error('Error fetching bookings:', bookingsError)
@@ -93,8 +100,10 @@ export async function GET(request: NextRequest) {
     const transformedBookings = bookings.map(b => ({
       date: b.booking_date,
       start_time: b.booking_time,
-      duration_minutes: (b.services as Array<{ duration_minutes: number }>)?.[0]?.duration_minutes || 0
+      duration_minutes: b.duration_minutes || 0
     }))
+
+    console.log('Transformed bookings:', transformedBookings)
 
     // Debug logging
     console.log('Availability API Debug:', {

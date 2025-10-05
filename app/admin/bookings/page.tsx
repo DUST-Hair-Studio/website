@@ -8,22 +8,15 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { CardHeader, CardTitle } from '@/components/ui/card'
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { Calendar } from '@/components/ui/calendar'
 
 interface BookingWithDetails extends Booking {
   services: {
     name: string;
     description: string;
     duration_minutes: number;
-  };
+  } | null;
   customers: {
-    first_name: string;
-    last_name: string;
+    name: string;
     email: string;
     phone: string;
     is_existing_customer: boolean;
@@ -37,6 +30,8 @@ export default function AdminBookingsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [selectedBooking, setSelectedBooking] = useState<BookingWithDetails | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [bookingToDelete, setBookingToDelete] = useState<string | null>(null)
 
   // Fetch all bookings
   useEffect(() => {
@@ -58,10 +53,9 @@ export default function AdminBookingsPage() {
   // Filter bookings
   const filteredBookings = bookings.filter(booking => {
     const matchesSearch = 
-      booking.customers.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.customers.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      booking.customers.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       booking.customers.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.services.name.toLowerCase().includes(searchTerm.toLowerCase())
+      (booking.services?.name || '').toLowerCase().includes(searchTerm.toLowerCase())
     
     const matchesStatus = statusFilter === 'all' || booking.status === statusFilter
 
@@ -90,31 +84,23 @@ export default function AdminBookingsPage() {
     }
   }
 
-  const handleCustomerTypeToggle = async (customerId: string, isExisting: boolean) => {
+
+
+  const handleDeleteBooking = async (bookingId: string) => {
     try {
-      const response = await fetch(`/api/admin/customers/${customerId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_existing_customer: !isExisting })
+      const response = await fetch(`/api/admin/bookings/${bookingId}`, {
+        method: 'DELETE',
       })
 
       if (response.ok) {
-        setBookings(prev => 
-          prev.map(booking => 
-            booking.customer_id === customerId 
-              ? { 
-                  ...booking, 
-                  customers: { 
-                    ...booking.customers, 
-                    is_existing_customer: !isExisting 
-                  } 
-                }
-              : booking
-          )
-        )
+        // Remove the booking from the local state
+        setBookings(prev => prev.filter(booking => booking.id !== bookingId))
+        setShowDeleteConfirm(false)
+        setBookingToDelete(null)
+        setSelectedBooking(null) // Close the modal if it's open
       }
     } catch (error) {
-      console.error('Error updating customer type:', error)
+      console.error('Error deleting booking:', error)
     }
   }
 
@@ -133,9 +119,55 @@ export default function AdminBookingsPage() {
     return price === 0 ? "Free" : `$${(price / 100).toFixed(2)}`
   }
 
+  const formatTime = (time: string) => {
+    const timeOptions: Intl.DateTimeFormatOptions = {
+      timeZone: 'America/Los_Angeles',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    }
+    
+    // Convert time string to PST format
+    const [hours, minutes] = time.split(':')
+    const timeInPST = new Date()
+    timeInPST.setHours(parseInt(hours), parseInt(minutes), 0, 0)
+    const formattedTime = timeInPST.toLocaleTimeString('en-US', timeOptions)
+    
+    return `${formattedTime} PST`
+  }
+
   const formatDateTime = (date: string, time: string) => {
-    const bookingDate = new Date(date)
-    return `${bookingDate.toLocaleDateString()} at ${time}`
+    // Treat the date string as local time, not UTC
+    const bookingDate = new Date(date + 'T00:00:00')
+    const formattedDate = bookingDate.toLocaleDateString('en-US', { 
+      weekday: 'short', 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric',
+      timeZone: 'America/Los_Angeles'
+    })
+    
+    return `${formattedDate} at ${formatTime(time)}`
+  }
+
+  const formatDate = (date: string) => {
+    // Treat the date string as local time, not UTC
+    const bookingDate = new Date(date + 'T00:00:00')
+    return bookingDate.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      timeZone: 'America/Los_Angeles'
+    })
+  }
+
+  const isUpcoming = (date: string) => {
+    // Treat the date string as local time, not UTC
+    const bookingDate = new Date(date + 'T00:00:00')
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return bookingDate >= today
   }
 
   if (loading) {
@@ -158,6 +190,34 @@ export default function AdminBookingsPage() {
         <div className="text-sm text-gray-500">
           Total: {bookings.length} bookings
         </div>
+      </div>
+
+      {/* Summary Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-blue-600">{bookings.filter(b => b.status === 'pending').length}</div>
+            <div className="text-sm text-gray-600">Pending</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-green-600">{bookings.filter(b => b.status === 'confirmed').length}</div>
+            <div className="text-sm text-gray-600">Confirmed</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-purple-600">{bookings.filter(b => b.status === 'completed').length}</div>
+            <div className="text-sm text-gray-600">Completed</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-orange-600">{bookings.filter(b => isUpcoming(b.booking_date)).length}</div>
+            <div className="text-sm text-gray-600">Upcoming</div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filters */}
@@ -200,13 +260,13 @@ export default function AdminBookingsPage() {
           </Card>
         ) : (
           filteredBookings.map((booking) => (
-            <Card key={booking.id} className="hover:shadow-md transition-shadow">
+            <Card key={booking.id} className={`hover:shadow-md transition-shadow ${isUpcoming(booking.booking_date) ? 'border-l-4 border-l-blue-500' : ''}`}>
               <CardContent className="p-4">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="font-medium text-lg">
-                        {booking.customers.first_name} {booking.customers.last_name}
+                        {booking.customers.name}
                       </h3>
                       <Badge className={getStatusColor(booking.status)}>
                         {booking.status}
@@ -219,7 +279,7 @@ export default function AdminBookingsPage() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600">
                       <div>
                         <p className="font-medium">Service</p>
-                        <p>{booking.services.name}</p>
+                        <p>{booking.services?.name || 'Service not found'}</p>
                       </div>
                       <div>
                         <p className="font-medium">Date & Time</p>
@@ -258,7 +318,7 @@ export default function AdminBookingsPage() {
                         <DialogHeader>
                           <DialogTitle>Booking Details</DialogTitle>
                           <DialogDescription>
-                            {booking.customers.first_name} {booking.customers.last_name} - {booking.services.name}
+                            {booking.customers.name} - {booking.services?.name || 'Service not found'}
                           </DialogDescription>
                         </DialogHeader>
                         
@@ -268,7 +328,7 @@ export default function AdminBookingsPage() {
                             <h4 className="font-medium mb-2">Customer Information</h4>
                             <div className="grid grid-cols-2 gap-4 text-sm">
                               <div>
-                                <p><strong>Name:</strong> {booking.customers.first_name} {booking.customers.last_name}</p>
+                                <p><strong>Name:</strong> {booking.customers.name}</p>
                                 <p><strong>Email:</strong> {booking.customers.email}</p>
                                 <p><strong>Phone:</strong> {booking.customers.phone}</p>
                               </div>
@@ -285,50 +345,31 @@ export default function AdminBookingsPage() {
                             <h4 className="font-medium mb-2">Booking Information</h4>
                             <div className="grid grid-cols-2 gap-4 text-sm">
                               <div>
-                                <p><strong>Service:</strong> {booking.services.name}</p>
+                                <p><strong>Service:</strong> {booking.services?.name || 'Service not found'}</p>
                                 <p><strong>Duration:</strong> {booking.duration_minutes} minutes</p>
-                                <p><strong>Date:</strong> {new Date(booking.booking_date).toLocaleDateString()}</p>
+                                <p><strong>Date:</strong> {formatDate(booking.booking_date)}</p>
                               </div>
                               <div>
-                                <p><strong>Time:</strong> {booking.booking_time}</p>
+                                <p><strong>Time:</strong> {formatTime(booking.booking_time)}</p>
                                 <p><strong>Status:</strong> {booking.status}</p>
                                 <p><strong>Created:</strong> {new Date(booking.created_at).toLocaleDateString()}</p>
                               </div>
                             </div>
                           </div>
 
-                          {/* Notes */}
-                          <div>
-                            <Label htmlFor="customerNotes">Customer Notes</Label>
-                            <Textarea
-                              id="customerNotes"
-                              value={booking.customer_notes || ''}
-                              readOnly
-                              className="mt-1"
-                            />
-                          </div>
-
-                          <div>
-                            <Label htmlFor="adminNotes">Admin Notes</Label>
-                            <Textarea
-                              id="adminNotes"
-                              value={booking.admin_notes || ''}
-                              readOnly
-                              className="mt-1"
-                            />
-                          </div>
 
                           {/* Actions */}
                           <div className="flex gap-2 pt-4 border-t">
                             <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleCustomerTypeToggle(
-                                booking.customer_id, 
-                                booking.customers.is_existing_customer
-                              )}
+                              variant="destructive"
+                              size="lg"
+                              className="bg-red-600 hover:bg-red-700"
+                              onClick={() => {
+                                setBookingToDelete(booking.id)
+                                setShowDeleteConfirm(true)
+                              }}
                             >
-                              {booking.customers.is_existing_customer ? 'Mark as New' : 'Mark as Existing'}
+                              🗑️ DELETE BOOKING
                             </Button>
                             <Select value={booking.status} onValueChange={(value) => handleStatusChange(booking.id, value)}>
                               <SelectTrigger className="w-32">
@@ -366,6 +407,42 @@ export default function AdminBookingsPage() {
           ))
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this booking? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-4 justify-center pt-4">
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => {
+                setShowDeleteConfirm(false)
+                setBookingToDelete(null)
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="lg"
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => {
+                if (bookingToDelete) {
+                  handleDeleteBooking(bookingToDelete)
+                }
+              }}
+            >
+              🗑️ DELETE
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

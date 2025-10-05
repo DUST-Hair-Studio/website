@@ -113,7 +113,31 @@ function generateTimeSlotsForDay(
       const bookingStart = parseTimeToMinutes(booking.start_time)
       const bookingEnd = bookingStart + booking.duration_minutes
       
-      return (minutes < bookingEnd && slotEndMinutes > bookingStart)
+      console.log(`Checking booking conflict for slot ${minutesToTimeString(minutes)}:`, {
+        bookingTime: booking.start_time,
+        bookingStartMinutes: bookingStart,
+        bookingEndMinutes: bookingEnd,
+        slotStartMinutes: minutes,
+        slotEndMinutes: slotEndMinutes,
+        bookingDuration: booking.duration_minutes
+      })
+      
+      // Check if the new slot overlaps with existing booking
+      // New slot: [minutes, slotEndMinutes]
+      // Existing booking: [bookingStart, bookingEnd]
+      // They overlap if: minutes < bookingEnd && slotEndMinutes > bookingStart
+      const overlaps = minutes < bookingEnd && slotEndMinutes > bookingStart
+      
+      if (overlaps) {
+        console.log(`✅ SLOT CONFLICT DETECTED:`, {
+          newSlot: `${minutesToTimeString(minutes)} - ${minutesToTimeString(slotEndMinutes)}`,
+          existingBooking: `${minutesToTimeString(bookingStart)} - ${minutesToTimeString(bookingEnd)}`,
+          bookingTime: booking.start_time,
+          bookingDuration: booking.duration_minutes
+        })
+      }
+      
+      return overlaps
     })
     
     // Check for conflicts with blocked time
@@ -134,7 +158,21 @@ function generateTimeSlotsForDay(
 }
 
 function parseTimeToMinutes(timeStr: string): number {
-  const [hours, minutes] = timeStr.split(':').map(Number)
+  // Handle "HH:MM:SS", "HH:MM", and "H:MM AM/PM" formats
+  const timeMatch = timeStr.match(/(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?/i)
+  if (!timeMatch) return 0
+  
+  let hours = parseInt(timeMatch[1])
+  const minutes = parseInt(timeMatch[2])
+  const period = timeMatch[3]?.toUpperCase()
+  
+  // Convert to 24-hour format if period is specified
+  if (period === 'PM' && hours !== 12) {
+    hours += 12
+  } else if (period === 'AM' && hours === 12) {
+    hours = 0
+  }
+  
   return hours * 60 + minutes
 }
 

@@ -14,6 +14,7 @@ export function AdminNavigation() {
     { href: '/admin/customers', label: 'Customers', icon: '👥' },
     { href: '/admin/services', label: 'Services', icon: '✂️' },
     { href: '/admin/schedule', label: 'Schedule', icon: '🗓️' },
+    { href: '/admin/reminders', label: 'Reminders', icon: '🔔' },
     { href: '/admin/settings', label: 'Settings', icon: '⚙️' },
   ]
 

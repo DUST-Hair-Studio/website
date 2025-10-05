@@ -16,8 +16,7 @@ export async function GET() {
           duration_minutes
         ),
         customers (
-          first_name,
-          last_name,
+          name,
           email,
           phone,
           is_existing_customer

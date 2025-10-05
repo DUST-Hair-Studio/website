@@ -251,7 +251,12 @@ export function RegisterForm() {
             />
           </div>
           
-          <Button type="submit" className="w-full" disabled={loading}>
+          <Button 
+            type="submit" 
+            variant="outline"
+            className="w-full bg-white border border-black hover:bg-gray-50" 
+            disabled={loading}
+          >
             {loading ? 'Creating Account...' : 'Create Account'}
           </Button>
         </form>

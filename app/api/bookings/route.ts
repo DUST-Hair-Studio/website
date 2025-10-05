@@ -68,8 +68,7 @@ export async function POST(request: NextRequest) {
           .insert({
             email: user.email!,
             auth_user_id: user.id,
-            first_name: customerInfo.firstName || '',
-            last_name: customerInfo.lastName || '',
+            name: `${customerInfo.firstName || ''} ${customerInfo.lastName || ''}`.trim() || user.email!,
             phone: customerInfo.phone || '',
             is_existing_customer: false
           })
@@ -101,8 +100,7 @@ export async function POST(request: NextRequest) {
           .from('customers')
           .insert({
             email: customerInfo.email,
-            first_name: customerInfo.firstName,
-            last_name: customerInfo.lastName,
+            name: `${customerInfo.firstName} ${customerInfo.lastName}`.trim(),
             phone: customerInfo.phone,
             is_existing_customer: false
           })
@@ -127,6 +125,7 @@ export async function POST(request: NextRequest) {
     const isExistingCustomer = customer?.is_existing_customer || false
     const priceCharged = isExistingCustomer ? service.existing_customer_price : service.new_customer_price
 
+
     // Create booking
     const bookingData = {
       customer_id: customerId,
@@ -137,7 +136,7 @@ export async function POST(request: NextRequest) {
       price_charged: priceCharged,
       customer_type_at_booking: isExistingCustomer ? 'existing' : 'new',
       payment_status: 'pending',
-      status: 'pending',
+      status: 'confirmed',
       sms_confirmation_sent: false,
       sms_reminder_sent: false,
       sms_followup_sent: false
@@ -189,7 +188,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       success: true, 
       booking,
-      message: 'Booking created successfully'
+      message: 'Booking confirmed successfully'
     })
 
   } catch (error) {
