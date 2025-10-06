@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { CheckCircle, Calendar, DollarSign, CalendarDays, RotateCcw, Search, Filter } from 'lucide-react'
+import { Calendar as CalendarComponent } from '@/components/ui/calendar'
+import { CheckCircle, Calendar, DollarSign, CalendarDays, RotateCcw, Search, Filter, Table, Grid3X3 } from 'lucide-react'
 import RescheduleModal from '@/components/admin/reschedule-modal'
 
 interface BookingWithDetails extends Booking {
@@ -39,6 +40,9 @@ export default function AdminBookingsPage() {
   const [showBookingDetails, setShowBookingDetails] = useState(false)
   const [showRescheduleModal, setShowRescheduleModal] = useState(false)
   const [bookingToReschedule, setBookingToReschedule] = useState<BookingWithDetails | null>(null)
+  const [viewMode, setViewMode] = useState<'table' | 'calendar'>('table')
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | undefined>(undefined)
+  const [showCalendarAppointments, setShowCalendarAppointments] = useState(false)
 
   // Fetch all bookings
   useEffect(() => {
@@ -56,6 +60,15 @@ export default function AdminBookingsPage() {
 
     fetchBookings()
   }, [])
+
+  // Helper function to check if a date is upcoming
+  const isUpcoming = (date: string) => {
+    // Treat the date string as local time, not UTC
+    const bookingDate = new Date(date + 'T00:00:00')
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return bookingDate >= today
+  }
 
   // Filter bookings
   const filteredBookings = bookings.filter(booking => {
@@ -206,12 +219,82 @@ export default function AdminBookingsPage() {
     })
   }
 
-  const isUpcoming = (date: string) => {
-    // Treat the date string as local time, not UTC
-    const bookingDate = new Date(date + 'T00:00:00')
+  // Calendar helper functions
+  const getBookingsForDate = (date: Date) => {
+    const dateStr = date.toISOString().split('T')[0]
+    return filteredBookings.filter(booking => booking.booking_date === dateStr)
+  }
+
+  const getAppointmentCountForDate = (date: Date) => {
+    return getBookingsForDate(date).length
+  }
+
+  const handleCalendarDateSelect = (date: Date | undefined) => {
+    setSelectedCalendarDate(date)
+    if (date) {
+      const appointments = getBookingsForDate(date)
+      if (appointments.length > 0) {
+        setShowCalendarAppointments(true)
+      }
+    }
+  }
+
+  const getCalendarDayModifiers = (date: Date) => {
+    const appointmentCount = getAppointmentCountForDate(date)
+    return {
+      hasAppointments: appointmentCount > 0,
+      hasManyAppointments: appointmentCount >= 3,
+      isToday: date.toDateString() === new Date().toDateString()
+    }
+  }
+
+  const generateCalendarDays = () => {
     const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    return bookingDate >= today
+    const currentMonth = today.getMonth()
+    const currentYear = today.getFullYear()
+    
+    // Get first day of current month
+    const firstDay = new Date(currentYear, currentMonth, 1)
+    const lastDay = new Date(currentYear, currentMonth + 1, 0)
+    
+    // Get starting day of week (0 = Sunday)
+    const startDay = firstDay.getDay()
+    
+    // Get last day of previous month
+    const prevMonth = new Date(currentYear, currentMonth, 0)
+    const prevMonthDays = prevMonth.getDate()
+    
+    const days = []
+    
+    // Add days from previous month
+    for (let i = startDay - 1; i >= 0; i--) {
+      const date = new Date(currentYear, currentMonth - 1, prevMonthDays - i)
+      days.push({
+        date,
+        isCurrentMonth: false
+      })
+    }
+    
+    // Add days from current month
+    for (let day = 1; day <= lastDay.getDate(); day++) {
+      const date = new Date(currentYear, currentMonth, day)
+      days.push({
+        date,
+        isCurrentMonth: true
+      })
+    }
+    
+    // Add days from next month to complete the grid
+    const remainingDays = 42 - days.length // 6 rows × 7 days
+    for (let day = 1; day <= remainingDays; day++) {
+      const date = new Date(currentYear, currentMonth + 1, day)
+      days.push({
+        date,
+        isCurrentMonth: false
+      })
+    }
+    
+    return days
   }
 
   if (loading) {
@@ -226,11 +309,9 @@ export default function AdminBookingsPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Bookings Management</h1>
-          <p className="text-gray-600 text-sm sm:text-base">Manage all customer bookings and appointments</p>
-        </div>
+      <div>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Bookings Management</h1>
+        <p className="text-gray-600 text-sm sm:text-base">Manage all customer bookings and appointments</p>
       </div>
 
       {/* Summary Stats */}
@@ -342,152 +423,394 @@ export default function AdminBookingsPage() {
         </div>
       </div>
 
-      {/* Bookings Table */}
-      <Card className="border border-gray-200 shadow-sm">
-        <CardContent className="p-0">
-          {filteredBookings.length === 0 ? (
-            <div className="p-8 text-center">
-              <p className="text-gray-500">No bookings found</p>
-            </div>
-          ) : (
-            <>
-              {/* Mobile Card Layout */}
-              <div className="block md:hidden">
-                {filteredBookings.map((booking) => (
-                  <div 
-                    key={booking.id}
-                    onClick={() => openBookingDetails(booking)}
-                    className="p-4 border-b border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors"
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <div className="font-medium text-gray-900">{booking.customers.name}</div>
-                        <div className="text-sm text-gray-500">{booking.customers.email}</div>
-                      </div>
-                      <Badge className={`${getStatusColor(booking.status)} text-xs px-2 py-1`}>
-                        {booking.status}
-                      </Badge>
-                    </div>
-                    
-                    <div className="space-y-2 mb-3">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Service:</span>
-                        <span className="text-gray-900">{booking.services?.name || 'Service not found'}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Date:</span>
-                        <span className="text-gray-900">{formatDate(booking.booking_date)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Time:</span>
-                        <span className="text-gray-900">{formatTime(booking.booking_time)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Duration:</span>
-                        <span className="text-gray-900">{booking.duration_minutes} min</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Price:</span>
-                        <span className="text-gray-900">{formatPrice(booking.price_charged)}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="h-8 px-3 text-xs flex-1"
-                        onClick={(e) => openRescheduleModal(booking, e)}
-                      >
-                        <RotateCcw className="w-3 h-3 mr-1" />
-                        Reschedule
-                      </Button>
-                      <div onClick={(e) => e.stopPropagation()} className="flex-1">
-                        <Select 
-                          value={booking.status} 
-                          onValueChange={(value) => handleStatusChange(booking.id, value)}
-                        >
-                          <SelectTrigger className="h-8 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="pending">Pending</SelectItem>
-                            <SelectItem value="confirmed">Confirmed</SelectItem>
-                            <SelectItem value="completed">Completed</SelectItem>
-                            <SelectItem value="cancelled">Cancelled</SelectItem>
-                            <SelectItem value="no-show">No Show</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+      {/* View Toggle */}
+      <div className="flex justify-center sm:justify-start">
+        <div className="flex items-center gap-1 sm:gap-2 bg-gray-100 p-1 rounded-lg">
+          <Button
+            variant={viewMode === 'table' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('table')}
+            className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
+          >
+            <Table className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">Table View</span>
+            <span className="sm:hidden">Table</span>
+          </Button>
+          <Button
+            variant={viewMode === 'calendar' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('calendar')}
+            className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
+          >
+            <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">Calendar View</span>
+            <span className="sm:hidden">Calendar</span>
+          </Button>
+        </div>
+      </div>
 
-              {/* Desktop Table Layout */}
-              <div className="hidden md:block overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredBookings.map((booking) => (
-                      <tr 
-                        key={booking.id}
-                        onClick={() => openBookingDetails(booking)}
-                        className="hover:bg-gray-50 cursor-pointer transition-colors"
-                      >
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">{booking.customers.name}</div>
-                            <div className="text-sm text-gray-500">{booking.customers.email}</div>
+      {/* Bookings Display */}
+      {viewMode === 'table' ? (
+        <Card className="border border-gray-200 shadow-sm">
+          <CardContent className="p-0">
+            {filteredBookings.length === 0 ? (
+              <div className="p-8 text-center">
+                <p className="text-gray-500">No bookings found</p>
+              </div>
+            ) : (
+              <>
+                {/* Mobile Card Layout */}
+                <div className="block md:hidden">
+                  {filteredBookings.map((booking) => (
+                    <div 
+                      key={booking.id}
+                      onClick={() => openBookingDetails(booking)}
+                      className="p-4 border-b border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors"
+                    >
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <div className="font-medium text-gray-900">{booking.customers.name}</div>
+                          <div className="text-sm text-gray-500">{booking.customers.email}</div>
+                        </div>
+                        <Badge className={`${getStatusColor(booking.status)} text-xs px-2 py-1`}>
+                          {booking.status}
+                        </Badge>
+                      </div>
+                      
+                      <div className="space-y-2 mb-3">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500">Service:</span>
+                          <span className="text-gray-900">{booking.services?.name || 'Service not found'}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500">Date:</span>
+                          <span className="text-gray-900">{formatDate(booking.booking_date)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500">Time:</span>
+                          <span className="text-gray-900">{formatTime(booking.booking_time)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500">Duration:</span>
+                          <span className="text-gray-900">{booking.duration_minutes} min</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500">Price:</span>
+                          <span className="text-gray-900">{formatPrice(booking.price_charged)}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="h-8 px-3 text-xs flex-1"
+                          onClick={(e) => openRescheduleModal(booking, e)}
+                        >
+                          <RotateCcw className="w-3 h-3 mr-1" />
+                          Reschedule
+                        </Button>
+                        <div onClick={(e) => e.stopPropagation()} className="flex-1">
+                          <Select 
+                            value={booking.status} 
+                            onValueChange={(value) => handleStatusChange(booking.id, value)}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pending">Pending</SelectItem>
+                              <SelectItem value="confirmed">Confirmed</SelectItem>
+                              <SelectItem value="completed">Completed</SelectItem>
+                              <SelectItem value="cancelled">Cancelled</SelectItem>
+                              <SelectItem value="no-show">No Show</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop Table Layout */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {filteredBookings.map((booking) => (
+                        <tr 
+                          key={booking.id}
+                          onClick={() => openBookingDetails(booking)}
+                          className="hover:bg-gray-50 cursor-pointer transition-colors"
+                        >
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">{booking.customers.name}</div>
+                              <div className="text-sm text-gray-500">{booking.customers.email}</div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{booking.services?.name || 'Service not found'}</div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div>
+                              <div className="text-sm text-gray-900">{formatDate(booking.booking_date)}</div>
+                              <div className="text-sm text-gray-500">{formatTime(booking.booking_time)}</div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                            {booking.duration_minutes} min
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                            {formatPrice(booking.price_charged)}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <Badge className={`${getStatusColor(booking.status)} text-xs px-2 py-1`}>
+                              {booking.status}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm">
+                            <div className="flex gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="h-7 px-2 text-xs"
+                                onClick={(e) => openRescheduleModal(booking, e)}
+                              >
+                                <RotateCcw className="w-3 h-3 mr-1" />
+                                Reschedule
+                              </Button>
+                              <div onClick={(e) => e.stopPropagation()}>
+                                <Select 
+                                  value={booking.status} 
+                                  onValueChange={(value) => handleStatusChange(booking.id, value)}
+                                >
+                                  <SelectTrigger className="w-24 h-7 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="pending">Pending</SelectItem>
+                                    <SelectItem value="confirmed">Confirmed</SelectItem>
+                                    <SelectItem value="completed">Completed</SelectItem>
+                                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                                    <SelectItem value="no-show">No Show</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {/* Full-Screen Calendar View */}
+          <Card className="border border-gray-200 shadow-sm">
+            <CardContent className="p-0">
+              <div className="min-h-[800px]">
+                {/* Calendar Header */}
+                <div className="border-b border-gray-200 p-3 sm:p-6">
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-lg sm:text-2xl font-bold text-gray-900">
+                      {new Date().toLocaleDateString('en-US', { 
+                        month: 'long', 
+                        year: 'numeric' 
+                      })}
+                    </h2>
+                  </div>
+                </div>
+
+                {/* Calendar Grid */}
+                <div className="p-3 sm:p-6">
+                  {/* Days of Week Header */}
+                  <div className="grid grid-cols-7 gap-px mb-2">
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                      <div key={day} className="p-2 sm:p-4 text-center text-xs sm:text-sm font-medium text-gray-500 bg-gray-50">
+                        {day}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Calendar Days */}
+                  <div className="grid grid-cols-7 gap-px bg-gray-200 border border-gray-200 rounded-lg overflow-hidden">
+                    {generateCalendarDays().map((day, index) => {
+                      const appointments = getBookingsForDate(day.date)
+                      const isToday = day.date.toDateString() === new Date().toDateString()
+                      const isCurrentMonth = day.isCurrentMonth
+                      
+                      return (
+                        <div
+                          key={index}
+                          className={`min-h-[80px] sm:min-h-[120px] bg-white p-1 sm:p-2 cursor-pointer hover:bg-gray-50 transition-colors ${
+                            !isCurrentMonth ? 'bg-gray-50 text-gray-400' : ''
+                          } ${isToday ? 'bg-blue-50 border-l-2 sm:border-l-4 border-blue-500' : ''}`}
+                          onClick={() => handleCalendarDateSelect(day.date)}
+                        >
+                          <div className="flex justify-between items-start mb-1">
+                            <span className={`text-xs sm:text-sm font-medium ${
+                              isToday ? 'text-blue-600' : 
+                              isCurrentMonth ? 'text-gray-900' : 'text-gray-400'
+                            }`}>
+                              {day.date.getDate()}
+                            </span>
+                            {appointments.length > 0 && (
+                              <span className="text-xs bg-blue-100 text-blue-800 px-1 sm:px-2 py-0.5 sm:py-1 rounded-full">
+                                {appointments.length}
+                              </span>
+                            )}
                           </div>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{booking.services?.name || 'Service not found'}</div>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <div>
-                            <div className="text-sm text-gray-900">{formatDate(booking.booking_date)}</div>
-                            <div className="text-sm text-gray-500">{formatTime(booking.booking_time)}</div>
+                          
+                          {/* Appointment List - Hidden on very small screens */}
+                          <div className="space-y-0.5 sm:space-y-1 hidden sm:block">
+                            {appointments.slice(0, 3).map((booking) => (
+                              <div
+                                key={booking.id}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  openBookingDetails(booking)
+                                }}
+                                className="text-xs p-1 bg-blue-100 text-blue-800 rounded truncate hover:bg-blue-200 cursor-pointer"
+                              >
+                                {formatTime(booking.booking_time)} - {booking.customers.name}
+                              </div>
+                            ))}
+                            {appointments.length > 3 && (
+                              <div className="text-xs text-gray-500 p-1">
+                                +{appointments.length - 3} more
+                              </div>
+                            )}
                           </div>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                          {booking.duration_minutes} min
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                          {formatPrice(booking.price_charged)}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <Badge className={`${getStatusColor(booking.status)} text-xs px-2 py-1`}>
-                            {booking.status}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm">
-                          <div className="flex gap-2">
-                            <Button 
-                              variant="outline" 
+                          
+                          {/* Mobile: Show only dots for appointments */}
+                          <div className="sm:hidden">
+                            {appointments.length > 0 && (
+                              <div className="flex flex-wrap gap-0.5 mt-1">
+                                {appointments.slice(0, 4).map((_, i) => (
+                                  <div key={i} className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
+                                ))}
+                                {appointments.length > 4 && (
+                                  <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Selected Date Details Panel */}
+          {selectedCalendarDate && (
+            <Card className="border border-gray-200 shadow-sm">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex justify-between items-center mb-4 sm:mb-6">
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900">
+                    {selectedCalendarDate.toLocaleDateString('en-US', { 
+                      weekday: 'long', 
+                      month: 'long', 
+                      day: 'numeric',
+                      year: 'numeric'
+                    })}
+                  </h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedCalendarDate(undefined)}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    ✕
+                  </Button>
+                </div>
+                
+                <div className="space-y-4">
+                  {getBookingsForDate(selectedCalendarDate).length === 0 ? (
+                    <div className="text-center py-12">
+                      <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500 text-lg">No appointments scheduled</p>
+                      <p className="text-gray-400 text-sm">Click on a date with appointments to see details</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                        <span className="text-sm font-medium text-gray-700">
+                          {getBookingsForDate(selectedCalendarDate).length} appointment{getBookingsForDate(selectedCalendarDate).length !== 1 ? 's' : ''} scheduled
+                        </span>
+                      </div>
+                      
+                      {getBookingsForDate(selectedCalendarDate)
+                        .sort((a, b) => a.booking_time.localeCompare(b.booking_time))
+                        .map((booking) => (
+                        <div
+                          key={booking.id}
+                          onClick={() => openBookingDetails(booking)}
+                          className="p-3 sm:p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                        >
+                          <div className="flex justify-between items-start mb-2 sm:mb-3">
+                            <div>
+                              <div className="font-semibold text-gray-900 text-base sm:text-lg">{booking.customers.name}</div>
+                              <div className="text-xs sm:text-sm text-gray-500">{booking.customers.email}</div>
+                            </div>
+                            <Badge className={`${getStatusColor(booking.status)} text-xs px-2 sm:px-3 py-1`}>
+                              {booking.status}
+                            </Badge>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm">
+                            <div>
+                              <span className="text-gray-500">Time:</span>
+                              <div className="font-medium">{formatTime(booking.booking_time)}</div>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Duration:</span>
+                              <div className="font-medium">{booking.duration_minutes} min</div>
+                            </div>
+                            <div className="sm:col-span-1">
+                              <span className="text-gray-500">Service:</span>
+                              <div className="font-medium">{booking.services?.name || 'Service not found'}</div>
+                            </div>
+                            <div className="sm:col-span-1">
+                              <span className="text-gray-500">Price:</span>
+                              <div className="font-medium">{formatPrice(booking.price_charged)}</div>
+                            </div>
+                          </div>
+                          
+                          <div className="flex flex-col sm:flex-row gap-2 mt-3 sm:mt-4">
+                            <Button
+                              variant="outline"
                               size="sm"
-                              className="h-7 px-2 text-xs"
                               onClick={(e) => openRescheduleModal(booking, e)}
+                              className="flex-1 text-xs sm:text-sm"
                             >
-                              <RotateCcw className="w-3 h-3 mr-1" />
+                              <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                               Reschedule
                             </Button>
-                            <div onClick={(e) => e.stopPropagation()}>
-                              <Select 
-                                value={booking.status} 
+                            <div onClick={(e) => e.stopPropagation()} className="flex-1">
+                              <Select
+                                value={booking.status}
                                 onValueChange={(value) => handleStatusChange(booking.id, value)}
                               >
-                                <SelectTrigger className="w-24 h-7 text-xs">
+                                <SelectTrigger className="text-xs sm:text-sm">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -500,16 +823,16 @@ export default function AdminBookingsPage() {
                               </Select>
                             </div>
                           </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      )}
 
       {/* Booking Details Modal */}
       <Dialog open={showBookingDetails} onOpenChange={setShowBookingDetails}>
