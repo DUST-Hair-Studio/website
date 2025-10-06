@@ -76,8 +76,8 @@ export default function Home() {
       
       <main>
         {/* DUST Title Section */}
-        <div className="w-full text-center pt-16 pb-8 px-0" style={{ backgroundColor: '#F5F5F3' }}>
-          <h1 className="dust-heading text-[12rem] xs:text-[14rem] sm:text-[16rem] md:text-[18rem] lg:text-[22rem] xl:text-[26rem] 2xl:text-[30rem] leading-none" style={{ color: '#1C1C1D' }}>
+        <div className="w-full text-center pt-16 pb-8 px-4 overflow-hidden" style={{ backgroundColor: '#F5F5F3' }}>
+          <h1 className="dust-heading text-[8rem] xs:text-[10rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[28rem] leading-none" style={{ color: '#1C1C1D' }}>
             DUST
           </h1>
         </div>
@@ -230,7 +230,10 @@ export default function Home() {
                               if (isLoggedIn) {
                                 window.location.href = `/book?serviceId=${service.id}`
                               } else {
-                                window.location.href = '/login'
+                                const redirectUrl = `/book?serviceId=${service.id}`
+                                const loginUrl = `/login?redirect=${encodeURIComponent(redirectUrl)}`
+                                console.log('🔍 Redirecting to login with URL:', loginUrl)
+                                window.location.href = loginUrl
                               }
                             }}
                             className="w-full"
@@ -312,8 +315,8 @@ export default function Home() {
             </div>
 
             {/* Bottom Logo */}
-            <div className="text-center">
-              <div className="dust-heading text-[12rem] xs:text-[14rem] sm:text-[16rem] md:text-[18rem] lg:text-[22rem] xl:text-[26rem] 2xl:text-[30rem] leading-none" style={{ color: '#FAFAFA' }}>
+            <div className="text-center overflow-hidden">
+              <div className="dust-heading text-[8rem] xs:text-[10rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[28rem] leading-none" style={{ color: '#FAFAFA' }}>
                 DUST
               </div>
             </div>

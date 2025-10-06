@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 export function LoginForm() {
   const [email, setEmail] = useState('')
@@ -14,6 +14,7 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -30,8 +31,11 @@ export function LoginForm() {
       if (error) {
         setError(error.message)
       } else {
-        // Login successful - let the auth context handle the redirect
-        router.push('/')
+        // Login successful - redirect to intended page or homepage
+        const redirectTo = searchParams.get('redirect')
+        console.log('🔍 Login successful, redirectTo:', redirectTo)
+        console.log('🔍 All search params:', searchParams.toString())
+        router.push(redirectTo || '/')
       }
     } catch (error: unknown) {
       console.error('Login error:', error)

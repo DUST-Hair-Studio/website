@@ -297,151 +297,142 @@ export default function AdminBookingsPage() {
           </Card>
         ) : (
           filteredBookings.map((booking) => (
-            <Card key={booking.id} className={`border-0 shadow-sm hover:shadow-md transition-shadow ${isUpcoming(booking.booking_date) ? 'border-l-4 border-l-blue-500' : ''}`}>
-            <CardContent className="p-4 sm:p-6">
-                <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
-                  <div className="flex-1">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3">
-                      <h3 className="font-medium text-lg">
-                        {booking.customers.name}
-                      </h3>
-                      <div className="flex flex-wrap gap-2">
-                        <Badge className={getStatusColor(booking.status)}>
-                          {booking.status}
-                        </Badge>
-                        <Badge variant="outline">
-                          {booking.customer_type_at_booking === 'existing' ? 'Existing' : 'New'}
-                        </Badge>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 text-sm text-gray-600">
-                      <div>
-                        <p className="font-medium">Service</p>
-                        <p className="break-words">{booking.services?.name || 'Service not found'}</p>
-                      </div>
-                      <div>
-                        <p className="font-medium">Date & Time</p>
-                        <p className="break-words">{formatDateTime(booking.booking_date, booking.booking_time)}</p>
-                      </div>
-                      <div>
-                        <p className="font-medium">Duration</p>
-                        <p>{booking.duration_minutes} min</p>
-                      </div>
-                      <div>
-                        <p className="font-medium">Price</p>
-                        <p>{formatPrice(booking.price_charged)}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mt-3 text-sm">
-                      <span className="text-gray-500">Contact:</span>
-                      <span className="break-all">{booking.customers.email}</span>
-                      <span className="hidden sm:inline">•</span>
-                      <span>{booking.customers.phone}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-row lg:flex-col gap-2 lg:ml-4">
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => setSelectedBooking(booking)}
-                        >
-                          View Details
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
-                          <DialogTitle>Booking Details</DialogTitle>
-                          <DialogDescription>
-                            {booking.customers.name} - {booking.services?.name || 'Service not found'}
-                          </DialogDescription>
-                        </DialogHeader>
-                        
-                        <div className="space-y-4">
-                          {/* Customer Info */}
-                          <div>
-                            <h4 className="font-medium mb-2">Customer Information</h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                              <div>
-                                <p><strong>Name:</strong> {booking.customers.name}</p>
-                                <p><strong>Email:</strong> {booking.customers.email}</p>
-                                <p><strong>Phone:</strong> {booking.customers.phone}</p>
-                              </div>
-                              <div>
-                                <p><strong>Type:</strong> {booking.customer_type_at_booking}</p>
-                                <p><strong>Price Charged:</strong> {formatPrice(booking.price_charged)}</p>
-                                <p><strong>Payment Status:</strong> {booking.payment_status}</p>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Booking Info */}
-                          <div>
-                            <h4 className="font-medium mb-2">Booking Information</h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                              <div>
-                                <p><strong>Service:</strong> {booking.services?.name || 'Service not found'}</p>
-                                <p><strong>Duration:</strong> {booking.duration_minutes} minutes</p>
-                                <p><strong>Date:</strong> {formatDate(booking.booking_date)}</p>
-                              </div>
-                              <div>
-                                <p><strong>Time:</strong> {formatTime(booking.booking_time)}</p>
-                                <p><strong>Status:</strong> {booking.status}</p>
-                                <p><strong>Created:</strong> {new Date(booking.created_at).toLocaleDateString()}</p>
-                              </div>
-                            </div>
-                          </div>
-
-
-                          {/* Actions */}
-                          <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              className="bg-red-600 hover:bg-red-700 text-xs sm:text-sm sm:size-lg"
-                              onClick={() => {
-                                setBookingToDelete(booking.id)
-                                setShowDeleteConfirm(true)
-                              }}
-                            >
-                              🗑️ DELETE BOOKING
-                            </Button>
-                            <Select value={booking.status} onValueChange={(value) => handleStatusChange(booking.id, value)}>
-                              <SelectTrigger className="w-32">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="pending">Pending</SelectItem>
-                                <SelectItem value="confirmed">Confirmed</SelectItem>
-                                <SelectItem value="completed">Completed</SelectItem>
-                                <SelectItem value="cancelled">Cancelled</SelectItem>
-                                <SelectItem value="no-show">No Show</SelectItem>
-                              </SelectContent>
-                            </Select>
+            <Card key={booking.id} className={`border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer ${isUpcoming(booking.booking_date) ? 'border-l-4 border-l-blue-500' : ''}`}>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
+                      <div className="flex-1">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3">
+                          <h3 className="font-medium text-lg">
+                            {booking.customers.name}
+                          </h3>
+                          <div className="flex flex-wrap gap-2">
+                            <Badge className={getStatusColor(booking.status)}>
+                              {booking.status}
+                            </Badge>
+                            <Badge variant="outline">
+                              {booking.customer_type_at_booking === 'existing' ? 'Existing' : 'New'}
+                            </Badge>
                           </div>
                         </div>
-                      </DialogContent>
-                    </Dialog>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 text-sm text-gray-600">
+                          <div>
+                            <p className="font-medium">Service</p>
+                            <p className="break-words">{booking.services?.name || 'Service not found'}</p>
+                          </div>
+                          <div>
+                            <p className="font-medium">Date & Time</p>
+                            <p className="break-words">{formatDateTime(booking.booking_date, booking.booking_time)}</p>
+                          </div>
+                          <div>
+                            <p className="font-medium">Duration</p>
+                            <p>{booking.duration_minutes} min</p>
+                          </div>
+                          <div>
+                            <p className="font-medium">Price</p>
+                            <p>{formatPrice(booking.price_charged)}</p>
+                          </div>
+                        </div>
 
-                    <Select value={booking.status} onValueChange={(value) => handleStatusChange(booking.id, value)}>
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="confirmed">Confirmed</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="cancelled">Cancelled</SelectItem>
-                        <SelectItem value="no-show">No Show</SelectItem>
-                      </SelectContent>
-                    </Select>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mt-3 text-sm">
+                          <span className="text-gray-500">Contact:</span>
+                          <span className="break-all">{booking.customers.email}</span>
+                          <span className="hidden sm:inline">•</span>
+                          <span>{booking.customers.phone}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-row lg:flex-col gap-2 lg:ml-4">
+                        <Select value={booking.status} onValueChange={(value) => handleStatusChange(booking.id, value)}>
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="confirmed">Confirmed</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                            <SelectItem value="cancelled">Cancelled</SelectItem>
+                            <SelectItem value="no-show">No Show</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </CardContent>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Booking Details</DialogTitle>
+                    <DialogDescription>
+                      {booking.customers.name} - {booking.services?.name || 'Service not found'}
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <div className="space-y-4">
+                    {/* Customer Info */}
+                    <div>
+                      <h4 className="font-medium mb-2">Customer Information</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p><strong>Name:</strong> {booking.customers.name}</p>
+                          <p><strong>Email:</strong> {booking.customers.email}</p>
+                          <p><strong>Phone:</strong> {booking.customers.phone}</p>
+                        </div>
+                        <div>
+                          <p><strong>Type:</strong> {booking.customer_type_at_booking}</p>
+                          <p><strong>Price Charged:</strong> {formatPrice(booking.price_charged)}</p>
+                          <p><strong>Payment Status:</strong> {booking.payment_status}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Booking Info */}
+                    <div>
+                      <h4 className="font-medium mb-2">Booking Information</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p><strong>Service:</strong> {booking.services?.name || 'Service not found'}</p>
+                          <p><strong>Duration:</strong> {booking.duration_minutes} minutes</p>
+                          <p><strong>Date:</strong> {formatDate(booking.booking_date)}</p>
+                        </div>
+                        <div>
+                          <p><strong>Time:</strong> {formatTime(booking.booking_time)}</p>
+                          <p><strong>Status:</strong> {booking.status}</p>
+                          <p><strong>Created:</strong> {new Date(booking.created_at).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="bg-red-600 hover:bg-red-700 text-xs sm:text-sm sm:size-lg"
+                        onClick={() => {
+                          setBookingToDelete(booking.id)
+                          setShowDeleteConfirm(true)
+                        }}
+                      >
+                        🗑️ DELETE BOOKING
+                      </Button>
+                      <Select value={booking.status} onValueChange={(value) => handleStatusChange(booking.id, value)}>
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="confirmed">Confirmed</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                          <SelectItem value="cancelled">Cancelled</SelectItem>
+                          <SelectItem value="no-show">No Show</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
+                </DialogContent>
+              </Dialog>
             </Card>
           ))
         )}

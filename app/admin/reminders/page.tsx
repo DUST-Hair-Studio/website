@@ -452,7 +452,7 @@ function AdminRemindersContent() {
           {/* Templates List */}
           <div className="space-y-4">
             {templates.map((template) => (
-              <Card key={template.id}>
+              <Card key={template.id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
@@ -461,7 +461,16 @@ function AdminRemindersContent() {
                         <Badge variant={template.is_active ? "default" : "secondary"}>
                           {template.is_active ? 'Active' : 'Inactive'}
                         </Badge>
-                        <Badge variant="outline">{template.type}</Badge>
+                        <Badge 
+                          className={
+                            template.type === 'confirmation' ? 'bg-blue-100 text-blue-800 border-blue-200' :
+                            template.type === 'followup' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+                            template.type === 'reminder' ? 'bg-orange-100 text-orange-800 border-orange-200' :
+                            'bg-gray-100 text-gray-800 border-gray-200'
+                          }
+                        >
+                          {template.type}
+                        </Badge>
                       </div>
                       <p className="text-sm text-gray-600 mb-2">
                         <strong>Subject:</strong> {template.subject}
@@ -535,7 +544,7 @@ function AdminRemindersContent() {
           ) : (
             <div className="space-y-4">
               {reminderHistory.map((reminder) => (
-                <Card key={reminder.id}>
+                <Card key={reminder.id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
