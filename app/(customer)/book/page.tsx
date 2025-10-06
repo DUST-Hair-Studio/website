@@ -617,7 +617,7 @@ function BookPageContent() {
                 <CardDescription>Choose your preferred date</CardDescription>
               </CardHeader>
               <CardContent className="p-0 relative">
-                <div className="w-full pb-4">
+                <div className="w-full pb-8 px-2">
                   <Calendar
                     mode="single"
                     selected={selectedDate}

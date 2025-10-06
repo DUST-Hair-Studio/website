@@ -77,7 +77,7 @@ export default function Home() {
       <main>
         {/* DUST Title Section */}
         <div className="w-full text-center pt-4 pb-2 px-4 overflow-hidden" style={{ backgroundColor: '#F5F5F3' }}>
-          <h1 className="dust-heading text-[8rem] xs:text-[10rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[28rem] leading-none" style={{ color: '#1C1C1D', fontFamily: 'Pragmatica Extended, sans-serif' }}>
+          <h1 className="dust-heading text-[9.5rem] xs:text-[10rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[28rem] leading-none" style={{ color: '#1C1C1D', fontFamily: 'Pragmatica Extended, sans-serif' }}>
             DUST
           </h1>
         </div>
@@ -316,7 +316,7 @@ export default function Home() {
 
             {/* Bottom Logo */}
             <div className="text-center overflow-hidden">
-              <div className="dust-heading text-[8rem] xs:text-[10rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[28rem] leading-none" style={{ color: '#FAFAFA', fontFamily: 'Pragmatica Extended, sans-serif' }}>
+              <div className="dust-heading text-[9.5rem] xs:text-[10rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[28rem] leading-none" style={{ color: '#FAFAFA', fontFamily: 'Pragmatica Extended, sans-serif' }}>
                 DUST
               </div>
             </div>
