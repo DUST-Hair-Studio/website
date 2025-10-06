@@ -246,113 +246,137 @@ export default function AdminServicesPage() {
                 Add a new service with dual pricing for new and existing customers.
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="name">Service Name *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                  />
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Service Details Section */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900">Service Details</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name" className="text-sm font-medium">
+                      Service Name <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      required
+                      placeholder="Enter service name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="category" className="text-sm font-medium">Category</Label>
+                    <Input
+                      id="category"
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      placeholder="e.g., Haircut, Color, Treatment"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="category">Category</Label>
-                  <Input
-                    id="category"
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    placeholder="e.g., Haircut, Color, Treatment"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={3}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="duration_minutes">Duration (minutes) *</Label>
-                  <Input
-                    id="duration_minutes"
-                    type="number"
-                    value={formData.duration_minutes}
-                    onChange={(e) => setFormData({ ...formData, duration_minutes: e.target.value })}
-                    required
-                    min="15"
-                    step="15"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="new_customer_price">New Customer Price *</Label>
-                  <Input
-                    id="new_customer_price"
-                    type="number"
-                    step="0.01"
-                    value={formData.new_customer_price}
-                    onChange={(e) => setFormData({ ...formData, new_customer_price: e.target.value })}
-                    required
-                    placeholder="0.00"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="existing_customer_price">Existing Customer Price *</Label>
-                  <Input
-                    id="existing_customer_price"
-                    type="number"
-                    step="0.01"
-                    value={formData.existing_customer_price}
-                    onChange={(e) => setFormData({ ...formData, existing_customer_price: e.target.value })}
-                    required
-                    placeholder="0.00"
+                
+                <div className="space-y-2">
+                  <Label htmlFor="description" className="text-sm font-medium">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    rows={3}
+                    placeholder="Describe the service details..."
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="sort_order">Sort Order</Label>
-                  <Input
-                    id="sort_order"
-                    type="number"
-                    value={formData.sort_order}
-                    onChange={(e) => setFormData({ ...formData, sort_order: e.target.value })}
-                    placeholder="0"
-                  />
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="is_active"
-                    checked={formData.is_active}
-                    onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
-                  />
-                  <Label htmlFor="is_active">Active</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="is_existing_customer"
-                    checked={formData.is_existing_customer}
-                    onCheckedChange={(checked) => setFormData({ ...formData, is_existing_customer: checked })}
-                  />
-                  <Label htmlFor="is_existing_customer">Available to Existing Customers</Label>
+              {/* Pricing and Duration Section */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900">Pricing and Duration</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="duration_minutes" className="text-sm font-medium">
+                      Duration (minutes) <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="duration_minutes"
+                      type="number"
+                      value={formData.duration_minutes}
+                      onChange={(e) => setFormData({ ...formData, duration_minutes: e.target.value })}
+                      required
+                      min="15"
+                      step="15"
+                      placeholder="60"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new_customer_price" className="text-sm font-medium">
+                      New Customer Price <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="new_customer_price"
+                      type="number"
+                      step="0.01"
+                      value={formData.new_customer_price}
+                      onChange={(e) => setFormData({ ...formData, new_customer_price: e.target.value })}
+                      required
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="existing_customer_price" className="text-sm font-medium">
+                      Existing Customer Price <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="existing_customer_price"
+                      type="number"
+                      step="0.01"
+                      value={formData.existing_customer_price}
+                      onChange={(e) => setFormData({ ...formData, existing_customer_price: e.target.value })}
+                      required
+                      placeholder="0.00"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="is_new_customer"
-                  checked={formData.is_new_customer}
-                  onCheckedChange={(checked) => setFormData({ ...formData, is_new_customer: checked })}
-                />
-                <Label htmlFor="is_new_customer">Available to New Customers</Label>
+              {/* Availability and Settings Section */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900">Availability and Settings</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="sort_order" className="text-sm font-medium">Sort Order</Label>
+                    <Input
+                      id="sort_order"
+                      type="number"
+                      value={formData.sort_order}
+                      onChange={(e) => setFormData({ ...formData, sort_order: e.target.value })}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="is_active" className="text-sm font-medium">Active</Label>
+                      <Switch
+                        id="is_active"
+                        checked={formData.is_active}
+                        onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="is_existing_customer" className="text-sm font-medium">Available to Existing Customers</Label>
+                      <Switch
+                        id="is_existing_customer"
+                        checked={formData.is_existing_customer}
+                        onCheckedChange={(checked) => setFormData({ ...formData, is_existing_customer: checked })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="is_new_customer" className="text-sm font-medium">Available to New Customers</Label>
+                      <Switch
+                        id="is_new_customer"
+                        checked={formData.is_new_customer}
+                        onCheckedChange={(checked) => setFormData({ ...formData, is_new_customer: checked })}
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="flex justify-end space-x-2 pt-4">
@@ -618,113 +642,137 @@ export default function AdminServicesPage() {
               Update the service details and pricing.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="edit-name">Service Name *</Label>
-                <Input
-                  id="edit-name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Service Details Section */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900">Service Details</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-name" className="text-sm font-medium">
+                    Service Name <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="edit-name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required
+                    placeholder="Enter service name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-category" className="text-sm font-medium">Category</Label>
+                  <Input
+                    id="edit-category"
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    placeholder="e.g., Haircut, Color, Treatment"
+                  />
+                </div>
               </div>
-              <div>
-                <Label htmlFor="edit-category">Category</Label>
-                <Input
-                  id="edit-category"
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  placeholder="e.g., Haircut, Color, Treatment"
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="edit-description">Description</Label>
-              <Textarea
-                id="edit-description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={3}
-              />
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="edit-duration_minutes">Duration (minutes) *</Label>
-                <Input
-                  id="edit-duration_minutes"
-                  type="number"
-                  value={formData.duration_minutes}
-                  onChange={(e) => setFormData({ ...formData, duration_minutes: e.target.value })}
-                  required
-                  min="15"
-                  step="15"
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit-new_customer_price">New Customer Price *</Label>
-                <Input
-                  id="edit-new_customer_price"
-                  type="number"
-                  step="0.01"
-                  value={formData.new_customer_price}
-                  onChange={(e) => setFormData({ ...formData, new_customer_price: e.target.value })}
-                  required
-                  placeholder="0.00"
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit-existing_customer_price">Existing Customer Price *</Label>
-                <Input
-                  id="edit-existing_customer_price"
-                  type="number"
-                  step="0.01"
-                  value={formData.existing_customer_price}
-                  onChange={(e) => setFormData({ ...formData, existing_customer_price: e.target.value })}
-                  required
-                  placeholder="0.00"
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-description" className="text-sm font-medium">Description</Label>
+                <Textarea
+                  id="edit-description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  rows={3}
+                  placeholder="Describe the service details..."
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="edit-sort_order">Sort Order</Label>
-                <Input
-                  id="edit-sort_order"
-                  type="number"
-                  value={formData.sort_order}
-                  onChange={(e) => setFormData({ ...formData, sort_order: e.target.value })}
-                  placeholder="0"
-                />
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="edit-is_active"
-                  checked={formData.is_active}
-                  onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
-                />
-                <Label htmlFor="edit-is_active">Active</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="edit-is_existing_customer"
-                  checked={formData.is_existing_customer}
-                  onCheckedChange={(checked) => setFormData({ ...formData, is_existing_customer: checked })}
-                />
-                <Label htmlFor="edit-is_existing_customer">Available to Existing Customers</Label>
+            {/* Pricing and Duration Section */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900">Pricing and Duration</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-duration_minutes" className="text-sm font-medium">
+                    Duration (minutes) <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="edit-duration_minutes"
+                    type="number"
+                    value={formData.duration_minutes}
+                    onChange={(e) => setFormData({ ...formData, duration_minutes: e.target.value })}
+                    required
+                    min="15"
+                    step="15"
+                    placeholder="60"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-new_customer_price" className="text-sm font-medium">
+                    New Customer Price <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="edit-new_customer_price"
+                    type="number"
+                    step="0.01"
+                    value={formData.new_customer_price}
+                    onChange={(e) => setFormData({ ...formData, new_customer_price: e.target.value })}
+                    required
+                    placeholder="0.00"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-existing_customer_price" className="text-sm font-medium">
+                    Existing Customer Price <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="edit-existing_customer_price"
+                    type="number"
+                    step="0.01"
+                    value={formData.existing_customer_price}
+                    onChange={(e) => setFormData({ ...formData, existing_customer_price: e.target.value })}
+                    required
+                    placeholder="0.00"
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="edit-is_new_customer"
-                checked={formData.is_new_customer}
-                onCheckedChange={(checked) => setFormData({ ...formData, is_new_customer: checked })}
-              />
-              <Label htmlFor="edit-is_new_customer">Available to New Customers</Label>
+            {/* Availability and Settings Section */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900">Availability and Settings</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-sort_order" className="text-sm font-medium">Sort Order</Label>
+                  <Input
+                    id="edit-sort_order"
+                    type="number"
+                    value={formData.sort_order}
+                    onChange={(e) => setFormData({ ...formData, sort_order: e.target.value })}
+                    placeholder="0"
+                  />
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="edit-is_active" className="text-sm font-medium">Active</Label>
+                    <Switch
+                      id="edit-is_active"
+                      checked={formData.is_active}
+                      onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="edit-is_existing_customer" className="text-sm font-medium">Available to Existing Customers</Label>
+                    <Switch
+                      id="edit-is_existing_customer"
+                      checked={formData.is_existing_customer}
+                      onCheckedChange={(checked) => setFormData({ ...formData, is_existing_customer: checked })}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="edit-is_new_customer" className="text-sm font-medium">Available to New Customers</Label>
+                    <Switch
+                      id="edit-is_new_customer"
+                      checked={formData.is_new_customer}
+                      onCheckedChange={(checked) => setFormData({ ...formData, is_new_customer: checked })}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-end space-x-2 pt-4">

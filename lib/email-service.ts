@@ -158,6 +158,10 @@ export class EmailService {
       // Create HTML version of the message
       const htmlMessage = message.replace(/\n/g, '<br>')
 
+      // Generate reschedule link
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+      const rescheduleUrl = `${baseUrl}/appointments/${booking.id}/reschedule`
+
       const { data, error } = await resend.emails.send({
         from: businessSettings.business_email,
         to: [booking.customers.email],
@@ -169,8 +173,14 @@ export class EmailService {
             <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
               ${htmlMessage}
             </div>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${rescheduleUrl}" style="display: inline-block; background-color: #1C1C1D; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">
+                Manage Your Appointment
+              </a>
+            </div>
             <div style="border-top: 1px solid #eee; padding-top: 20px; font-size: 12px; color: #666;">
               <p>Booking ID: ${booking.id}</p>
+              <p>Need to reschedule? <a href="${rescheduleUrl}" style="color: #1C1C1D;">Click here to manage your appointment</a></p>
               <p>If you have any questions, please contact us at ${businessSettings.business_phone}</p>
             </div>
           </div>

@@ -103,7 +103,7 @@ export function AdminSidebar() {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           {!isCollapsed && (
-            <h1 className="text-lg font-semibold" style={{ color: '#1C1C1D' }}>DUST Admin</h1>
+            <h1 className="text-lg font-semibold" style={{ color: '#1C1C1D' }}>DUST</h1>
           )}
           <Button
             variant="ghost"
@@ -121,20 +121,6 @@ export function AdminSidebar() {
 
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-3">
-          {/* Back to Site Link */}
-          <Link
-            href="/"
-            onClick={handleNavClick}
-            className={`
-              flex items-center px-3 py-3 rounded-lg text-sm font-medium transition-colors
-              text-gray-700 hover:bg-gray-100 hover:text-gray-900 border-b border-gray-200 pb-4 mb-4
-              ${isCollapsed ? 'justify-center' : ''} ${touchTargetSize}
-            `}
-          >
-            <Home className={`${iconSize} ${isCollapsed ? '' : 'mr-3'}`} strokeWidth={iconStrokeWidth} />
-            {!isCollapsed && 'Back to Site'}
-          </Link>
-          
           {navItems.map((item) => {
             const Icon = item.icon
             return (
@@ -160,6 +146,20 @@ export function AdminSidebar() {
 
         {/* User section - moved to bottom */}
         <div className="p-4 border-t border-gray-200 mt-auto">
+          {/* Back to Site Link */}
+          <Link
+            href="/"
+            onClick={handleNavClick}
+            className={`
+              flex items-center px-3 py-3 rounded-lg text-sm font-medium transition-colors
+              text-gray-700 hover:bg-gray-100 hover:text-gray-900 mb-3
+              ${isCollapsed ? 'justify-center' : ''} ${touchTargetSize}
+            `}
+          >
+            <Home className={`${iconSize} ${isCollapsed ? '' : 'mr-3'}`} strokeWidth={iconStrokeWidth} />
+            {!isCollapsed && 'Back to Site'}
+          </Link>
+          
           {!isCollapsed && (
             <div className="mb-3">
               <p className="text-sm text-gray-500">Signed in as</p>

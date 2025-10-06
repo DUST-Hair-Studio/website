@@ -4,19 +4,26 @@ import { useAuth } from '@/lib/auth-context'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
 export function Navigation() {
   const { user, loading, signOut } = useAuth()
+  const router = useRouter()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false)
   const [customer, setCustomer] = useState<{ is_existing_customer: boolean; name?: string } | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [isSigningOut, setIsSigningOut] = useState(false)
 
   // Close dropdowns when clicking outside
   useEffect(() => {
-    const handleClickOutside = () => {
+    const handleClickOutside = (event: MouseEvent) => {
       if (isProfileDropdownOpen) {
-        setIsProfileDropdownOpen(false)
+        // Check if the click is outside the dropdown
+        const dropdown = document.querySelector('[data-dropdown="profile"]')
+        if (dropdown && !dropdown.contains(event.target as Node)) {
+          setIsProfileDropdownOpen(false)
+        }
       }
     }
 
@@ -95,6 +102,13 @@ export function Navigation() {
           <div className="hidden md:flex items-center space-x-4">
             {isLoggedIn ? (
               <>
+                {!isAdmin && (
+                  <Link href="/appointments">
+                    <Button variant="outline" className="border-black text-black hover:bg-gray-100">
+                      Manage Bookings
+                    </Button>
+                  </Link>
+                )}
                 {isAdmin && (
                   <Link href="/admin">
                     <Button variant="outline" className="border-black text-black hover:bg-gray-100">
@@ -102,7 +116,7 @@ export function Navigation() {
                     </Button>
                   </Link>
                 )}
-                <div className="relative">
+                <div className="relative" data-dropdown="profile">
                   <button
                     onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
                     className="flex items-center space-x-2 text-gray-700 hover:text-gray-900 focus:outline-none"
@@ -123,21 +137,25 @@ export function Navigation() {
                       </div>
                       <button
                         onClick={async () => {
-                          console.log('🔍 Sign out button clicked')
+                          if (isSigningOut) return
+                          setIsSigningOut(true)
                           try {
                             await signOut()
                             setIsProfileDropdownOpen(false)
-                            console.log('🔍 Sign out completed')
+                            router.push('/')
                           } catch (error) {
-                            console.error('🔍 Sign out error:', error)
+                            console.error('Sign out error:', error)
+                          } finally {
+                            setIsSigningOut(false)
                           }
                         }}
-                        className="w-full text-left px-6 py-4 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150 flex items-center space-x-3"
+                        disabled={isSigningOut}
+                        className="w-full text-left px-6 py-4 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150 flex items-center space-x-3 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                         </svg>
-                        <span>Sign Out</span>
+                        <span>{isSigningOut ? 'Signing Out...' : 'Sign Out'}</span>
                       </button>
                     </div>
                   )}
@@ -178,6 +196,15 @@ export function Navigation() {
             <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 border-t border-gray-200">
               {isLoggedIn ? (
                 <>
+                  {!isAdmin && (
+                    <Link 
+                      href="/appointments" 
+                      className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Manage Bookings
+                    </Link>
+                  )}
                   {isAdmin && (
                     <Link 
                       href="/admin" 
@@ -188,17 +215,28 @@ export function Navigation() {
                     </Link>
                   )}
                   <div className="px-3 py-2">
-                    <div className="text-sm text-gray-700 mb-2">
-                      Welcome, {customer?.name || user?.email}
-                    </div>
+                    <div className="mb-4"></div>
                     <button
-                      onClick={() => {
-                        signOut()
-                        setIsMobileMenuOpen(false)
+                      onClick={async () => {
+                        if (isSigningOut) return
+                        setIsSigningOut(true)
+                        try {
+                          await signOut()
+                          setIsMobileMenuOpen(false)
+                          router.push('/')
+                        } catch (error) {
+                          console.error('🔍 Mobile sign out error:', error)
+                        } finally {
+                          setIsSigningOut(false)
+                        }
                       }}
-                      className="block w-full text-left px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md"
+                      disabled={isSigningOut}
+                      className="flex items-center justify-center w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-base font-medium text-gray-900 hover:bg-gray-50 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Sign Out
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      {isSigningOut ? 'Signing Out...' : 'Sign Out'}
                     </button>
                   </div>
                 </>

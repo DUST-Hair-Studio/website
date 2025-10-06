@@ -52,9 +52,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     try {
       const supabase = createClient()
-      await supabase.auth.signOut()
+      console.log('🔍 Supabase client created, calling signOut...')
+      
+      const { error } = await supabase.auth.signOut()
+      
+      if (error) {
+        console.error('🔍 Supabase signOut error:', error)
+        setIsSigningOut(false)
+        return
+      }
+      
+      console.log('🔍 Supabase signOut successful')
+      
+      // Force update the user state
+      setUser(null)
+      setLoading(false)
+      setIsSigningOut(false)
+      
     } catch (error) {
-      console.error('Error during sign out:', error)
+      console.error('🔍 Error during sign out:', error)
       setIsSigningOut(false)
     }
   }

@@ -181,6 +181,127 @@ Booking ID: ${booking.id}`
     }
   }
 
+  // Update calendar event for booking
+  async updateBookingEvent(eventId: string, updates: { start: Date; end: Date }): Promise<boolean> {
+    try {
+      console.log('🔄 GoogleCalendarService: Starting event update for', eventId)
+      console.log('🔄 GoogleCalendarService: Update details:', {
+        eventId,
+        startTime: updates.start.toISOString(),
+        endTime: updates.end.toISOString(),
+        startTimeLocal: updates.start.toString(),
+        endTimeLocal: updates.end.toString()
+      })
+      
+      const accessToken = await this.getAccessToken()
+      if (!accessToken) {
+        console.log('❌ GoogleCalendarService: No access token available')
+        return false
+      }
+      console.log('✅ GoogleCalendarService: Access token obtained')
+      console.log('🔍 Access token details:', {
+        hasToken: !!accessToken,
+        tokenLength: accessToken?.length,
+        tokenPrefix: accessToken?.substring(0, 20) + '...'
+      })
+
+      const { data: calendarData } = await this.supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'google_calendar_id')
+        .single()
+
+      const calendarId = calendarData?.value
+      if (!calendarId) {
+        console.log('❌ GoogleCalendarService: No calendar ID found')
+        return false
+      }
+      console.log('✅ GoogleCalendarService: Calendar ID found:', calendarId)
+
+      // Get current event details first
+      console.log('🔄 GoogleCalendarService: Fetching current event details...')
+      const getResponse = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events/${eventId}`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      })
+
+      if (!getResponse.ok) {
+        console.log('❌ GoogleCalendarService: Failed to fetch current event:', getResponse.status, getResponse.statusText)
+        return false
+      }
+      const currentEvent = await getResponse.json()
+      console.log('✅ GoogleCalendarService: Current event fetched successfully')
+      console.log('🔍 Current event structure:', {
+        id: currentEvent.id,
+        summary: currentEvent.summary,
+        start: currentEvent.start,
+        end: currentEvent.end,
+        hasStart: !!currentEvent.start,
+        hasEnd: !!currentEvent.end
+      })
+
+      // Update the event with new start/end times
+      const updatedEvent = {
+        start: {
+          dateTime: updates.start.toISOString(),
+          timeZone: 'America/Los_Angeles' // Match the timezone used in createBookingEvent
+        },
+        end: {
+          dateTime: updates.end.toISOString(),
+          timeZone: 'America/Los_Angeles' // Match the timezone used in createBookingEvent
+        }
+      }
+
+      console.log('🔄 GoogleCalendarService: Sending PATCH update request...', {
+        startTime: updates.start.toISOString(),
+        endTime: updates.end.toISOString()
+      })
+      console.log('🔍 Updated event structure (PATCH body):', {
+        start: updatedEvent.start,
+        end: updatedEvent.end
+      })
+      console.log('🔍 Full PATCH request body:', JSON.stringify(updatedEvent, null, 2))
+
+      const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events/${eventId}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updatedEvent)
+      })
+
+      if (response.ok) {
+        const updatedEventResponse = await response.json()
+        console.log('✅ GoogleCalendarService: Event updated successfully')
+        console.log('🔍 Updated event response:', {
+          id: updatedEventResponse.id,
+          summary: updatedEventResponse.summary,
+          start: updatedEventResponse.start,
+          end: updatedEventResponse.end,
+          updated: updatedEventResponse.updated
+        })
+        return true
+      } else {
+        console.log('❌ GoogleCalendarService: Failed to update event:', response.status, response.statusText)
+        const errorText = await response.text()
+        console.log('❌ GoogleCalendarService: Error details:', errorText)
+        console.log('❌ GoogleCalendarService: Request details:', {
+          url: `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events/${eventId}`,
+          method: 'PATCH',
+          hasAuth: !!accessToken,
+          calendarId,
+          eventId
+        })
+        return false
+      }
+    } catch (error) {
+      console.error('Error updating Google Calendar event:', error)
+      return false
+    }
+  }
+
   // Delete calendar event for booking
   async deleteBookingEvent(bookingId: string, eventId: string): Promise<boolean> {
     try {

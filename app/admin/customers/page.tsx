@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog'
 import { Switch } from '@/components/ui/switch'
 import { Loader2, Search, Users, UserPlus, User, Calendar, DollarSign, Eye, Filter, CheckSquare, Square, Edit, UserX, UserCheck } from 'lucide-react'
 import { toast } from 'sonner'
@@ -195,7 +195,10 @@ export default function AdminCustomersPage() {
 
   // Format date
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString()
+    // Parse date string without timezone conversion to avoid day shift
+    const [year, month, day] = dateString.split('-').map(Number)
+    const date = new Date(year, month - 1, day) // month is 0-indexed
+    return date.toLocaleDateString()
   }
 
   // Get customer stats
@@ -365,302 +368,314 @@ export default function AdminCustomersPage() {
         </div>
       )}
 
-      {/* Customers List */}
-      <div className="space-y-4">
-        {/* Header Row - Hidden on mobile */}
-        <div className="hidden md:flex items-center p-4 bg-gray-50 rounded-lg">
-          <div className="w-12">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={selectAllCustomers}
-              className="p-1"
-            >
-              {selectedCustomers.size === filteredCustomers.length && filteredCustomers.length > 0 ? (
-                <CheckSquare className="w-4 h-4" />
-              ) : (
-                <Square className="w-4 h-4" />
-              )}
-            </Button>
-          </div>
-          <div className="flex-1 font-medium text-gray-700">Customer</div>
-          <div className="w-32 font-medium text-gray-700">Type</div>
-          <div className="w-24 font-medium text-gray-700">Bookings</div>
-          <div className="w-24 font-medium text-gray-700">Spent</div>
-          <div className="w-32 font-medium text-gray-700">Last Booking</div>
-          <div className="w-32 font-medium text-gray-700">Actions</div>
-        </div>
-
-        {filteredCustomers.map((customer) => (
-          <Card key={customer.id}>
-            <CardContent className="p-4">
-              {/* Mobile Layout */}
-              <div 
-                className="md:hidden space-y-3 cursor-pointer"
-                onClick={() => {
-                  setSelectedCustomer(customer)
-                  setShowDetailsDialog(true)
-                }}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        toggleCustomerSelection(customer.id)
-                      }}
-                      className="p-1"
-                    >
-                      {selectedCustomers.has(customer.id) ? (
-                        <CheckSquare className="w-4 h-4" />
-                      ) : (
-                        <Square className="w-4 h-4" />
-                      )}
-                    </Button>
-                    <div>
-                      <p className="font-medium text-gray-900">{customer.name}</p>
-                      <p className="text-sm text-gray-600">{customer.email}</p>
-                      <p className="text-sm text-gray-500">{customer.phone}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Dialog open={showDetailsDialog && selectedCustomer?.id === customer.id} onOpenChange={(open) => {
-                      setShowDetailsDialog(open)
-                      if (!open) setSelectedCustomer(null)
-                    }}>
-                      <DialogTrigger asChild>
+      {/* Customers Table */}
+      <Card className="border border-gray-200 shadow-sm">
+        <CardContent className="p-0">
+          {filteredCustomers.length === 0 ? (
+            <div className="p-8 text-center">
+              <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No customers found</h3>
+              <p className="text-gray-600">
+                {searchTerm || filterType !== 'all' 
+                  ? 'Try adjusting your search or filter criteria.'
+                  : 'No customers have been created yet.'
+                }
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Mobile Card Layout */}
+              <div className="block md:hidden">
+                {filteredCustomers.map((customer) => (
+                  <div 
+                    key={customer.id}
+                    className="p-4 border-b border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors"
+                    onClick={() => {
+                      setSelectedCustomer(customer)
+                      setShowDetailsDialog(true)
+                    }}
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex items-center space-x-3">
                         <Button
-                          variant="outline"
+                          variant="ghost"
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation()
-                            setSelectedCustomer(customer)
-                            setShowDetailsDialog(true)
+                            toggleCustomerSelection(customer.id)
                           }}
-                          className="hidden md:flex"
+                          className="p-1"
                         >
-                          <Eye className="w-4 h-4" />
+                          {selectedCustomers.has(customer.id) ? (
+                            <CheckSquare className="w-4 h-4" />
+                          ) : (
+                            <Square className="w-4 h-4" />
+                          )}
                         </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
-                          <DialogTitle>Customer Details</DialogTitle>
-                        </DialogHeader>
-                        {selectedCustomer && (
-                          <div className="space-y-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                              <div>
-                                <Label className="text-sm font-medium">Name</Label>
-                                <p className="text-sm text-gray-600">{selectedCustomer.name}</p>
-                              </div>
-                              <div>
-                                <Label className="text-sm font-medium">Email</Label>
-                                <p className="text-sm text-gray-600">{selectedCustomer.email}</p>
-                              </div>
-                              <div>
-                                <Label className="text-sm font-medium">Phone</Label>
-                                <p className="text-sm text-gray-600">{selectedCustomer.phone}</p>
-                              </div>
-                              <div>
-                                <Label className="text-sm font-medium">Customer Type</Label>
-                                <Badge 
-                                  variant={selectedCustomer.is_existing_customer ? "default" : "secondary"}
-                                  className={selectedCustomer.is_existing_customer ? "bg-green-100 text-green-800" : "bg-orange-100 text-orange-800"}
-                                >
-                                  {selectedCustomer.is_existing_customer ? 'Existing' : 'New'}
-                                </Badge>
-                              </div>
-                              <div>
-                                <Label className="text-sm font-medium">Total Bookings</Label>
-                                <p className="text-sm text-gray-600">{selectedCustomer.total_bookings}</p>
-                              </div>
-                              <div>
-                                <Label className="text-sm font-medium">Total Spent</Label>
-                                <p className="text-sm text-gray-600">{formatPrice(selectedCustomer.total_spent)}</p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </DialogContent>
-                    </Dialog>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        openEditDialog(customer)
-                      }}
-                      disabled={isSubmitting}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="font-medium text-gray-600">Type</p>
-                    <Badge 
-                      variant={customer.is_existing_customer ? "default" : "secondary"}
-                      className={customer.is_existing_customer ? "bg-green-100 text-green-800" : "bg-orange-100 text-orange-800"}
-                    >
-                      {customer.is_existing_customer ? 'Existing' : 'New'}
-                    </Badge>
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-600">Bookings</p>
-                    <p className="font-medium">{customer.total_bookings}</p>
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-600">Spent</p>
-                    <p className="font-medium text-green-600">{formatPrice(customer.total_spent)}</p>
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-600">Last Booking</p>
-                    <p className="text-sm text-gray-600">
-                      {customer.last_booking_date ? formatDate(customer.last_booking_date) : 'Never'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Desktop Layout */}
-              <div className="hidden md:flex items-center">
-                <div className="w-12">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => toggleCustomerSelection(customer.id)}
-                    className="p-1"
-                  >
-                    {selectedCustomers.has(customer.id) ? (
-                      <CheckSquare className="w-4 h-4" />
-                    ) : (
-                      <Square className="w-4 h-4" />
-                    )}
-                  </Button>
-                </div>
-
-                <div className="flex-1">
-                  <div className="flex items-center space-x-3">
-                    <div>
-                      <p className="font-medium text-gray-900">{customer.name}</p>
-                      <p className="text-sm text-gray-600">{customer.email}</p>
-                      <p className="text-sm text-gray-500">{customer.phone}</p>
+                        <div>
+                          <div className="font-medium text-gray-900">{customer.name}</div>
+                          <div className="text-sm text-gray-500">{customer.email}</div>
+                          <div className="text-sm text-gray-500">{customer.phone}</div>
+                        </div>
+                      </div>
+                      <Badge 
+                        variant={customer.is_existing_customer ? "default" : "secondary"}
+                        className={customer.is_existing_customer ? "bg-green-100 text-green-800" : "bg-orange-100 text-orange-800"}
+                      >
+                        {customer.is_existing_customer ? 'Existing' : 'New'}
+                      </Badge>
                     </div>
-                  </div>
-                </div>
-
-                <div className="w-32">
-                  <Badge 
-                    variant={customer.is_existing_customer ? "default" : "secondary"}
-                    className={customer.is_existing_customer ? "bg-green-100 text-green-800" : "bg-orange-100 text-orange-800"}
-                  >
-                    {customer.is_existing_customer ? 'Existing' : 'New'}
-                  </Badge>
-                </div>
-
-                <div className="w-24 text-center">
-                  <p className="font-medium">{customer.total_bookings}</p>
-                </div>
-
-                <div className="w-24 text-center">
-                  <p className="font-medium text-green-600">{formatPrice(customer.total_spent)}</p>
-                </div>
-
-                <div className="w-32 text-center">
-                  <p className="text-sm text-gray-600">
-                    {customer.last_booking_date ? formatDate(customer.last_booking_date) : 'Never'}
-                  </p>
-                </div>
-
-                <div className="w-32 flex items-center space-x-2">
-                  <Dialog open={showDetailsDialog && selectedCustomer?.id === customer.id} onOpenChange={(open) => {
-                    setShowDetailsDialog(open)
-                    if (!open) setSelectedCustomer(null)
-                  }}>
-                    <DialogTrigger asChild>
-                      <Button
-                        variant="outline"
+                    
+                    <div className="space-y-2 mb-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Bookings:</span>
+                        <span className="text-gray-900">{customer.total_bookings}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Total Spent:</span>
+                        <span className="text-green-600">{formatPrice(customer.total_spent)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Last Booking:</span>
+                        <span className="text-gray-900">
+                          {customer.last_booking_date ? formatDate(customer.last_booking_date) : 'Never'}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
                         size="sm"
-                        onClick={() => {
+                        className="h-8 px-3 text-xs flex-1"
+                        onClick={(e) => {
+                          e.stopPropagation()
                           setSelectedCustomer(customer)
                           setShowDetailsDialog(true)
                         }}
                       >
-                        <Eye className="w-4 h-4" />
+                        <Eye className="w-3 h-3 mr-1" />
+                        View Details
                       </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle>Customer Details</DialogTitle>
-                      </DialogHeader>
-                      {selectedCustomer && (
-                        <div className="space-y-4">
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                              <Label className="text-sm font-medium">Name</Label>
-                              <p className="text-sm text-gray-600">{selectedCustomer.name}</p>
-                            </div>
-                            <div>
-                              <Label className="text-sm font-medium">Email</Label>
-                              <p className="text-sm text-gray-600">{selectedCustomer.email}</p>
-                            </div>
-                            <div>
-                              <Label className="text-sm font-medium">Phone</Label>
-                              <p className="text-sm text-gray-600">{selectedCustomer.phone}</p>
-                            </div>
-                            <div>
-                              <Label className="text-sm font-medium">Customer Type</Label>
-                              <Badge 
-                                variant={selectedCustomer.is_existing_customer ? "default" : "secondary"}
-                                className={selectedCustomer.is_existing_customer ? "bg-green-100 text-green-800" : "bg-orange-100 text-orange-800"}
-                              >
-                                {selectedCustomer.is_existing_customer ? 'Existing' : 'New'}
-                              </Badge>
-                            </div>
-                            <div>
-                              <Label className="text-sm font-medium">Total Bookings</Label>
-                              <p className="text-sm text-gray-600">{selectedCustomer.total_bookings}</p>
-                            </div>
-                            <div>
-                              <Label className="text-sm font-medium">Total Spent</Label>
-                              <p className="text-sm text-gray-600">{formatPrice(selectedCustomer.total_spent)}</p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </DialogContent>
-                  </Dialog>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="h-8 px-3 text-xs flex-1"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          openEditDialog(customer)
+                        }}
+                        disabled={isSubmitting}
+                      >
+                        <Edit className="w-3 h-3 mr-1" />
+                        Edit
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
 
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => openEditDialog(customer)}
-                    disabled={isSubmitting}
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
+              {/* Desktop Table Layout */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={selectAllCustomers}
+                          className="p-1"
+                        >
+                          {selectedCustomers.size === filteredCustomers.length && filteredCustomers.length > 0 ? (
+                            <CheckSquare className="w-4 h-4" />
+                          ) : (
+                            <Square className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bookings</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Spent</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Booking</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredCustomers.map((customer) => (
+                      <tr 
+                        key={customer.id}
+                        onClick={() => {
+                          setSelectedCustomer(customer)
+                          setShowDetailsDialog(true)
+                        }}
+                        className="hover:bg-gray-50 cursor-pointer transition-colors"
+                      >
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              toggleCustomerSelection(customer.id)
+                            }}
+                            className="p-1"
+                          >
+                            {selectedCustomers.has(customer.id) ? (
+                              <CheckSquare className="w-4 h-4" />
+                            ) : (
+                              <Square className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">{customer.name}</div>
+                            <div className="text-sm text-gray-500">{customer.email}</div>
+                            <div className="text-sm text-gray-500">{customer.phone}</div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <Badge 
+                            variant={customer.is_existing_customer ? "default" : "secondary"}
+                            className={customer.is_existing_customer ? "bg-green-100 text-green-800" : "bg-orange-100 text-orange-800"}
+                          >
+                            {customer.is_existing_customer ? 'Existing' : 'New'}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                          {customer.total_bookings}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                          <span className="text-green-600">{formatPrice(customer.total_spent)}</span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                          {customer.last_booking_date ? formatDate(customer.last_booking_date) : 'Never'}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm">
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="h-7 px-2 text-xs"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setSelectedCustomer(customer)
+                                setShowDetailsDialog(true)
+                              }}
+                            >
+                              <Eye className="w-3 h-3 mr-1" />
+                              View
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="h-7 px-2 text-xs"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                openEditDialog(customer)
+                              }}
+                              disabled={isSubmitting}
+                            >
+                              <Edit className="w-3 h-3 mr-1" />
+                              Edit
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Customer Details Modal */}
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Customer Details</DialogTitle>
+            <DialogDescription>
+              {selectedCustomer?.name} - Customer Information
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedCustomer && (
+            <div className="space-y-4">
+              {/* Customer Info */}
+              <div>
+                <h4 className="font-medium mb-2">Customer Information</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p><strong>Name:</strong> {selectedCustomer.name}</p>
+                    <p><strong>Email:</strong> {selectedCustomer.email}</p>
+                    <p><strong>Phone:</strong> {selectedCustomer.phone}</p>
+                  </div>
+                  <div>
+                    <p><strong>Type:</strong> 
+                      <Badge 
+                        variant={selectedCustomer.is_existing_customer ? "default" : "secondary"}
+                        className={`ml-2 ${selectedCustomer.is_existing_customer ? "bg-green-100 text-green-800" : "bg-orange-100 text-orange-800"}`}
+                      >
+                        {selectedCustomer.is_existing_customer ? 'Existing' : 'New'}
+                      </Badge>
+                    </p>
+                    <p><strong>Total Bookings:</strong> {selectedCustomer.total_bookings}</p>
+                    <p><strong>Total Spent:</strong> {formatPrice(selectedCustomer.total_spent)}</p>
+                  </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        ))}
 
-        {filteredCustomers.length === 0 && (
-          <div className="text-center py-12">
-            <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No customers found</h3>
-            <p className="text-gray-600">
-              {searchTerm || filterType !== 'all' 
-                ? 'Try adjusting your search or filter criteria.'
-                : 'No customers have been created yet.'
-              }
-            </p>
-          </div>
-        )}
-      </div>
+              {/* Booking Stats */}
+              <div>
+                <h4 className="font-medium mb-2">Booking Statistics</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p><strong>Total Bookings:</strong> {selectedCustomer.total_bookings}</p>
+                    <p><strong>Total Spent:</strong> {formatPrice(selectedCustomer.total_spent)}</p>
+                  </div>
+                  <div>
+                    <p><strong>Last Booking:</strong> {selectedCustomer.last_booking_date ? formatDate(selectedCustomer.last_booking_date) : 'Never'}</p>
+                    <p><strong>Customer Since:</strong> {formatDate(selectedCustomer.created_at)}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Notes */}
+              {selectedCustomer.notes && (
+                <div>
+                  <h4 className="font-medium mb-2">Notes</h4>
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <p className="text-sm text-gray-700">{selectedCustomer.notes}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex justify-end space-x-2 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDetailsDialog(false)}
+                >
+                  Close
+                </Button>
+                <Button
+                  onClick={() => {
+                    setShowDetailsDialog(false)
+                    openEditDialog(selectedCustomer)
+                  }}
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit Customer
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Customer Modal */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
