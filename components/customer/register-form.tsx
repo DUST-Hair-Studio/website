@@ -153,7 +153,7 @@ export function RegisterForm() {
       <CardHeader>
         <CardTitle>Create Account</CardTitle>
         <CardDescription>
-          Sign up to book appointments at DUST Hair Salon
+          Sign up to book appointments at DUST Studio
         </CardDescription>
       </CardHeader>
       <CardContent>

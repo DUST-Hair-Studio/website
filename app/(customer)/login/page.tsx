@@ -18,7 +18,7 @@ export default function LoginPage() {
         </div>
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900">DUST</h1>
-          <p className="mt-2 text-gray-600">Hair Salon</p>
+          <p className="mt-2 text-gray-600">Studio</p>
         </div>
         <Suspense fallback={<div>Loading...</div>}>
           <LoginForm />

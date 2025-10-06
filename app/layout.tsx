@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DUST Hair Salon",
-  description: "Professional hair salon booking system",
+  title: "DUST Studio",
+  description: "Professional studio booking system",
 };
 
 export default function RootLayout({

@@ -77,18 +77,18 @@ export default function Home() {
       <main>
         {/* DUST Title Section */}
         <div className="w-full text-center pt-4 pb-2 px-4 overflow-hidden" style={{ backgroundColor: '#F5F5F3' }}>
-          <h1 className="dust-heading text-[9.5rem] xs:text-[10rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[28rem] leading-none" style={{ color: '#1C1C1D', fontFamily: 'Pragmatica Extended, sans-serif' }}>
+          <h1 className="dust-heading text-[9.5rem] xs:text-[10rem] sm:text-[12rem] md:text-[24rem] lg:text-[30rem] xl:text-[34rem] 2xl:text-[44rem] leading-none" style={{ color: '#1C1C1D', fontFamily: 'Pragmatica Extended, sans-serif' }}>
             DUST
           </h1>
         </div>
 
         {/* Hero Section */}
         <div className="border-b border-black" style={{ backgroundColor: '#F5F5F3' }}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-2 sm:pt-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 2xl:px-2 pt-2 sm:pt-4">
             {/* Desktop Layout - Side by side */}
-            <div className="hidden lg:grid lg:grid-cols-2 gap-16 items-start">
+            <div className="hidden lg:flex lg:items-start lg:relative">
               {/* Hero Image - Larger on desktop */}
-              <div className="relative aspect-[3/4] max-h-[900px]">
+              <div className="relative aspect-[3/4] max-h-[800px] lg:max-h-[900px] w-[600px] lg:w-[800px] -ml-32 lg:-ml-0 xl:-ml-0 2xl:-ml-40">
                 <Image
                   src="/homepage_images/BannerLuca.webp"
                   alt="Luca Tullio - DUST Hair Studio"
@@ -98,20 +98,21 @@ export default function Home() {
                 />
               </div>
 
-              {/* Text Content */}
-              <div className="flex flex-col justify-start">
+              {/* Text Content - Two distinct blocks */}
+              <div className="flex flex-col justify-start ml-16 ">
+                {/* First text block - positioned at top of image */}
                 <div className="space-y-1">
-                  <h2 className="dust-heading text-4xl tracking-narrow leading-tight" style={{ color: 'var(--dust-black)' }}>
+                  <h2 className="dust-heading 2xl:text-5xl xl:text-4xl lg:text-3xl tracking-narrow leading-tight" style={{ color: 'var(--dust-black)' }}>
                     A PRIVATE HAIR STUDIO
                   </h2>
-                  <h3 className="dust-heading text-4xl tracking-narrow leading-tight" style={{ color: 'var(--dust-black)' }}>
+                  <h3 className="dust-heading 2xl:text-5xl xl:text-4xl lg:text-3xl tracking-narrow leading-tight" style={{ color: 'var(--dust-black)' }}>
                     BY LUCA TULLIO
                   </h3>
                 </div>
                 
-                {/* Much lower positioning on desktop */}
-                <div className="mt-16 sm:mt-80 md:mt-80 lg:mt-100 xl:mt-120 2xl:mt-140">
-                  <p className="dust-mono text-base text-gray-700 tracking-wide leading-relaxed max-w-xl uppercase">
+                {/* Second text block - positioned lower */}
+                <div className="max-w-xl mt-16 lg:mt-120 xl:mt-140 2xl:mt-160">
+                  <p className="dust-mono text-base text-gray-700 tracking-wide leading-relaxed uppercase">
                     DUST WAS BORN FROM A DESIRE TO CREATE A PRIVATE AND PERSONALIZED SALON EXPERIENCE FOR EACH INDIVIDUAL CLIENT AND THE HAIR THEY WEAR.
                   </p>
                 </div>
@@ -142,7 +143,7 @@ export default function Home() {
                   </h3>
                 </div>
                 
-                <div className="mt-8 sm:mt-6">
+                <div className="mt-8 sm:mt-6 2xl:mt-[25rem]">
                   <p className="dust-mono text-sm md:text-base text-gray-700 tracking-wide leading-relaxed uppercase">
                     DUST WAS BORN FROM A DESIRE TO CREATE A PRIVATE AND PERSONALIZED SALON EXPERIENCE FOR EACH INDIVIDUAL CLIENT AND THE HAIR THEY WEAR.
                   </p>
@@ -316,7 +317,7 @@ export default function Home() {
 
             {/* Bottom Logo */}
             <div className="text-center overflow-hidden">
-              <div className="dust-heading text-[9.5rem] xs:text-[10rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[28rem] leading-none" style={{ color: '#FAFAFA', fontFamily: 'Pragmatica Extended, sans-serif' }}>
+              <div className="dust-heading text-[9.5rem] xs:text-[10rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[46rem] leading-none" style={{ color: '#FAFAFA', fontFamily: 'Pragmatica Extended, sans-serif' }}>
                 DUST
               </div>
             </div>

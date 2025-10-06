@@ -1,4 +1,4 @@
-// Type definitions for the DUST hair salon booking system
+// Type definitions for the DUST studio booking system
 
 export interface Customer {
   id: string;

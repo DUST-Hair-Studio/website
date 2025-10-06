@@ -328,7 +328,7 @@ function AdminSettingsContent() {
                     id="business_name"
                     value={businessSettings.business_name}
                     onChange={(e) => setBusinessSettings(prev => ({ ...prev, business_name: e.target.value }))}
-                    placeholder="DUST Hair Salon"
+                    placeholder="DUST Studio"
                   />
                 </div>
                 <div className="space-y-2">
