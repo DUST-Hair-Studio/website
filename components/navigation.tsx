@@ -8,8 +8,23 @@ import { useState, useEffect } from 'react'
 export function Navigation() {
   const { user, loading, signOut } = useAuth()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false)
   const [customer, setCustomer] = useState<{ is_existing_customer: boolean; name?: string } | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (isProfileDropdownOpen) {
+        setIsProfileDropdownOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isProfileDropdownOpen])
 
   // Fetch customer data and check admin status when user is available
   useEffect(() => {
@@ -49,7 +64,7 @@ export function Navigation() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <Link href="/" className="text-xl font-bold text-gray-900">
+              <Link href="/" className="dust-heading text-xl font-bold tracking-narrow" style={{ color: '#1C1C1D' }}>
                 DUST
               </Link>
             </div>
@@ -70,7 +85,7 @@ export function Navigation() {
         <div className="flex justify-between h-16">
           {/* Logo */}
           <div className="flex items-center">
-            <Link href="/" className="text-xl font-bold" style={{ color: 'var(--dust-black)' }}>
+            <Link href="/" className="dust-heading text-xl font-bold tracking-narrow" style={{ color: '#1C1C1D' }}>
               DUST
             </Link>
             <span className="ml-2 text-sm text-gray-500 hidden sm:inline">Hair Salon</span>
@@ -87,13 +102,45 @@ export function Navigation() {
                     </Button>
                   </Link>
                 )}
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-700">
-                    Welcome, {user?.email}
-                  </span>
-                  <Button variant="ghost" onClick={signOut}>
-                    Sign Out
-                  </Button>
+                <div className="relative">
+                  <button
+                    onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                    className="flex items-center space-x-2 text-gray-700 hover:text-gray-900 focus:outline-none"
+                  >
+                    <div className="w-8 h-8 flex items-center justify-center">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                  </button>
+                  
+                  {/* Dropdown Menu */}
+                  {isProfileDropdownOpen && (
+                    <div className="absolute right-0 mt-3 w-64 bg-white rounded-lg shadow-xl py-4 z-50 border border-gray-200">
+                      <div className="px-6 py-4 text-sm text-gray-600 border-b border-gray-100">
+                        <div className="font-medium text-gray-900">{user?.email}</div>
+                        <div className="text-xs text-gray-500 mt-1">Account</div>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          console.log('🔍 Sign out button clicked')
+                          try {
+                            await signOut()
+                            setIsProfileDropdownOpen(false)
+                            console.log('🔍 Sign out completed')
+                          } catch (error) {
+                            console.error('🔍 Sign out error:', error)
+                          }
+                        }}
+                        className="block w-full text-left px-6 py-4 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150 flex items-center space-x-3"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        <span>Sign Out</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </>
             ) : (
@@ -143,21 +190,6 @@ export function Navigation() {
                   <div className="px-3 py-2">
                     <div className="text-sm text-gray-700 mb-2">
                       Welcome, {customer?.name || user?.email}
-                      {customer && !customer.is_existing_customer && (
-                        <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                          New Customer
-                        </span>
-                      )}
-                      {customer && customer.is_existing_customer && (
-                        <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                          Existing Customer
-                        </span>
-                      )}
-                      {isAdmin && (
-                        <span className="ml-2 text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">
-                          Admin
-                        </span>
-                      )}
                     </div>
                     <button
                       onClick={() => {

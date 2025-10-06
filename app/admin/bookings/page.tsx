@@ -8,12 +8,15 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { CheckCircle, Calendar, DollarSign, CalendarDays } from 'lucide-react'
 
 interface BookingWithDetails extends Booking {
   services: {
     name: string;
     description: string;
     duration_minutes: number;
+    new_customer_price: number;
+    existing_customer_price: number;
   } | null;
   customers: {
     name: string;
@@ -193,36 +196,57 @@ export default function AdminBookingsPage() {
       </div>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-blue-600">{bookings.filter(b => b.status === 'pending').length}</div>
-            <div className="text-sm text-gray-600">Pending</div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-3xl font-bold text-gray-900">{bookings.filter(b => b.status === 'confirmed').length}</div>
+                <div className="text-sm text-gray-600 mt-1">Confirmed</div>
+              </div>
+              <div className="h-8 w-8 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-200">
+                <CheckCircle className="h-4 w-4 text-blue-600" strokeWidth={1.5} />
+              </div>
+            </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-green-600">{bookings.filter(b => b.status === 'confirmed').length}</div>
-            <div className="text-sm text-gray-600">Confirmed</div>
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-3xl font-bold text-gray-900">{bookings.filter(b => b.status === 'completed').length}</div>
+                <div className="text-sm text-gray-600 mt-1">Completed</div>
+              </div>
+              <div className="h-8 w-8 bg-green-50 rounded-lg flex items-center justify-center border border-green-200">
+                <Calendar className="h-4 w-4 text-green-600" strokeWidth={1.5} />
+              </div>
+            </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-purple-600">{bookings.filter(b => b.status === 'completed').length}</div>
-            <div className="text-sm text-gray-600">Completed</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-orange-600">{bookings.filter(b => isUpcoming(b.booking_date)).length}</div>
-            <div className="text-sm text-gray-600">Upcoming</div>
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-3xl font-bold text-gray-900">
+                  {bookings.filter(b => {
+                    const today = new Date().toISOString().split('T')[0]
+                    const bookingDate = new Date(b.booking_date).toISOString().split('T')[0]
+                    return bookingDate === today
+                  }).length}
+                </div>
+                <div className="text-sm text-gray-600 mt-1">Today</div>
+              </div>
+              <div className="h-8 w-8 bg-orange-50 rounded-lg flex items-center justify-center border border-orange-200">
+                <CalendarDays className="h-4 w-4 text-orange-600" strokeWidth={1.5} />
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardContent className="p-4">
+      <Card className="border-0 shadow-sm">
+        <CardContent className="p-6">
           <div className="flex gap-4 items-center">
             <div className="flex-1">
               <Input
@@ -260,8 +284,8 @@ export default function AdminBookingsPage() {
           </Card>
         ) : (
           filteredBookings.map((booking) => (
-            <Card key={booking.id} className={`hover:shadow-md transition-shadow ${isUpcoming(booking.booking_date) ? 'border-l-4 border-l-blue-500' : ''}`}>
-              <CardContent className="p-4">
+          <Card key={booking.id} className={`border-0 shadow-sm hover:shadow-md transition-shadow ${isUpcoming(booking.booking_date) ? 'border-l-4 border-l-blue-500' : ''}`}>
+            <CardContent className="p-6">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">

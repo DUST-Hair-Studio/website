@@ -1,6 +1,6 @@
 'use client'
 
-import { AdminNavigation } from '@/components/admin/admin-navigation'
+import { AdminSidebar } from '@/components/admin/admin-sidebar'
 import { useAuth } from '@/lib/auth-context'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -58,7 +58,7 @@ export default function AdminLayout({
   if ((loading || checkingAdmin) && !forceShowContent) {
     console.log('🔍 AdminLayout: Showing loading spinner - loading:', loading, 'checkingAdmin:', checkingAdmin)
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="h-screen flex items-center justify-center" style={{ backgroundColor: '#FAFAFA' }}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
           <div className="text-sm text-gray-600">
@@ -83,9 +83,13 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AdminNavigation />
-      <main>{children}</main>
+    <div className="h-screen flex" style={{ backgroundColor: '#FAFAFA' }}>
+      <AdminSidebar />
+      <main className="flex-1 lg:ml-0 flex flex-col">
+        <div className="p-6 flex-1 overflow-auto">
+          {children}
+        </div>
+      </main>
       <Toaster />
     </div>
   )

@@ -153,7 +153,7 @@ function BookPageContent() {
     console.log('🎯 handleServiceSelect called at:', new Date().toISOString())
     
     // Reset all booking-related state (simulate going back to step 1)
-    setSelectedDate(null)
+    setSelectedDate(undefined)
     setSelectedTime('')
     setAvailableTimes([])
     setLoadingTimes(false)

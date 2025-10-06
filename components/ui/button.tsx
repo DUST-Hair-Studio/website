@@ -9,7 +9,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "border border-black bg-white text-gray-900 hover:bg-gray-50 shadow-xs",
+        default: "border border-black text-gray-900 shadow-xs",
         destructive:
           "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
         outline:
@@ -52,6 +52,7 @@ function Button({
     <Comp
       data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
+      style={variant === 'default' ? { backgroundColor: '#FAFAFA' } : undefined}
       {...props}
     />
   )

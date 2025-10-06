@@ -18,24 +18,16 @@ export default function Home() {
   useEffect(() => {
     const fetchCustomer = async () => {
       if (!user) {
-        console.log('🔍 Homepage - No user, setting customer to null')
         setCustomer(null)
         return
       }
 
-      console.log('🔍 Homepage - Fetching customer data for user:', user.email)
       try {
         const response = await fetch('/api/customer/me')
         const data = await response.json()
         
-        console.log('🔍 Homepage - Customer API response:', data)
-        
         if (data.customer) {
-          console.log('🔍 Homepage - Setting customer:', data.customer)
-          console.log('🔍 Homepage - is_existing_customer:', data.customer.is_existing_customer)
           setCustomer(data.customer)
-        } else {
-          console.log('❌ Homepage - No customer data received')
         }
       } catch (error) {
         console.error('❌ Homepage - Error fetching customer data:', error)
@@ -79,24 +71,24 @@ export default function Home() {
   const isLoggedIn = !!user
 
   return (
-    <div className="min-h-screen bg-stone-50">
+    <div className="min-h-screen" style={{ backgroundColor: '#FAFAFA' }}>
       <Navigation />
       
       <main>
         {/* DUST Title Section */}
-        <div className="w-full text-center pt-16 pb-8">
-          <h1 className="dust-heading text-[16rem] sm:text-[20rem] md:text-[24rem] lg:text-[28rem] xl:text-[32rem] 2xl:text-[36rem] leading-none" style={{ color: 'var(--dust-black)' }}>
+        <div className="w-full text-center pt-16 pb-8 px-0" style={{ backgroundColor: '#F5F5F3' }}>
+          <h1 className="dust-heading text-[12rem] xs:text-[14rem] sm:text-[16rem] md:text-[18rem] lg:text-[22rem] xl:text-[26rem] 2xl:text-[30rem] leading-none" style={{ color: '#1C1C1D' }}>
             DUST
           </h1>
         </div>
 
         {/* Hero Section */}
-        <div className="border-b border-black">
+        <div className="border-b border-black" style={{ backgroundColor: '#F5F5F3' }}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16">
             {/* Desktop Layout - Side by side */}
             <div className="hidden lg:grid lg:grid-cols-2 gap-16 items-start">
               {/* Hero Image - Larger on desktop */}
-              <div className="relative h-[900px]">
+              <div className="relative aspect-[3/4] max-h-[900px]">
                 <Image
                   src="/homepage_images/BannerLuca.webp"
                   alt="Luca Tullio - DUST Hair Studio"
@@ -118,7 +110,7 @@ export default function Home() {
                 </div>
                 
                 {/* Much lower positioning on desktop */}
-                <div className="mt-120">
+                <div className="mt-16 sm:mt-80 md:mt-80 lg:mt-100 xl:mt-120 2xl:mt-140">
                   <p className="dust-mono text-base text-gray-700 tracking-wide leading-relaxed max-w-xl uppercase">
                     DUST WAS BORN FROM A DESIRE TO CREATE A PRIVATE AND PERSONALIZED SALON EXPERIENCE FOR EACH INDIVIDUAL CLIENT AND THE HAIR THEY WEAR.
                   </p>
@@ -140,7 +132,7 @@ export default function Home() {
               </div>
 
               {/* Text Content - Stacked */}
-              <div className="space-y-8">
+              <div className="space-y-8 px-4 sm:px-6 mb-16 sm:mb-20 mt-16 sm:mt-16">
                 <div className="space-y-1">
                   <h2 className="dust-heading text-2xl md:text-3xl tracking-narrow leading-tight" style={{ color: 'var(--dust-black)' }}>
                     A PRIVATE HAIR STUDIO
@@ -150,7 +142,7 @@ export default function Home() {
                   </h3>
                 </div>
                 
-                <div>
+                <div className="mt-8 sm:mt-6">
                   <p className="dust-mono text-sm md:text-base text-gray-700 tracking-wide leading-relaxed uppercase">
                     DUST WAS BORN FROM A DESIRE TO CREATE A PRIVATE AND PERSONALIZED SALON EXPERIENCE FOR EACH INDIVIDUAL CLIENT AND THE HAIR THEY WEAR.
                   </p>
@@ -161,17 +153,17 @@ export default function Home() {
         </div>
 
         {/* Booking Section */}
-        <div className="bg-white py-60">
+        <div className="py-60" style={{ backgroundColor: '#FAFAFA' }}>
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="dust-heading text-4xl md:text-5xl mb-8 tracking-wide" style={{ color: 'var(--dust-black)' }}>
+            <h2 className="dust-heading text-2xl sm:text-3xl md:text-4xl lg:text-5xl mb-8 tracking-wide" style={{ color: 'var(--dust-black)' }}>
               BOOK AN APPOINTMENT
             </h2>
             
-            <p className="dust-mono text-base text-gray-700 mb-4 max-w-2xl mx-auto leading-relaxed">
+            <p className="dust-mono text-sm sm:text-base text-gray-700 mb-4 max-w-2xl mx-auto leading-relaxed">
               If this is your first time here, welcome. It&apos;s important we have enough time together so please make sure you choose the appropriate appointment option. If you have any questions please don&apos;t hesitate to reach out through my booking page.
             </p>
             
-            <p className="dust-mono text-base text-gray-700 mb-12 max-w-2xl mx-auto leading-relaxed">
+            <p className="dust-mono text-sm sm:text-base text-gray-700 mb-12 max-w-2xl mx-auto leading-relaxed">
               See you soon x
             </p>
 
@@ -184,15 +176,8 @@ export default function Home() {
                 </div>
               ) : (
                 (() => {
-                  console.log('🔍 Homepage - Services filtering:')
-                  console.log('🔍 Homepage - Customer:', customer)
-                  console.log('🔍 Homepage - customer?.is_existing_customer:', customer?.is_existing_customer)
-                  console.log('🔍 Homepage - All services:', services)
-                  
                   // Filter services based on customer type restrictions
                   const filteredServices = services.filter(service => {
-                    console.log(`🔍 Service: ${service.name}, is_existing_customer: ${service.is_existing_customer}, is_new_customer: ${service.is_new_customer}`)
-                    
                     const isExistingCustomer = customer?.is_existing_customer || false
                     
                     // Show service if:
@@ -205,24 +190,18 @@ export default function Home() {
                     
                     if (isAvailableToExisting && isAvailableToNew) {
                       // Available to both - always show
-                      console.log(`✅ Showing service: ${service.name} (available to both)`)
                       return true
                     } else if (isAvailableToExisting && isExistingCustomer) {
                       // Only for existing customers and user is existing
-                      console.log(`✅ Showing service: ${service.name} (existing customer only)`)
                       return true
                     } else if (isAvailableToNew && !isExistingCustomer) {
                       // Only for new customers and user is new
-                      console.log(`✅ Showing service: ${service.name} (new customer only)`)
                       return true
                     } else {
                       // Not available to this customer type
-                      console.log(`❌ Hiding service: ${service.name} (not available to ${isExistingCustomer ? 'existing' : 'new'} customers)`)
                       return false
                     }
                   })
-                  
-                  console.log('🔍 Homepage - Filtered services:', filteredServices)
 
                   return filteredServices.map((service, index) => {
                     // For non-logged in users, show new customer pricing
@@ -296,7 +275,7 @@ export default function Home() {
         </div>
 
         {/* Footer */}
-        <footer className="bg-gray-900 text-white py-16">
+        <footer className="text-white py-16" style={{ backgroundColor: '#1C1C1D' }}>
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid md:grid-cols-2 gap-12 mb-16">
               {/* Subscribe */}
@@ -309,9 +288,10 @@ export default function Home() {
                   <Input 
                     type="email" 
                     placeholder="Email Address" 
-                    className="flex-1 bg-white border-white text-gray-900 placeholder-gray-500"
+                    className="flex-1 border-white text-gray-900 placeholder-gray-500"
+                    style={{ backgroundColor: '#FAFAFA' }}
                   />
-                  <Button className="bg-black text-white border border-white hover:bg-gray-800 px-6">
+                  <Button className="text-gray-900 border border-white px-6" style={{ backgroundColor: '#FAFAFA' }}>
                     Sign Up
                   </Button>
                 </div>
@@ -323,7 +303,7 @@ export default function Home() {
               {/* Follow */}
               <div>
                 <h3 className="dust-heading text-lg text-white mb-4 tracking-wide">FOLLOW</h3>
-                <a href="#" className="dust-mono text-sm text-white underline hover:no-underline">
+                <a href="https://www.instagram.com/dust.hair.studio/" target="_blank" rel="noopener noreferrer" className="dust-mono text-sm text-white underline hover:no-underline">
                   INSTAGRAM
                 </a>
               </div>

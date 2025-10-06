@@ -56,6 +56,13 @@ export async function GET() {
       return NextResponse.json({ error: 'Failed to fetch customer data' }, { status: 500 })
     }
 
+    // Split the name field into first_name and last_name for the booking form
+    if (customer && customer.name) {
+      const nameParts = customer.name.trim().split(' ')
+      customer.first_name = nameParts[0] || ''
+      customer.last_name = nameParts.slice(1).join(' ') || ''
+    }
+
     return NextResponse.json({ customer })
   } catch (error) {
     console.error('❌ Customer API - Error:', error)

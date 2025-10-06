@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Switch } from '@/components/ui/switch'
-import { Loader2, Search, Users, UserCheck, UserX, Calendar, DollarSign, Eye, Filter, CheckSquare, Square, Edit } from 'lucide-react'
+import { Loader2, Search, Users, UserPlus, User, Calendar, DollarSign, Eye, Filter, CheckSquare, Square, Edit, UserX, UserCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Customer } from '@/types'
 
@@ -228,61 +228,71 @@ export default function AdminCustomersPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-        <Card>
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
           <CardContent className="p-6">
-            <div className="flex items-center space-x-2">
-              <Users className="w-5 h-5 text-blue-600" />
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Customers</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                <div className="text-3xl font-bold text-gray-900">{stats.total}</div>
+                <div className="text-sm text-gray-600 mt-1">Total Customers</div>
+              </div>
+              <div className="h-8 w-8 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-200">
+                <Users className="h-4 w-4 text-blue-600" strokeWidth={1.5} />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
           <CardContent className="p-6">
-            <div className="flex items-center space-x-2">
-              <UserX className="w-5 h-5 text-orange-600" />
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">New Customers</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.new}</p>
+                <div className="text-3xl font-bold text-gray-900">{stats.new}</div>
+                <div className="text-sm text-gray-600 mt-1">New Customers</div>
+              </div>
+              <div className="h-8 w-8 bg-orange-50 rounded-lg flex items-center justify-center border border-orange-200">
+                <UserPlus className="h-4 w-4 text-orange-600" strokeWidth={1.5} />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
           <CardContent className="p-6">
-            <div className="flex items-center space-x-2">
-              <UserCheck className="w-5 h-5 text-green-600" />
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Existing Customers</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.existing}</p>
+                <div className="text-3xl font-bold text-gray-900">{stats.existing}</div>
+                <div className="text-sm text-gray-600 mt-1">Existing Customers</div>
+              </div>
+              <div className="h-8 w-8 bg-green-50 rounded-lg flex items-center justify-center border border-green-200">
+                <User className="h-4 w-4 text-green-600" strokeWidth={1.5} />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
           <CardContent className="p-6">
-            <div className="flex items-center space-x-2">
-              <Calendar className="w-5 h-5 text-purple-600" />
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Bookings</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalBookings}</p>
+                <div className="text-3xl font-bold text-gray-900">{stats.totalBookings}</div>
+                <div className="text-sm text-gray-600 mt-1">Total Bookings</div>
+              </div>
+              <div className="h-8 w-8 bg-purple-50 rounded-lg flex items-center justify-center border border-purple-200">
+                <Calendar className="h-4 w-4 text-purple-600" strokeWidth={1.5} />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
           <CardContent className="p-6">
-            <div className="flex items-center space-x-2">
-              <DollarSign className="w-5 h-5 text-green-600" />
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                <p className="text-2xl font-bold text-gray-900">{formatPrice(stats.totalRevenue)}</p>
+                <div className="text-3xl font-bold text-gray-900">{formatPrice(stats.totalRevenue)}</div>
+                <div className="text-sm text-gray-600 mt-1">Total Revenue</div>
+              </div>
+              <div className="h-8 w-8 bg-emerald-50 rounded-lg flex items-center justify-center border border-emerald-200">
+                <DollarSign className="h-4 w-4 text-emerald-600" strokeWidth={1.5} />
               </div>
             </div>
           </CardContent>

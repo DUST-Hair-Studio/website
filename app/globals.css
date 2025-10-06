@@ -2,7 +2,7 @@
 
 @layer base {
   :root {
-    --background: 45 20% 96%;  /* Beige */
+    --background: 0 0% 98%;  /* #FAFAFA */
     --foreground: 0 0% 0%;      /* Black */
     
     --card: 0 0% 100%;
@@ -20,6 +20,10 @@
     
     --black-hsl: 240 2.43902439% 16.07843137%;
     --dust-black: #28282A;
+  }
+  
+  body {
+    background-color: #FAFAFA;
   }
 }
 
