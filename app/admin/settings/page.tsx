@@ -44,6 +44,10 @@ interface PaymentSettings {
   payment_required: boolean
 }
 
+interface ScheduleSettings {
+  buffer_time_minutes: number
+}
+
 const DAYS = [
   { value: 0, name: 'Sunday' },
   { value: 1, name: 'Monday' },
@@ -96,6 +100,11 @@ function AdminSettingsContent() {
     square_access_token: '',
     payment_required: false
   })
+  
+  // Schedule Settings State
+  const [scheduleSettings, setScheduleSettings] = useState<ScheduleSettings>({
+    buffer_time_minutes: 0
+  })
 
   // Initialize business hours with default values
   useEffect(() => {
@@ -137,6 +146,7 @@ function AdminSettingsContent() {
         const settingsData = await settingsResponse.json()
         setBusinessSettings(prev => ({ ...prev, ...settingsData.business }))
         setPaymentSettings(prev => ({ ...prev, ...settingsData.payments }))
+        setScheduleSettings(prev => ({ ...prev, ...settingsData.schedule }))
       }
     } catch (error) {
       console.error('Error fetching settings:', error)
@@ -154,20 +164,35 @@ function AdminSettingsContent() {
   const saveBusinessHours = async () => {
     try {
       setSaving(true)
-      const response = await fetch('/api/admin/business-hours', {
+      
+      // Save business hours
+      const hoursResponse = await fetch('/api/admin/business-hours', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ businessHours })
       })
 
-      if (response.ok) {
-        toast.success('Business hours saved successfully')
-      } else {
+      if (!hoursResponse.ok) {
         throw new Error('Failed to save business hours')
       }
+      
+      // Save schedule settings
+      const settingsResponse = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          schedule: scheduleSettings 
+        })
+      })
+
+      if (!settingsResponse.ok) {
+        throw new Error('Failed to save schedule settings')
+      }
+
+      toast.success('Schedule settings saved successfully')
     } catch (error) {
-      console.error('Error saving business hours:', error)
-      toast.error('Failed to save business hours')
+      console.error('Error saving schedule settings:', error)
+      toast.error('Failed to save schedule settings')
     } finally {
       setSaving(false)
     }
@@ -421,9 +446,45 @@ function AdminSettingsContent() {
                   </div>
                 ))}
               </div>
+              
               <Button onClick={saveBusinessHours} disabled={saving}>
                 {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Save Business Hours
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Buffer Time Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                Buffer Time
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 p-6">
+              <div className="space-y-2">
+                <Label htmlFor="buffer_time">Buffer Time (minutes)</Label>
+                <p className="text-sm text-gray-600">
+                  Extra time added between appointments to allow for cleanup and preparation
+                </p>
+                <Input
+                  id="buffer_time"
+                  type="number"
+                  min="0"
+                  max="60"
+                  value={scheduleSettings.buffer_time_minutes}
+                  onChange={(e) => setScheduleSettings(prev => ({ 
+                    ...prev, 
+                    buffer_time_minutes: parseInt(e.target.value) || 0 
+                  }))}
+                  className="w-32"
+                />
+              </div>
+              
+              <Button onClick={saveBusinessHours} disabled={saving}>
+                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Save Buffer Time
               </Button>
             </CardContent>
           </Card>

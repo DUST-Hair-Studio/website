@@ -31,6 +31,7 @@ function BookPageContent() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [availableTimes, setAvailableTimes] = useState<string[]>([])
   const [loadingTimes, setLoadingTimes] = useState(false)
+  const [loadingCalendar, setLoadingCalendar] = useState(false)
   const [businessHours, setBusinessHours] = useState<{day_of_week: number; is_open: boolean; open_time: string; close_time: string; timezone: string}[]>([])
   
   const [step, setStep] = useState(1) // 1: Service, 2: Date/Time, 3: Details, 4: Confirmation
@@ -115,19 +116,58 @@ function BookPageContent() {
   // Check availability for visible calendar days when service and business hours are loaded
   useEffect(() => {
     if (selectedService && businessHours.length > 0) {
-      checkAvailabilityForVisibleDays()
+      // Only run checkAvailabilityForVisibleDays if no date is selected
+      // If a date is selected, let the individual date fetch handle availability
+      if (!selectedDate) {
+        console.log('🔄 Running checkAvailabilityForVisibleDays (no selected date)')
+        checkAvailabilityForVisibleDays()
+      } else {
+        console.log('🔄 Skipping checkAvailabilityForVisibleDays (date already selected)')
+      }
     }
-  }, [selectedService, businessHours])
+  }, [selectedService, businessHours, selectedDate])
+
+  // Refetch availability when service changes and a date is already selected
+  useEffect(() => {
+    console.log('🔄 useEffect triggered at:', new Date().toISOString(), {
+      selectedService: selectedService ? selectedService.name : 'null',
+      selectedDate: selectedDate ? selectedDate.toDateString() : 'null',
+      hasService: !!selectedService,
+      hasDate: !!selectedDate
+    })
+    
+    if (selectedService && selectedDate) {
+      console.log('🔄 Service changed, refetching availability for:', {
+        serviceName: selectedService.name,
+        serviceDuration: selectedService.duration_minutes,
+        selectedDate: selectedDate.toDateString()
+      })
+      fetchAvailableTimes(selectedDate)
+    } else {
+      console.log('🔄 useEffect: Not fetching - missing service or date')
+    }
+  }, [selectedService, selectedDate])
 
 
   const handleServiceSelect = (service: Service) => {
+    console.log('🎯 handleServiceSelect called at:', new Date().toISOString())
+    
+    // Reset all booking-related state (simulate going back to step 1)
+    setSelectedDate(null)
+    setSelectedTime('')
+    setAvailableTimes([])
+    setLoadingTimes(false)
+    setLoadingCalendar(false)
+    
+    // Clear availability caches to force fresh data
+    setDatesWithNoAvailability(new Set())
+    setAvailabilityCache(new Map())
+    
+    // Set new service and go to step 2
     setSelectedService(service)
     setStep(2)
     
-    // If a date is already selected, fetch available times for this service
-    if (selectedDate) {
-      fetchAvailableTimes(selectedDate)
-    }
+    console.log('🔄 Service changed, all state reset, will fetch fresh availability')
   }
 
   const isBusinessDay = (date: Date): boolean => {
@@ -170,6 +210,11 @@ function BookPageContent() {
     if (!selectedService || businessHours.length === 0) return
     
     console.log('🔍 Checking availability for visible calendar days (prioritized)...')
+    console.log('🔍 Service being used in checkAvailabilityForVisibleDays:', {
+      name: selectedService.name,
+      duration: selectedService.duration_minutes
+    })
+    setLoadingCalendar(true)
     
     try {
       const today = new Date()
@@ -178,9 +223,9 @@ function BookPageContent() {
       const currentMonth = new Date(today.getFullYear(), today.getMonth(), 1)
       const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1)
       
-      // Get business days for current month first (only future dates)
+      // Get business days for current month first
       const currentMonthBusinessDays: string[] = []
-      const currentDate = new Date(today.getTime()) // Start from today, not beginning of month
+      const currentDate = new Date(currentMonth)
       
       while (currentDate < nextMonth) {
         if (isBusinessDay(currentDate)) {
@@ -285,6 +330,8 @@ function BookPageContent() {
       
     } catch (error) {
       console.error('Error checking availability:', error)
+    } finally {
+      setLoadingCalendar(false)
     }
   }
 
@@ -293,16 +340,19 @@ function BookPageContent() {
     setSelectedDate(date)
     setSelectedTime('') // Reset time when date changes
     
-    // Fetch available times when date is selected
-    if (date && selectedService) {
-      await fetchAvailableTimes(date)
-    }
+    // Don't fetch here - let the useEffect handle it to avoid race conditions
   }
 
   const fetchAvailableTimes = async (date: Date): Promise<string[]> => {
-    console.log('fetchAvailableTimes called with:', { date, selectedService })
+    console.log('🚀 fetchAvailableTimes called with:', { 
+      date: date.toDateString(), 
+      selectedService: selectedService ? {
+        name: selectedService.name,
+        duration: selectedService.duration_minutes
+      } : null 
+    })
     if (!selectedService) {
-      console.log('No selected service, returning early')
+      console.log('❌ No selected service, returning early')
       return []
     }
     
@@ -314,12 +364,14 @@ function BookPageContent() {
       const day = String(date.getDate()).padStart(2, '0')
       const dateStr = `${year}-${month}-${day}`
       const url = `/api/admin/availability?startDate=${dateStr}&endDate=${dateStr}&serviceDuration=${selectedService.duration_minutes}`
-      console.log('Fetching availability from:', url)
+      console.log('🔍 Fetching availability from:', url)
+      console.log('🔍 Service duration being used:', selectedService.duration_minutes)
       const response = await fetch(url)
       
       if (response.ok) {
         const data = await response.json() as { availableSlots: string[] }
-        console.log('Available slots data:', data.availableSlots)
+        console.log('✅ API Response received:', data)
+        console.log('✅ Available slots:', data.availableSlots)
         
         if (dateStr === '2025-10-10') {
           console.log(`🎯 OCTOBER 10TH fetchAvailableTimes API RESPONSE:`, { data, slots: data.availableSlots })
@@ -333,7 +385,29 @@ function BookPageContent() {
           console.log(`🎯 OCTOBER 10TH fetchAvailableTimes RESULT:`, { slots, uniqueSlots })
         }
         
+        console.log('🎯 Setting available times to:', uniqueSlots)
         setAvailableTimes(uniqueSlots)
+        
+        // Update the datesWithNoAvailability state - if we found slots, remove this date from unavailable
+        if (uniqueSlots.length > 0) {
+          setDatesWithNoAvailability(prev => {
+            const newSet = new Set(prev)
+            const wasRemoved = newSet.delete(dateStr)
+            if (wasRemoved) {
+              console.log('🎯 Removed date from unavailable set:', dateStr, 'New set:', Array.from(newSet))
+            }
+            return newSet
+          })
+        } else {
+          // If no slots found, add this date to unavailable
+          setDatesWithNoAvailability(prev => {
+            const newSet = new Set(prev)
+            newSet.add(dateStr)
+            console.log('🎯 Added date to unavailable set:', dateStr, 'New set:', Array.from(newSet))
+            return newSet
+          })
+        }
+        
         return uniqueSlots
       } else {
         console.error('Failed to fetch available times')
@@ -542,7 +616,7 @@ function BookPageContent() {
                 <CardTitle>Select Date</CardTitle>
                 <CardDescription>Choose your preferred date</CardDescription>
               </CardHeader>
-              <CardContent className="p-0">
+              <CardContent className="p-0 relative">
                 <div className="w-full">
                   <Calendar
                     mode="single"
@@ -572,6 +646,26 @@ function BookPageContent() {
                     className="border-t border-b w-full"
                   />
                 </div>
+                {loadingCalendar && (
+                  <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10">
+                    <div className="flex items-center space-x-2">
+                      <svg 
+                        className="animate-spin h-5 w-5 text-gray-900" 
+                        fill="none" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path 
+                          stroke="currentColor" 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round" 
+                          strokeWidth="2" 
+                          d="M8 2v4l-2 2 2 2v4M16 2v4l2 2-2 2v4M8 12h8"
+                        />
+                      </svg>
+                      <span className="text-sm text-gray-600">Loading availability...</span>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

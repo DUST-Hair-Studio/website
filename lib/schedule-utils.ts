@@ -25,7 +25,7 @@ export function generateAvailableSlots(
   existingBookings: Booking[],
   blockedTimeSlots: BlockedTimeSlot[],
   serviceDuration: number,
-  bufferTime: number = 15
+  bufferTime: number = 0
 ): string[] {
   const availableSlots: string[] = []
   const start = new Date(startDate)
@@ -113,29 +113,12 @@ function generateTimeSlotsForDay(
       const bookingStart = parseTimeToMinutes(booking.start_time)
       const bookingEnd = bookingStart + booking.duration_minutes
       
-      console.log(`Checking booking conflict for slot ${minutesToTimeString(minutes)}:`, {
-        bookingTime: booking.start_time,
-        bookingStartMinutes: bookingStart,
-        bookingEndMinutes: bookingEnd,
-        slotStartMinutes: minutes,
-        slotEndMinutes: slotEndMinutes,
-        bookingDuration: booking.duration_minutes
-      })
-      
       // Check if the new slot overlaps with existing booking
       // New slot: [minutes, slotEndMinutes]
       // Existing booking: [bookingStart, bookingEnd]
       // They overlap if: minutes < bookingEnd && slotEndMinutes > bookingStart
       const overlaps = minutes < bookingEnd && slotEndMinutes > bookingStart
       
-      if (overlaps) {
-        console.log(`✅ SLOT CONFLICT DETECTED:`, {
-          newSlot: `${minutesToTimeString(minutes)} - ${minutesToTimeString(slotEndMinutes)}`,
-          existingBooking: `${minutesToTimeString(bookingStart)} - ${minutesToTimeString(bookingEnd)}`,
-          bookingTime: booking.start_time,
-          bookingDuration: booking.duration_minutes
-        })
-      }
       
       return overlaps
     })
@@ -145,7 +128,10 @@ function generateTimeSlotsForDay(
       const blockedStart = parseTimeToMinutes(blocked.start_time)
       const blockedEnd = parseTimeToMinutes(blocked.end_time)
       
-      return (minutes < blockedEnd && slotEndMinutes > blockedStart)
+      const overlaps = minutes < blockedEnd && slotEndMinutes > blockedStart
+      
+      
+      return overlaps
     })
     
     if (!hasBookingConflict && !hasBlockedConflict) {

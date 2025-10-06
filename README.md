@@ -14,10 +14,7 @@ A comprehensive booking platform for DUST Hair Studio that replaces Squarespace,
 - **Service Filtering**: Smart service display based on customer type and service availability
 - **Schedule Management**: Business hours configuration with Google Calendar integration
 - **Google Calendar Sync**: Two-way synchronization between bookings and Google Calendar
-- **Settings Management**: Comprehensive settings system with Business, Schedule, Payments, and Integrations
-- **Reminder System**: Template management and history tracking for automated communications
-- **Availability Logic**: Robust conflict detection preventing double bookings
-- **Production Deployment**: Fully built and tested with 37 routes working
+- **Production Deployment**: Fully built and tested with 19 routes working
 
 ## Tech Stack
 
@@ -80,8 +77,6 @@ Current services configured:
 - **Analytics Dashboard**: Revenue tracking, customer counts, booking statistics
 - **Status Management**: Update booking status (pending → confirmed → completed)
 - **Search & Filtering**: Find bookings by customer, service, or status
-- **Settings Management**: Comprehensive business settings with Business, Schedule, Payments, and Integrations tabs
-- **Reminder System**: Template management for automated communications with history tracking
 
 ### 🔐 Authentication System
 - **Customer Authentication**: Login/register with Supabase Auth
@@ -175,15 +170,6 @@ npm run dev
 - `GET /api/admin/google-calendar` - Get Google Calendar connection status
 - `POST /api/admin/google-calendar` - Connect Google Calendar (OAuth callback)
 - `GET /api/admin/availability` - Get available time slots based on business hours and calendar
-- `GET /api/admin/settings` - Get business settings
-- `POST /api/admin/settings` - Update business settings
-- `GET /api/admin/reminders/templates` - Get reminder templates
-- `POST /api/admin/reminders/templates` - Create reminder template
-- `GET /api/admin/reminders/templates/[id]` - Get single template
-- `PUT /api/admin/reminders/templates/[id]` - Update template
-- `PATCH /api/admin/reminders/templates/[id]` - Update template fields
-- `DELETE /api/admin/reminders/templates/[id]` - Delete template
-- `GET /api/admin/reminders/history` - Get reminder history
 
 ### Auth APIs
 - `POST /api/auth/admin/login` - Admin authentication
@@ -206,27 +192,7 @@ npm start
 
 ### Recent Improvements
 
-#### Booking System & Availability Fixes (Latest - January 2025)
-- ✅ **Fixed Double Booking Issue** - Resolved availability logic preventing multiple bookings at same time
-- ✅ **Fixed Timezone Display Bug** - Friday bookings now correctly display as Friday in admin backend
-- ✅ **Enhanced Conflict Detection** - Robust booking conflict detection with proper duration handling
-- ✅ **Fixed Database Query** - Availability API now correctly fetches booking durations from bookings table
-- ✅ **Authentication Flow Improvements** - Added checks to prevent booking when user is signed out
-- ✅ **Time Format Handling** - Fixed parsing of HH:MM:SS time format from database
-- ✅ **Debug Logging** - Added comprehensive logging for availability conflict detection
-- ✅ **Build Error Resolution** - Fixed all TypeScript errors and unused import warnings
-
-#### Settings & Reminder System (January 2025)
-- ✅ **Comprehensive Settings Page** - Complete settings management with Business, Schedule, Payments, and Integrations tabs
-- ✅ **Dedicated Reminders Page** - Template management system with create, edit, delete, and activate/deactivate functionality
-- ✅ **Reminder Template System** - Full CRUD operations for email templates with variable substitution
-- ✅ **Reminder History Tracking** - Complete history of sent reminders with filtering and search
-- ✅ **Settings API Integration** - RESTful API endpoints for settings management
-- ✅ **Template Management UI** - Professional interface with modal dialogs and toggle switches
-- ✅ **Database Schema Updates** - Added reminder_templates and reminder_history tables
-- ✅ **Navigation Updates** - Added Reminders to admin navigation and removed Notifications tab
-
-#### Production Build Fixes (January 2025)
+#### Production Build Fixes (Latest - January 2025)
 - ✅ **TypeScript Error Resolution** - Fixed all `any` type errors across the application
 - ✅ **Next.js 15 Compatibility** - Added proper Suspense boundaries for `useSearchParams()` usage
 - ✅ **Production Build Success** - Application now builds successfully with all 31 routes
@@ -255,6 +221,16 @@ npm start
 - ✅ **Token Management** - Secure storage and refresh of Google Calendar access tokens
 - ✅ **Admin Schedule Dashboard** - Complete schedule management with connection status and controls
 - ✅ **Timezone Handling Fix** - Resolved date parsing issues that caused incorrect day-of-week calculations
+
+#### Service Change Bug Fix (Latest - January 2025)
+- ✅ **Service Change Race Condition Fix** - Resolved critical bug where changing services didn't update availability correctly
+- ✅ **State Reset Implementation** - Proper state clearing when changing services to prevent stale data conflicts
+- ✅ **Availability Cache Management** - Clear availability caches when service changes to force fresh data
+- ✅ **Calendar Loading States** - Added loading overlay with spinning scissor icon during availability checks
+- ✅ **Buffer Time Configuration** - Made buffer time configurable in admin settings (default: 0 minutes)
+- ✅ **Service Change UX** - Maintained "Change Service" button while fixing underlying state management issues
+- ✅ **Debug Logging** - Comprehensive logging system for troubleshooting availability issues
+- ✅ **State Synchronization** - Ensured calendar availability updates correctly when service duration changes
 
 #### Admin Customer Management (January 2025)
 - ✅ **Complete Admin Customer CRUD** - Full customer management interface with edit capabilities
@@ -299,30 +275,135 @@ npm start
 - ✅ **Google Calendar API Integration** - Two-way sync with proper OAuth 2.0 implementation
 - ✅ **Schedule Management System** - Complete business hours configuration and availability blocking
 
-### Time Slot System & Availability
+### Calendar Availability System
 
-#### How Time Slots Work
-The booking system generates available time slots based on several factors:
+#### Overview
+The calendar system is one of the most complex parts of the application. It dynamically disables dates that have no available time slots while keeping all dates visible. This section documents the critical implementation details to prevent future breakage.
 
-1. **Business Hours Configuration**
+#### How Calendar Availability Works
+
+1. **Date Visibility vs Availability**
+   - **All dates are always visible** in the calendar
+   - **Dates with no availability are disabled/grayed out** (not hidden)
+   - **Past dates are disabled** by the calendar component's built-in logic
+   - **Non-business days are disabled** based on business hours settings
+   - **Dates with zero available slots are disabled** by our custom logic
+
+2. **Business Hours Configuration**
    - Admin configurable operating hours per day of week
    - Default: Friday-Sunday 11am-8pm PST
    - Each day can be individually enabled/disabled
    - Timezone-aware scheduling (America/Los_Angeles)
+   - **Dynamic checking**: Only checks business days (no API calls for Mon-Thurs when closed)
 
-2. **Time Slot Generation**
+3. **Availability Checking Logic**
+   ```typescript
+   // File: app/(customer)/book/page.tsx
+   // Function: checkAvailabilityForVisibleDays()
+   
+   // 1. Only check future dates (starting from today)
+   const currentDate = new Date(today.getTime()) // Avoid Date mutation
+   
+   // 2. Only check business days (skip Mon-Thurs when closed)
+   while (currentDate < nextMonth) {
+     if (isBusinessDay(currentDate)) {
+       businessDays.push(currentDate.toISOString().split('T')[0])
+     }
+     currentDate.setDate(currentDate.getDate() + 1)
+   }
+   
+   // 3. Use caching to avoid duplicate API calls
+   const datesToCheck = businessDays.filter(dateStr => !availabilityCache.has(dateStr))
+   
+   // 4. Parallel API calls for efficiency
+   const promises = datesToCheck.map(async (dateStr) => {
+     const response = await fetch(`/api/admin/availability?startDate=${dateStr}&endDate=${dateStr}&serviceDuration=${selectedService.duration_minutes}`)
+     const data = await response.json()
+     const hasAvailability = data.availableSlots.length > 0
+     
+     // Cache result and add to disabled dates if no availability
+     setAvailabilityCache(prev => new Map(prev).set(dateStr, hasAvailability))
+     return hasAvailability ? null : dateStr
+   })
+   ```
+
+4. **Calendar Disabled Logic**
+   ```typescript
+   // File: app/(customer)/book/page.tsx
+   // Calendar component disabled prop
+   
+   <Calendar
+     disabled={(date) => {
+       const isPast = date < new Date()
+       const isBusinessDayResult = isBusinessDay(date)
+       const hasNoAvail = hasNoAvailability(date)
+       
+       // Disable if: past date OR not business day OR no availability
+       return isPast || !isBusinessDayResult || hasNoAvail
+     }}
+   />
+   ```
+
+#### Critical Implementation Details
+
+##### 1. Date Object Mutation Prevention
+**Problem**: JavaScript Date objects are mutable, causing infinite loops
+**Solution**: Always create new Date objects using `getTime()`
+```typescript
+// ❌ WRONG - Causes mutation
+const currentDate = new Date(today)
+
+// ✅ CORRECT - Creates new object
+const currentDate = new Date(today.getTime())
+```
+
+##### 2. Efficient Date Range Checking
+**Problem**: Checking 3 months of dates takes 6+ seconds
+**Solution**: Prioritize current month, skip past dates
+```typescript
+// ❌ WRONG - Checks past dates
+const startOfCurrentMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+
+// ✅ CORRECT - Only future dates
+const currentDate = new Date(today.getTime()) // Start from today
+```
+
+##### 3. Business Day Filtering
+**Problem**: Wasting API calls on closed days (Mon-Thurs)
+**Solution**: Only check business days
+```typescript
+// Only add to checking list if business is open
+if (isBusinessDay(currentDate)) {
+  businessDays.push(currentDate.toISOString().split('T')[0])
+}
+```
+
+##### 4. Caching Strategy
+**Problem**: Re-checking same dates multiple times
+**Solution**: Cache results to avoid duplicate API calls
+```typescript
+// Check cache first
+const datesToCheck = businessDays.filter(dateStr => !availabilityCache.has(dateStr))
+
+// Cache results
+setAvailabilityCache(prev => new Map(prev).set(dateStr, hasAvailability))
+```
+
+#### Time Slot Generation
+
+1. **Time Slot Generation**
    - 30-minute intervals during business hours
    - Service duration + 15-minute buffer time
-   - Slots extend beyond closing time are automatically excluded
+   - Slots extending beyond closing time are automatically excluded
    - Real-time availability checking
 
-3. **Availability Factors**
+2. **Availability Factors**
    - **Existing Bookings**: Prevents double-booking
    - **Google Calendar Blocks**: Syncs with personal calendar
    - **Business Hours**: Only shows slots during open hours
    - **Service Duration**: Ensures adequate time for appointment
 
-4. **Timezone Handling**
+3. **Timezone Handling**
    - **Issue Fixed**: Date parsing now correctly handles Pacific timezone
    - **Problem**: UTC midnight dates were interpreted as previous day
    - **Solution**: Local timezone date creation prevents day-of-week errors
@@ -334,6 +415,23 @@ The booking system generates available time slots based on several factors:
 const dateStr = current.toISOString().split('T')[0]
 const localDate = new Date(dateStr + 'T00:00:00') // Local timezone
 const dayOfWeek = localDate.getDay() // Correct day calculation
+
+// Business day checking
+const isBusinessDay = (date: Date): boolean => {
+  if (businessHours.length === 0) return true // Allow if not loaded yet
+  
+  const dayOfWeek = date.getDay() // 0 = Sunday, 1 = Monday, etc.
+  const dayHours = businessHours.find(hours => hours.day_of_week === dayOfWeek)
+  const isOpen = dayHours && dayHours.is_open
+  
+  return !!isOpen // Ensure boolean return
+}
+
+// Availability checking with caching
+const hasNoAvailability = (date: Date) => {
+  const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+  return datesWithNoAvailability.has(dateStr)
+}
 ```
 
 ### Database Management
@@ -350,6 +448,105 @@ const dayOfWeek = localDate.getDay() // Correct day calculation
 
 ## Troubleshooting
 
+### Calendar Availability Issues
+
+#### Calendar Dates Not Disabling Properly
+
+**Problem**: Dates with no availability are not showing as disabled (grayed out)
+**Root Cause**: Usually one of these issues:
+
+1. **Date Object Mutation**
+   ```typescript
+   // ❌ WRONG - Causes infinite loops
+   const currentDate = new Date(today)
+   
+   // ✅ CORRECT - Creates new object
+   const currentDate = new Date(today.getTime())
+   ```
+
+2. **Checking Past Dates**
+   ```typescript
+   // ❌ WRONG - Wastes time checking past dates
+   const startOfCurrentMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+   
+   // ✅ CORRECT - Only future dates
+   const currentDate = new Date(today.getTime()) // Start from today
+   ```
+
+3. **Missing Caching**
+   ```typescript
+   // ❌ WRONG - Re-checks same dates
+   const promises = businessDays.map(async (dateStr) => { ... })
+   
+   // ✅ CORRECT - Use cache
+   const datesToCheck = businessDays.filter(dateStr => !availabilityCache.has(dateStr))
+   ```
+
+#### Debugging Calendar Issues
+
+1. **Check Console Logs**
+   ```bash
+   # Look for these log messages:
+   # "🔍 Checking availability for visible calendar days (prioritized)..."
+   # "📅 Checking X dates from current month"
+   # "🎯 OCTOBER 10TH API RESPONSE:"
+   ```
+
+2. **Test Availability API Directly**
+   ```bash
+   # Test specific date
+   curl "http://localhost:3000/api/admin/availability?startDate=2025-10-10&endDate=2025-10-10&serviceDuration=60"
+   
+   # Expected response for unavailable date:
+   {"availableSlots":[]}
+   
+   # Expected response for available date:
+   {"availableSlots":["11:00 AM","11:30 AM",...]}
+   ```
+
+3. **Check Business Hours Configuration**
+   ```bash
+   curl "http://localhost:3000/api/admin/business-hours"
+   
+   # Should show which days are open:
+   # Friday (day 5): is_open: true
+   # Saturday (day 6): is_open: true  
+   # Sunday (day 0): is_open: true
+   ```
+
+4. **Verify Date Formatting**
+   ```typescript
+   // Check if date strings are formatted correctly
+   const dateStr = `${year}-${month}-${day}` // Should be "2025-10-10"
+   console.log('Date string:', dateStr)
+   ```
+
+#### Common Calendar Problems
+
+**Problem**: October 10th not showing as disabled despite having no availability
+**Debug Steps**:
+1. Check if `checkAvailabilityForVisibleDays()` is being called
+2. Verify `datesWithNoAvailability` set contains '2025-10-10'
+3. Check if `hasNoAvailability()` function returns true for that date
+4. Verify Calendar component's `disabled` prop is working
+
+**Problem**: Calendar takes 6+ seconds to show disabled dates
+**Solutions**:
+1. Ensure only future dates are being checked
+2. Verify caching is working (check `availabilityCache` Map)
+3. Make sure only business days are being checked
+4. Check if too many dates are being processed at once
+
+**Problem**: Dates are hidden instead of disabled
+**Solution**: Never use `display: none` or `visibility: hidden`. Always use the `disabled` prop:
+```typescript
+// ❌ WRONG - Hides dates
+<Calendar modifiers={{ unavailable: true }} modifiersClassNames={{ unavailable: "hidden" }} />
+
+// ✅ CORRECT - Disables dates
+<Calendar disabled={(date) => isPast || !isBusinessDay || hasNoAvailability} />
+```
+
 ### Time Slot Issues
 
 #### No Available Times Showing
@@ -357,6 +554,40 @@ const dayOfWeek = localDate.getDay() // Correct day calculation
 2. **Timezone Issues**: Ensure dates are parsed in correct timezone (America/Los_Angeles)
 3. **Google Calendar**: Check if personal calendar has blocked time slots
 4. **Service Duration**: Verify service duration doesn't exceed available time
+
+#### Service Change Issues
+
+**Problem**: Changing services doesn't update availability (e.g., 1-hour service shows no availability, but 15-minute service should show slots)
+**Root Cause**: Stale state from previous service causing race conditions between availability checks
+**Solution**: Proper state reset when changing services
+
+```typescript
+// File: app/(customer)/book/page.tsx
+// Function: handleServiceSelect()
+
+const handleServiceSelect = (service: Service) => {
+  // Reset all booking-related state (simulate going back to step 1)
+  setSelectedDate(null)
+  setSelectedTime('')
+  setAvailableTimes([])
+  setLoadingTimes(false)
+  setLoadingCalendar(false)
+  
+  // Clear availability caches to force fresh data
+  setDatesWithNoAvailability(new Set())
+  setAvailabilityCache(new Map())
+  
+  // Set new service and go to step 2
+  setSelectedService(service)
+  setStep(2)
+}
+```
+
+**Debug Steps**:
+1. Check console logs for "🎯 handleServiceSelect called"
+2. Verify state is being reset (datesWithNoAvailability should be empty)
+3. Check if checkAvailabilityForVisibleDays runs with new service
+4. Test API directly: `curl "http://localhost:3000/api/admin/availability?startDate=2025-10-10&endDate=2025-10-10&serviceDuration=15"`
 
 #### Common Timezone Problems
 - **Issue**: Thursday appointments not showing despite being configured as open
@@ -373,6 +604,23 @@ curl "http://localhost:3000/api/admin/availability?startDate=2025-10-09&endDate=
 curl "http://localhost:3000/api/admin/business-hours"
 ```
 
+### Performance Issues
+
+#### Calendar Loading Slowly
+**Symptoms**: Calendar takes 5+ seconds to show disabled dates
+**Causes & Solutions**:
+1. **Too many dates being checked**: Limit to current month first, then next month
+2. **Checking past dates**: Start from today, not beginning of month
+3. **No caching**: Implement `availabilityCache` Map to avoid duplicate API calls
+4. **Sequential API calls**: Use `Promise.all()` for parallel requests
+
+#### Memory Issues
+**Symptoms**: Browser becomes unresponsive, high memory usage
+**Causes & Solutions**:
+1. **Date object mutation**: Always use `new Date(today.getTime())`
+2. **Infinite loops**: Ensure while loops have proper exit conditions
+3. **Large state objects**: Use Set/Map instead of arrays for large datasets
+
 ## Future Enhancements (Planned)
 
 ### Phase 3: Payments & Communications
@@ -387,13 +635,60 @@ curl "http://localhost:3000/api/admin/business-hours"
 
 ---
 
+## Critical Files for Calendar System
+
+### Core Calendar Files
+- **`app/(customer)/book/page.tsx`** - Main booking page with calendar logic
+- **`app/api/admin/availability/route.ts`** - Availability API endpoint
+- **`lib/schedule-utils.ts`** - Time slot generation logic
+- **`app/api/admin/business-hours/route.ts`** - Business hours configuration
+
+### Key Functions to Never Break
+```typescript
+// app/(customer)/book/page.tsx
+checkAvailabilityForVisibleDays() // Main availability checking function
+hasNoAvailability() // Checks if date has no availability
+isBusinessDay() // Checks if date is a business day
+```
+
+### State Variables to Preserve
+```typescript
+// Critical state - never remove or rename
+const [datesWithNoAvailability, setDatesWithNoAvailability] = useState<Set<string>>(new Set())
+const [availabilityCache, setAvailabilityCache] = useState<Map<string, boolean>>(new Map())
+const [businessHours, setBusinessHours] = useState<{day_of_week: number; is_open: boolean; open_time: string; close_time: string; timezone: string}[]>([])
+```
+
+## Maintenance Guidelines
+
+### When Modifying Calendar Logic
+1. **Always test with October 10th, 2025** - This date should be disabled if it has no availability
+2. **Check console logs** - Look for the specific log messages documented above
+3. **Test API endpoints directly** - Use curl commands to verify availability responses
+4. **Preserve caching logic** - Never remove the `availabilityCache` Map
+5. **Maintain date object safety** - Always use `new Date(date.getTime())` for copies
+
+### Common Breaking Changes to Avoid
+1. **Removing caching** - This will cause duplicate API calls and slow performance
+2. **Changing date formatting** - Date strings must be "YYYY-MM-DD" format
+3. **Modifying business day logic** - This affects which dates get checked
+4. **Changing disabled prop logic** - This affects how dates appear in the calendar
+5. **Removing useEffect dependencies** - This can cause availability checking to not trigger
+
+### Testing Checklist
+- [ ] October 10th, 2025 shows as disabled (if it has no availability)
+- [ ] Calendar loads in under 3 seconds
+- [ ] Only future dates are checked (no past dates)
+- [ ] Only business days are checked (no Mon-Thurs when closed)
+- [ ] Caching works (subsequent loads are faster)
+- [ ] All dates are visible (none are hidden)
+- [ ] Disabled dates are grayed out (not hidden)
+
+---
+
 **Last Updated**: January 2025  
 **Status**: Production Ready - All Phases Complete with Full Build Success ✅  
-**Build Status**: Successfully builds with all 37 routes and 0 TypeScript errors  
-**Admin Portal**: Fully functional with complete service management, customer management, booking management, schedule management, settings management, and reminder system  
-**Customer Portal**: Complete booking flow with dynamic pricing, real-time availability, and robust conflict detection  
-**Latest Features**: 
-- Fixed double booking issue with enhanced availability logic
-- Added comprehensive settings and reminder management system
-- Resolved all timezone and build errors
-- Production-ready with 37 working routes
+**Build Status**: Successfully builds with all 31 routes and 0 TypeScript errors  
+**Admin Portal**: Fully functional with complete service management, customer management, booking management, and schedule management  
+**Customer Portal**: Complete booking flow with dynamic pricing and real-time availability  
+**Latest Feature**: Calendar Availability System - Comprehensive documentation and troubleshooting guide for the complex calendar logic

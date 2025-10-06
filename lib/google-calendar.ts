@@ -222,7 +222,10 @@ Booking ID: ${booking.id}`
   async getBlockedTime(startDate: string, endDate: string): Promise<Array<{ date: string; start_time: string; end_time: string }>> {
     try {
       const accessToken = await this.getAccessToken()
-      if (!accessToken) return []
+      if (!accessToken) {
+        console.log('No Google Calendar access token available')
+        return []
+      }
 
       const { data: calendarData } = await this.supabase
         .from('settings')
@@ -231,7 +234,10 @@ Booking ID: ${booking.id}`
         .single()
 
       const calendarId = calendarData?.value
-      if (!calendarId) return []
+      if (!calendarId) {
+        console.log('No Google Calendar ID configured')
+        return []
+      }
 
       const response = await fetch(
         `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?` +
@@ -244,26 +250,46 @@ Booking ID: ${booking.id}`
         }
       )
 
-      if (!response.ok) return []
+      if (!response.ok) {
+        console.error('Google Calendar API error:', response.status, await response.text())
+        return []
+      }
 
       const data = await response.json()
       const blockedSlots: Array<{ date: string; start_time: string; end_time: string }> = []
 
       // Filter out events that are not from our booking system
-      const externalEvents = data.items?.filter((event: { description?: string; status?: string }) => 
-        !event.description?.includes('Booking ID:') && 
-        event.status !== 'cancelled'
-      ) || []
+      const externalEvents = data.items?.filter((event: { description?: string; status?: string; summary?: string }) => {
+        const isExternal = !event.description?.includes('Booking ID:') && 
+                           event.status !== 'cancelled'
+        return isExternal
+      }) || []
 
       for (const event of externalEvents) {
         const startDateTime = new Date(event.start.dateTime || event.start.date)
         const endDateTime = new Date(event.end.dateTime || event.end.date)
         
-        blockedSlots.push({
-          date: startDateTime.toISOString().split('T')[0],
-          start_time: startDateTime.toTimeString().slice(0, 5),
-          end_time: endDateTime.toTimeString().slice(0, 5)
-        })
+        // Convert to Pacific timezone for consistency
+        const pacificStart = new Date(startDateTime.toLocaleString("en-US", {timeZone: "America/Los_Angeles"}))
+        const pacificEnd = new Date(endDateTime.toLocaleString("en-US", {timeZone: "America/Los_Angeles"}))
+        
+        // Format date as YYYY-MM-DD in Pacific timezone
+        const year = pacificStart.getFullYear()
+        const month = String(pacificStart.getMonth() + 1).padStart(2, '0')
+        const day = String(pacificStart.getDate()).padStart(2, '0')
+        const dateStr = `${year}-${month}-${day}`
+        
+        // Format time as HH:MM in Pacific timezone
+        const startTime = pacificStart.toTimeString().slice(0, 5)
+        const endTime = pacificEnd.toTimeString().slice(0, 5)
+        
+        const blockedSlot = {
+          date: dateStr,
+          start_time: startTime,
+          end_time: endTime
+        }
+        
+        blockedSlots.push(blockedSlot)
       }
 
       return blockedSlots

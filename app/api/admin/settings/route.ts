@@ -43,10 +43,15 @@ export async function GET() {
       payment_required: settingsMap.payment_required || false
     }
 
+    const schedule = {
+      buffer_time_minutes: settingsMap.buffer_time_minutes || 0
+    }
+
     return NextResponse.json({
       business,
       notifications,
-      payments
+      payments,
+      schedule
     })
   } catch (error) {
     console.error('Admin settings API error:', error)
@@ -59,10 +64,12 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = createAdminSupabaseClient()
     const body = await request.json()
-    const { type, settings } = body
+    
+    // Handle both old format { type, settings } and new format { business, schedule, etc. }
+    const { type, settings, business, schedule, payments, notifications } = body
 
-    if (!type || !settings) {
-      return NextResponse.json({ error: 'Type and settings are required' }, { status: 400 })
+    if (!type && !business && !schedule && !payments && !notifications) {
+      return NextResponse.json({ error: 'Settings data is required' }, { status: 400 })
     }
 
     const now = new Date().toISOString()
@@ -106,6 +113,11 @@ export async function POST(request: NextRequest) {
       }
       if (settings.payment_required !== undefined) {
         updates.push({ key: 'payment_required', value: settings.payment_required, updated_at: now })
+      }
+    } else if (type === 'schedule' || schedule) {
+      const scheduleData = schedule || settings
+      if (scheduleData.buffer_time_minutes !== undefined) {
+        updates.push({ key: 'buffer_time_minutes', value: scheduleData.buffer_time_minutes, updated_at: now })
       }
     } else {
       return NextResponse.json({ error: 'Invalid settings type' }, { status: 400 })

@@ -16,15 +16,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'start_date and end_date are required' }, { status: 400 })
     }
 
-    // Get business hours from settings
+    // Get business hours and schedule settings
     const { data: settings, error: settingsError } = await supabase
       .from('settings')
       .select('key, value')
-      .in('key', ['business_hours', 'business_hours_timezone'])
+      .in('key', ['business_hours', 'business_hours_timezone', 'buffer_time_minutes'])
 
     if (settingsError) {
-      console.error('Error fetching business hours settings:', settingsError)
-      return NextResponse.json({ error: 'Failed to fetch business hours' }, { status: 500 })
+      console.error('Error fetching settings:', settingsError)
+      return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 })
     }
 
     const settingsMap = settings.reduce((acc, setting) => {
@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
 
     const businessHoursData = (settingsMap.business_hours as Record<string, { start?: string; end?: string; is_open?: boolean }>) || {}
     const timezone = (settingsMap.business_hours_timezone as string) || 'America/Los_Angeles'
+    const bufferTime = (settingsMap.buffer_time_minutes as number) || 0
 
     // Convert to array format
     const DAYS = [
@@ -123,7 +124,8 @@ export async function GET(request: NextRequest) {
       businessHours,
       transformedBookings,
       blockedTimeSlots,
-      duration
+      duration,
+      bufferTime
     )
 
     console.log('Generated available slots:', availableSlots)

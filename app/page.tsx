@@ -94,7 +94,7 @@ export default function Home() {
         <div className="border-b border-black min-h-screen">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-32">
             {/* Hero Content - Simple grid layout */}
-            <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 min-h-[600px] lg:min-h-[800px] items-center">
+            <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 min-h-[600px] lg:min-h-[800px] items-start lg:items-start">
               {/* Hero Image */}
               <div className="order-1">
                 <div className="relative aspect-[3/4] max-w-2xl mx-auto lg:mx-0 lg:h-[800px]">
@@ -109,17 +109,17 @@ export default function Home() {
               </div>
 
               {/* Text Content */}
-              <div className="order-2 flex flex-col justify-start pt-8">
-                <div className="space-y-8">
-                  <div className="space-y-1">
-                    <h2 className="dust-heading text-2xl md:text-3xl lg:text-4xl tracking-narrow leading-tight" style={{ color: 'var(--dust-black)' }}>
-                      A PRIVATE HAIR STUDIO
-                    </h2>
-                    <h3 className="dust-heading text-2xl md:text-3xl lg:text-4xl tracking-narrow leading-tight" style={{ color: 'var(--dust-black)' }}>
-                      BY LUCA TULLIO
-                    </h3>
-                  </div>
-                  
+              <div className="order-2 flex flex-col justify-start">
+                <div className="space-y-1">
+                  <h2 className="dust-heading text-2xl md:text-3xl lg:text-4xl tracking-narrow leading-tight" style={{ color: 'var(--dust-black)' }}>
+                    A PRIVATE HAIR STUDIO
+                  </h2>
+                  <h3 className="dust-heading text-2xl md:text-3xl lg:text-4xl tracking-narrow leading-tight" style={{ color: 'var(--dust-black)' }}>
+                    BY LUCA TULLIO
+                  </h3>
+                </div>
+                
+                <div className="mt-16">
                   <p className="dust-mono text-sm md:text-base text-gray-700 tracking-wide leading-relaxed max-w-xl">
                     DUST WAS BORN FROM A DESIRE TO CREATE A PRIVATE AND PERSONALIZED SALON EXPERIENCE FOR EACH INDIVIDUAL CLIENT AND THE HAIR THEY WEAR.
                   </p>

@@ -1,7 +1,8 @@
 import { Resend } from 'resend'
 import { createAdminSupabaseClient } from './supabase-server'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Only initialize Resend if API key is available
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
 export interface EmailTemplate {
   id: string
@@ -125,6 +126,12 @@ export class EmailService {
   // Send confirmation email immediately after booking
   async sendConfirmationEmail(booking: BookingData): Promise<boolean> {
     try {
+      // Check if Resend is configured
+      if (!resend) {
+        console.log('Resend API key not configured, skipping email')
+        return false
+      }
+
       const template = await this.getEmailTemplate('confirmation')
       if (!template) {
         console.log('No active confirmation template found')
@@ -194,6 +201,12 @@ export class EmailService {
   // Send reminder email (for scheduled reminders)
   async sendReminderEmail(booking: BookingData, templateId: string): Promise<boolean> {
     try {
+      // Check if Resend is configured
+      if (!resend) {
+        console.log('Resend API key not configured, skipping email')
+        return false
+      }
+
       const { data: template, error: templateError } = await this.supabase
         .from('reminder_templates')
         .select('*')
