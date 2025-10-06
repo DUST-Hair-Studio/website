@@ -257,7 +257,7 @@ export default function Home() {
               {/* Contact Info */}
               <div className="text-center md:text-left">
                 <h3 className="dust-heading text-2xl font-bold mb-6 tracking-tight" style={{ color: '#1C1C1D' }}>DUST</h3>
-                <div className="dust-mono text-lg space-y-3" style={{ color: '#1C1C1D' }}>
+                <div className="dust-mono text-lg space-y-3 tracking-widest" style={{ color: '#1C1C1D' }}>
                   <p>1942 Riverside Dr.</p>
                   <p>Los Angeles, CA 90039</p>
                   <p>Luca@dusthairstudio.com</p>
@@ -267,7 +267,7 @@ export default function Home() {
               {/* Hours */}
               <div className="text-center md:text-left">
                 <h3 className="dust-heading text-lg font-bold mb-6 tracking-tighter" style={{ color: '#1C1C1D' }}>HOURS</h3>
-                <div className="dust-mono text-lg space-y-1" style={{ color: '#1C1C1D' }}>
+                <div className="dust-mono text-lg space-y-1 tracking-widest" style={{ color: '#1C1C1D' }}>
                   <p>Thursday-Sunday:</p>
                   <p>By Appointment</p>
                 </div>
@@ -313,7 +313,7 @@ export default function Home() {
 
             {/* Bottom Logo */}
             <div className="text-center">
-              <div className="dust-heading text-[12rem] xs:text-[14rem] sm:text-[16rem] md:text-[18rem] lg:text-[22rem] xl:text-[26rem] 2xl:text-[30rem] text-white leading-none">
+              <div className="dust-heading text-[12rem] xs:text-[14rem] sm:text-[16rem] md:text-[18rem] lg:text-[22rem] xl:text-[26rem] 2xl:text-[30rem] leading-none" style={{ color: '#FAFAFA' }}>
                 DUST
               </div>
             </div>
