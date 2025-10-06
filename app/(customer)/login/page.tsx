@@ -1,6 +1,7 @@
 import { LoginForm } from '@/components/customer/login-form'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
+import { Suspense } from 'react'
 
 export default function LoginPage() {
   return (
@@ -19,7 +20,9 @@ export default function LoginPage() {
           <h1 className="text-3xl font-bold text-gray-900">DUST</h1>
           <p className="mt-2 text-gray-600">Hair Salon</p>
         </div>
-        <LoginForm />
+        <Suspense fallback={<div>Loading...</div>}>
+          <LoginForm />
+        </Suspense>
       </div>
     </div>
   )
