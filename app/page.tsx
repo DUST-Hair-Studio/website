@@ -91,36 +91,67 @@ export default function Home() {
         </div>
 
         {/* Hero Section */}
-        <div className="border-b border-black min-h-screen">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-32">
-            {/* Hero Content - Simple grid layout */}
-            <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 min-h-[600px] lg:min-h-[800px] items-start lg:items-start">
-              {/* Hero Image */}
-              <div className="order-1">
-                <div className="relative aspect-[3/4] max-w-2xl mx-auto lg:mx-0 lg:h-[800px]">
-                  <Image
-                    src="/homepage_images/BannerLuca.webp"
-                    alt="Luca Tullio - DUST Hair Studio"
-                    fill
-                    className="object-cover object-bottom"
-                    priority
-                  />
-                </div>
+        <div className="border-b border-black">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16">
+            {/* Desktop Layout - Side by side */}
+            <div className="hidden lg:grid lg:grid-cols-2 gap-16 items-start">
+              {/* Hero Image - Larger on desktop */}
+              <div className="relative h-[900px]">
+                <Image
+                  src="/homepage_images/BannerLuca.webp"
+                  alt="Luca Tullio - DUST Hair Studio"
+                  fill
+                  className="object-cover object-bottom"
+                  priority
+                />
               </div>
 
               {/* Text Content */}
-              <div className="order-2 flex flex-col justify-start">
+              <div className="flex flex-col justify-start">
                 <div className="space-y-1">
-                  <h2 className="dust-heading text-2xl md:text-3xl lg:text-4xl tracking-narrow leading-tight" style={{ color: 'var(--dust-black)' }}>
+                  <h2 className="dust-heading text-4xl tracking-narrow leading-tight" style={{ color: 'var(--dust-black)' }}>
                     A PRIVATE HAIR STUDIO
                   </h2>
-                  <h3 className="dust-heading text-2xl md:text-3xl lg:text-4xl tracking-narrow leading-tight" style={{ color: 'var(--dust-black)' }}>
+                  <h3 className="dust-heading text-4xl tracking-narrow leading-tight" style={{ color: 'var(--dust-black)' }}>
                     BY LUCA TULLIO
                   </h3>
                 </div>
                 
-                <div className="mt-16">
-                  <p className="dust-mono text-sm md:text-base text-gray-700 tracking-wide leading-relaxed max-w-xl">
+                {/* Much lower positioning on desktop */}
+                <div className="mt-120">
+                  <p className="dust-mono text-base text-gray-700 tracking-wide leading-relaxed max-w-xl uppercase">
+                    DUST WAS BORN FROM A DESIRE TO CREATE A PRIVATE AND PERSONALIZED SALON EXPERIENCE FOR EACH INDIVIDUAL CLIENT AND THE HAIR THEY WEAR.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile/Tablet Layout - Stacked */}
+            <div className="lg:hidden">
+              {/* Hero Image - Full width on mobile */}
+              <div className="relative aspect-[3/4]">
+                <Image
+                  src="/homepage_images/BannerLuca.webp"
+                  alt="Luca Tullio - DUST Hair Studio"
+                  fill
+                  className="object-cover object-bottom"
+                  priority
+                />
+              </div>
+
+              {/* Text Content - Stacked */}
+              <div className="space-y-8">
+                <div className="space-y-1">
+                  <h2 className="dust-heading text-2xl md:text-3xl tracking-narrow leading-tight" style={{ color: 'var(--dust-black)' }}>
+                    A PRIVATE HAIR STUDIO
+                  </h2>
+                  <h3 className="dust-heading text-2xl md:text-3xl tracking-narrow leading-tight" style={{ color: 'var(--dust-black)' }}>
+                    BY LUCA TULLIO
+                  </h3>
+                </div>
+                
+                <div>
+                  <p className="dust-mono text-sm md:text-base text-gray-700 tracking-wide leading-relaxed uppercase">
                     DUST WAS BORN FROM A DESIRE TO CREATE A PRIVATE AND PERSONALIZED SALON EXPERIENCE FOR EACH INDIVIDUAL CLIENT AND THE HAIR THEY WEAR.
                   </p>
                 </div>
@@ -130,7 +161,7 @@ export default function Home() {
         </div>
 
         {/* Booking Section */}
-        <div className="bg-white py-20">
+        <div className="bg-white py-60">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="dust-heading text-4xl md:text-5xl mb-8 tracking-wide" style={{ color: 'var(--dust-black)' }}>
               BOOK AN APPOINTMENT
