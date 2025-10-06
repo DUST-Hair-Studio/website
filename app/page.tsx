@@ -251,23 +251,25 @@ export default function Home() {
 
 
         {/* Contact Section */}
-        <div className="bg-white py-16">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid md:grid-cols-2 gap-12">
+        <div className="py-16" style={{ backgroundColor: '#FAFAFA' }}>
+          <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid md:grid-cols-2 gap-40 lg:gap-150 xl:gap-180 2xl:gap-250">
               {/* Contact Info */}
-              <div>
-                <h3 className="dust-heading text-xl mb-4 tracking-wide" style={{ color: 'var(--dust-black)' }}>DUST</h3>
-                <div className="dust-mono text-sm text-gray-700 space-y-2">
-                  <p>1942 Riverside Dr. Los Angeles, CA 90039</p>
+              <div className="text-center md:text-left">
+                <h3 className="dust-heading text-2xl font-bold mb-6 tracking-tight" style={{ color: '#1C1C1D' }}>DUST</h3>
+                <div className="dust-mono text-lg space-y-3" style={{ color: '#1C1C1D' }}>
+                  <p>1942 Riverside Dr.</p>
+                  <p>Los Angeles, CA 90039</p>
                   <p>Luca@dusthairstudio.com</p>
                 </div>
               </div>
 
               {/* Hours */}
-              <div>
-                <h3 className="dust-heading text-xl mb-4 tracking-wide" style={{ color: 'var(--dust-black)' }}>HOURS</h3>
-                <div className="dust-mono text-sm text-gray-700">
-                  <p>Thursday-Sunday: By Appointment</p>
+              <div className="text-center md:text-left">
+                <h3 className="dust-heading text-lg font-bold mb-6 tracking-tighter" style={{ color: '#1C1C1D' }}>HOURS</h3>
+                <div className="dust-mono text-lg space-y-1" style={{ color: '#1C1C1D' }}>
+                  <p>Thursday-Sunday:</p>
+                  <p>By Appointment</p>
                 </div>
               </div>
             </div>
@@ -276,10 +278,10 @@ export default function Home() {
 
         {/* Footer */}
         <footer className="text-white py-16" style={{ backgroundColor: '#1C1C1D' }}>
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid md:grid-cols-2 gap-12 mb-16">
+          <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid md:grid-cols-2 gap-40 lg:gap-150 xl:gap-180 2xl:gap-250 mb-16">
               {/* Subscribe */}
-              <div>
+              <div className="text-center md:text-left">
                 <h3 className="dust-heading text-lg text-white mb-4 tracking-wide">SUBSCRIBE</h3>
                 <p className="dust-mono text-sm text-gray-300 mb-6">
                   Sign up with your email address to receive news and updates.
@@ -301,7 +303,7 @@ export default function Home() {
               </div>
 
               {/* Follow */}
-              <div>
+              <div className="text-center md:text-left">
                 <h3 className="dust-heading text-lg text-white mb-4 tracking-wide">FOLLOW</h3>
                 <a href="https://www.instagram.com/dust.hair.studio/" target="_blank" rel="noopener noreferrer" className="dust-mono text-sm text-white underline hover:no-underline">
                   INSTAGRAM
@@ -311,7 +313,7 @@ export default function Home() {
 
             {/* Bottom Logo */}
             <div className="text-center">
-              <div className="dust-heading text-[8rem] md:text-[12rem] lg:text-[16rem] xl:text-[20rem] 2xl:text-[24rem] text-white leading-none">
+              <div className="dust-heading text-[12rem] xs:text-[14rem] sm:text-[16rem] md:text-[18rem] lg:text-[22rem] xl:text-[26rem] 2xl:text-[30rem] text-white leading-none">
                 DUST
               </div>
             </div>

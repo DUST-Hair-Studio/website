@@ -184,60 +184,72 @@ export default function AdminBookingsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Bookings Management</h1>
-          <p className="text-gray-600">Manage all customer bookings and appointments</p>
-        </div>
-        <div className="text-sm text-gray-500">
-          Total: {bookings.length} bookings
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Bookings Management</h1>
+          <p className="text-gray-600 text-sm sm:text-base">Manage all customer bookings and appointments</p>
         </div>
       </div>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
         <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-3xl font-bold text-gray-900">{bookings.filter(b => b.status === 'confirmed').length}</div>
-                <div className="text-sm text-gray-600 mt-1">Confirmed</div>
+                <div className="text-2xl md:text-3xl font-bold text-gray-900">{bookings.filter(b => b.status === 'confirmed').length}</div>
+                <div className="text-xs md:text-sm text-gray-600 mt-1">Confirmed</div>
               </div>
-              <div className="h-8 w-8 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-200">
-                <CheckCircle className="h-4 w-4 text-blue-600" strokeWidth={1.5} />
+              <div className="h-6 w-6 md:h-8 md:w-8 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-200">
+                <CheckCircle className="h-3 w-3 md:h-4 md:w-4 text-blue-600" strokeWidth={1.5} />
               </div>
             </div>
           </CardContent>
         </Card>
         <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-3xl font-bold text-gray-900">{bookings.filter(b => b.status === 'completed').length}</div>
-                <div className="text-sm text-gray-600 mt-1">Completed</div>
+                <div className="text-2xl md:text-3xl font-bold text-gray-900">{bookings.filter(b => b.status === 'completed').length}</div>
+                <div className="text-xs md:text-sm text-gray-600 mt-1">Completed</div>
               </div>
-              <div className="h-8 w-8 bg-green-50 rounded-lg flex items-center justify-center border border-green-200">
-                <Calendar className="h-4 w-4 text-green-600" strokeWidth={1.5} />
+              <div className="h-6 w-6 md:h-8 md:w-8 bg-green-50 rounded-lg flex items-center justify-center border border-green-200">
+                <Calendar className="h-3 w-3 md:h-4 md:w-4 text-green-600" strokeWidth={1.5} />
               </div>
             </div>
           </CardContent>
         </Card>
         <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-3xl font-bold text-gray-900">
+                <div className="text-2xl md:text-3xl font-bold text-gray-900">
                   {bookings.filter(b => {
                     const today = new Date().toISOString().split('T')[0]
                     const bookingDate = new Date(b.booking_date).toISOString().split('T')[0]
                     return bookingDate === today
                   }).length}
                 </div>
-                <div className="text-sm text-gray-600 mt-1">Today</div>
+                <div className="text-xs md:text-sm text-gray-600 mt-1">Today</div>
               </div>
-              <div className="h-8 w-8 bg-orange-50 rounded-lg flex items-center justify-center border border-orange-200">
-                <CalendarDays className="h-4 w-4 text-orange-600" strokeWidth={1.5} />
+              <div className="h-6 w-6 md:h-8 md:w-8 bg-orange-50 rounded-lg flex items-center justify-center border border-orange-200">
+                <CalendarDays className="h-3 w-3 md:h-4 md:w-4 text-orange-600" strokeWidth={1.5} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* Revenue Card */}
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-2xl md:text-3xl font-bold text-gray-900">$0.00</div>
+                <div className="text-xs md:text-sm text-gray-600 mt-1">Revenue</div>
+              </div>
+              <div className="h-6 w-6 md:h-8 md:w-8 bg-emerald-50 rounded-lg flex items-center justify-center border border-emerald-200">
+                <DollarSign className="h-3 w-3 md:h-4 md:w-4 text-emerald-600" strokeWidth={1.5} />
               </div>
             </div>
           </CardContent>
@@ -246,16 +258,17 @@ export default function AdminBookingsPage() {
 
       {/* Filters */}
       <Card className="border-0 shadow-sm">
-        <CardContent className="p-6">
-          <div className="flex gap-4 items-center">
+        <CardContent className="p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
             <div className="flex-1">
               <Input
                 placeholder="Search by customer name, email, or service..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full"
               />
             </div>
-            <div className="w-48">
+            <div className="w-full sm:w-48">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="Filter by status" />
@@ -284,30 +297,32 @@ export default function AdminBookingsPage() {
           </Card>
         ) : (
           filteredBookings.map((booking) => (
-          <Card key={booking.id} className={`border-0 shadow-sm hover:shadow-md transition-shadow ${isUpcoming(booking.booking_date) ? 'border-l-4 border-l-blue-500' : ''}`}>
-            <CardContent className="p-6">
-                <div className="flex justify-between items-start">
+            <Card key={booking.id} className={`border-0 shadow-sm hover:shadow-md transition-shadow ${isUpcoming(booking.booking_date) ? 'border-l-4 border-l-blue-500' : ''}`}>
+            <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3">
                       <h3 className="font-medium text-lg">
                         {booking.customers.name}
                       </h3>
-                      <Badge className={getStatusColor(booking.status)}>
-                        {booking.status}
-                      </Badge>
-                      <Badge variant="outline">
-                        {booking.customer_type_at_booking === 'existing' ? 'Existing' : 'New'}
-                      </Badge>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge className={getStatusColor(booking.status)}>
+                          {booking.status}
+                        </Badge>
+                        <Badge variant="outline">
+                          {booking.customer_type_at_booking === 'existing' ? 'Existing' : 'New'}
+                        </Badge>
+                      </div>
                     </div>
                     
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 text-sm text-gray-600">
                       <div>
                         <p className="font-medium">Service</p>
-                        <p>{booking.services?.name || 'Service not found'}</p>
+                        <p className="break-words">{booking.services?.name || 'Service not found'}</p>
                       </div>
                       <div>
                         <p className="font-medium">Date & Time</p>
-                        <p>{formatDateTime(booking.booking_date, booking.booking_time)}</p>
+                        <p className="break-words">{formatDateTime(booking.booking_date, booking.booking_time)}</p>
                       </div>
                       <div>
                         <p className="font-medium">Duration</p>
@@ -319,15 +334,15 @@ export default function AdminBookingsPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 mt-3 text-sm">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mt-3 text-sm">
                       <span className="text-gray-500">Contact:</span>
-                      <span>{booking.customers.email}</span>
-                      <span>•</span>
+                      <span className="break-all">{booking.customers.email}</span>
+                      <span className="hidden sm:inline">•</span>
                       <span>{booking.customers.phone}</span>
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-2 ml-4">
+                  <div className="flex flex-row lg:flex-col gap-2 lg:ml-4">
                     <Dialog>
                       <DialogTrigger asChild>
                         <Button 
@@ -338,7 +353,7 @@ export default function AdminBookingsPage() {
                           View Details
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-2xl">
+                      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
                           <DialogTitle>Booking Details</DialogTitle>
                           <DialogDescription>
@@ -350,7 +365,7 @@ export default function AdminBookingsPage() {
                           {/* Customer Info */}
                           <div>
                             <h4 className="font-medium mb-2">Customer Information</h4>
-                            <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                               <div>
                                 <p><strong>Name:</strong> {booking.customers.name}</p>
                                 <p><strong>Email:</strong> {booking.customers.email}</p>
@@ -367,7 +382,7 @@ export default function AdminBookingsPage() {
                           {/* Booking Info */}
                           <div>
                             <h4 className="font-medium mb-2">Booking Information</h4>
-                            <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                               <div>
                                 <p><strong>Service:</strong> {booking.services?.name || 'Service not found'}</p>
                                 <p><strong>Duration:</strong> {booking.duration_minutes} minutes</p>
@@ -383,11 +398,11 @@ export default function AdminBookingsPage() {
 
 
                           {/* Actions */}
-                          <div className="flex gap-2 pt-4 border-t">
+                          <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
                             <Button
                               variant="destructive"
-                              size="lg"
-                              className="bg-red-600 hover:bg-red-700"
+                              size="sm"
+                              className="bg-red-600 hover:bg-red-700 text-xs sm:text-sm sm:size-lg"
                               onClick={() => {
                                 setBookingToDelete(booking.id)
                                 setShowDeleteConfirm(true)

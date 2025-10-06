@@ -219,80 +219,80 @@ export default function AdminCustomersPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Customer Management</h1>
-        <p className="text-gray-600">Manage customer types and view customer information</p>
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Customer Management</h1>
+        <p className="text-gray-600 text-sm sm:text-base">Manage customer types and view customer information</p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6 mb-6 sm:mb-8">
         <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-3xl font-bold text-gray-900">{stats.total}</div>
-                <div className="text-sm text-gray-600 mt-1">Total Customers</div>
+                <div className="text-xl sm:text-3xl font-bold text-gray-900">{stats.total}</div>
+                <div className="text-xs sm:text-sm text-gray-600 mt-1">Total Customers</div>
               </div>
-              <div className="h-8 w-8 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-200">
-                <Users className="h-4 w-4 text-blue-600" strokeWidth={1.5} />
+              <div className="h-6 w-6 sm:h-8 sm:w-8 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-200">
+                <Users className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" strokeWidth={1.5} />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-3xl font-bold text-gray-900">{stats.new}</div>
-                <div className="text-sm text-gray-600 mt-1">New Customers</div>
+                <div className="text-xl sm:text-3xl font-bold text-gray-900">{stats.new}</div>
+                <div className="text-xs sm:text-sm text-gray-600 mt-1">New Customers</div>
               </div>
-              <div className="h-8 w-8 bg-orange-50 rounded-lg flex items-center justify-center border border-orange-200">
-                <UserPlus className="h-4 w-4 text-orange-600" strokeWidth={1.5} />
+              <div className="h-6 w-6 sm:h-8 sm:w-8 bg-orange-50 rounded-lg flex items-center justify-center border border-orange-200">
+                <UserPlus className="h-3 w-3 sm:h-4 sm:w-4 text-orange-600" strokeWidth={1.5} />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-3xl font-bold text-gray-900">{stats.existing}</div>
-                <div className="text-sm text-gray-600 mt-1">Existing Customers</div>
+                <div className="text-xl sm:text-3xl font-bold text-gray-900">{stats.existing}</div>
+                <div className="text-xs sm:text-sm text-gray-600 mt-1">Existing Customers</div>
               </div>
-              <div className="h-8 w-8 bg-green-50 rounded-lg flex items-center justify-center border border-green-200">
-                <User className="h-4 w-4 text-green-600" strokeWidth={1.5} />
+              <div className="h-6 w-6 sm:h-8 sm:w-8 bg-green-50 rounded-lg flex items-center justify-center border border-green-200">
+                <User className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" strokeWidth={1.5} />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-3xl font-bold text-gray-900">{stats.totalBookings}</div>
-                <div className="text-sm text-gray-600 mt-1">Total Bookings</div>
+                <div className="text-xl sm:text-3xl font-bold text-gray-900">{stats.totalBookings}</div>
+                <div className="text-xs sm:text-sm text-gray-600 mt-1">Total Bookings</div>
               </div>
-              <div className="h-8 w-8 bg-purple-50 rounded-lg flex items-center justify-center border border-purple-200">
-                <Calendar className="h-4 w-4 text-purple-600" strokeWidth={1.5} />
+              <div className="h-6 w-6 sm:h-8 sm:w-8 bg-purple-50 rounded-lg flex items-center justify-center border border-purple-200">
+                <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" strokeWidth={1.5} />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-3xl font-bold text-gray-900">{formatPrice(stats.totalRevenue)}</div>
-                <div className="text-sm text-gray-600 mt-1">Total Revenue</div>
+                <div className="text-lg sm:text-3xl font-bold text-gray-900">{formatPrice(stats.totalRevenue)}</div>
+                <div className="text-xs sm:text-sm text-gray-600 mt-1">Total Revenue</div>
               </div>
-              <div className="h-8 w-8 bg-emerald-50 rounded-lg flex items-center justify-center border border-emerald-200">
-                <DollarSign className="h-4 w-4 text-emerald-600" strokeWidth={1.5} />
+              <div className="h-6 w-6 sm:h-8 sm:w-8 bg-emerald-50 rounded-lg flex items-center justify-center border border-emerald-200">
+                <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-600" strokeWidth={1.5} />
               </div>
             </div>
           </CardContent>
@@ -367,8 +367,8 @@ export default function AdminCustomersPage() {
 
       {/* Customers List */}
       <div className="space-y-4">
-        {/* Header Row */}
-        <div className="flex items-center p-4 bg-gray-50 rounded-lg">
+        {/* Header Row - Hidden on mobile */}
+        <div className="hidden md:flex items-center p-4 bg-gray-50 rounded-lg">
           <div className="w-12">
             <Button
               variant="ghost"
@@ -394,7 +394,139 @@ export default function AdminCustomersPage() {
         {filteredCustomers.map((customer) => (
           <Card key={customer.id}>
             <CardContent className="p-4">
-              <div className="flex items-center">
+              {/* Mobile Layout */}
+              <div 
+                className="md:hidden space-y-3 cursor-pointer"
+                onClick={() => {
+                  setSelectedCustomer(customer)
+                  setShowDetailsDialog(true)
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        toggleCustomerSelection(customer.id)
+                      }}
+                      className="p-1"
+                    >
+                      {selectedCustomers.has(customer.id) ? (
+                        <CheckSquare className="w-4 h-4" />
+                      ) : (
+                        <Square className="w-4 h-4" />
+                      )}
+                    </Button>
+                    <div>
+                      <p className="font-medium text-gray-900">{customer.name}</p>
+                      <p className="text-sm text-gray-600">{customer.email}</p>
+                      <p className="text-sm text-gray-500">{customer.phone}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Dialog open={showDetailsDialog && selectedCustomer?.id === customer.id} onOpenChange={(open) => {
+                      setShowDetailsDialog(open)
+                      if (!open) setSelectedCustomer(null)
+                    }}>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSelectedCustomer(customer)
+                            setShowDetailsDialog(true)
+                          }}
+                          className="hidden md:flex"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle>Customer Details</DialogTitle>
+                        </DialogHeader>
+                        {selectedCustomer && (
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div>
+                                <Label className="text-sm font-medium">Name</Label>
+                                <p className="text-sm text-gray-600">{selectedCustomer.name}</p>
+                              </div>
+                              <div>
+                                <Label className="text-sm font-medium">Email</Label>
+                                <p className="text-sm text-gray-600">{selectedCustomer.email}</p>
+                              </div>
+                              <div>
+                                <Label className="text-sm font-medium">Phone</Label>
+                                <p className="text-sm text-gray-600">{selectedCustomer.phone}</p>
+                              </div>
+                              <div>
+                                <Label className="text-sm font-medium">Customer Type</Label>
+                                <Badge 
+                                  variant={selectedCustomer.is_existing_customer ? "default" : "secondary"}
+                                  className={selectedCustomer.is_existing_customer ? "bg-green-100 text-green-800" : "bg-orange-100 text-orange-800"}
+                                >
+                                  {selectedCustomer.is_existing_customer ? 'Existing' : 'New'}
+                                </Badge>
+                              </div>
+                              <div>
+                                <Label className="text-sm font-medium">Total Bookings</Label>
+                                <p className="text-sm text-gray-600">{selectedCustomer.total_bookings}</p>
+                              </div>
+                              <div>
+                                <Label className="text-sm font-medium">Total Spent</Label>
+                                <p className="text-sm text-gray-600">{formatPrice(selectedCustomer.total_spent)}</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </DialogContent>
+                    </Dialog>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        openEditDialog(customer)
+                      }}
+                      disabled={isSubmitting}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="font-medium text-gray-600">Type</p>
+                    <Badge 
+                      variant={customer.is_existing_customer ? "default" : "secondary"}
+                      className={customer.is_existing_customer ? "bg-green-100 text-green-800" : "bg-orange-100 text-orange-800"}
+                    >
+                      {customer.is_existing_customer ? 'Existing' : 'New'}
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-600">Bookings</p>
+                    <p className="font-medium">{customer.total_bookings}</p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-600">Spent</p>
+                    <p className="font-medium text-green-600">{formatPrice(customer.total_spent)}</p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-600">Last Booking</p>
+                    <p className="text-sm text-gray-600">
+                      {customer.last_booking_date ? formatDate(customer.last_booking_date) : 'Never'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Desktop Layout */}
+              <div className="hidden md:flex items-center">
                 <div className="w-12">
                   <Button
                     variant="ghost"
@@ -460,13 +592,13 @@ export default function AdminCustomersPage() {
                         <Eye className="w-4 h-4" />
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-2xl">
+                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                       <DialogHeader>
                         <DialogTitle>Customer Details</DialogTitle>
                       </DialogHeader>
                       {selectedCustomer && (
                         <div className="space-y-4">
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                               <Label className="text-sm font-medium">Name</Label>
                               <p className="text-sm text-gray-600">{selectedCustomer.name}</p>

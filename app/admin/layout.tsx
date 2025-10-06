@@ -85,8 +85,8 @@ export default function AdminLayout({
   return (
     <div className="h-screen flex" style={{ backgroundColor: '#FAFAFA' }}>
       <AdminSidebar />
-      <main className="flex-1 lg:ml-0 flex flex-col">
-        <div className="p-6 flex-1 overflow-auto">
+      <main className="flex-1 lg:ml-0 flex flex-col overflow-hidden">
+        <div className="p-3 sm:p-4 lg:p-6 flex-1 overflow-auto pt-16 lg:pt-6">
           {children}
         </div>
       </main>

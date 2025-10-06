@@ -226,11 +226,11 @@ export default function AdminServicesPage() {
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex items-center justify-between mb-8">
+    <div className="container mx-auto py-4 sm:py-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Service Management</h1>
-          <p className="text-gray-600 mt-2">Manage your salon services and pricing</p>
+          <h1 className="text-2xl sm:text-3xl font-bold">Service Management</h1>
+          <p className="text-gray-600 mt-2 text-sm sm:text-base">Manage your salon services and pricing</p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
@@ -239,7 +239,7 @@ export default function AdminServicesPage() {
               Add Service
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create New Service</DialogTitle>
               <DialogDescription>
@@ -247,7 +247,7 @@ export default function AdminServicesPage() {
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="name">Service Name *</Label>
                   <Input
@@ -278,7 +278,7 @@ export default function AdminServicesPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="duration_minutes">Duration (minutes) *</Label>
                   <Input
@@ -317,7 +317,7 @@ export default function AdminServicesPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="sort_order">Sort Order</Label>
                   <Input
@@ -403,7 +403,7 @@ export default function AdminServicesPage() {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -458,7 +458,7 @@ export default function AdminServicesPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Duration</p>
                   <p className="text-lg">{formatDuration(service.duration_minutes)}</p>
@@ -611,7 +611,7 @@ export default function AdminServicesPage() {
 
       {/* Edit Service Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Service</DialogTitle>
             <DialogDescription>
@@ -619,7 +619,7 @@ export default function AdminServicesPage() {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="edit-name">Service Name *</Label>
                 <Input
