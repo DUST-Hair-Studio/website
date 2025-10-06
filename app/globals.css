@@ -61,6 +61,23 @@
     background: #f3f4f6 !important;
   }
 
+  /* Fix calendar horizontal dividing line on mobile */
+  .rdp-table,
+  .rdp-table tbody,
+  .rdp-table tr,
+  .rdp-table td {
+    border: none !important;
+    border-collapse: separate !important;
+  }
+  
+  .rdp-week {
+    border: none !important;
+  }
+  
+  .rdp-week::after {
+    content: none !important;
+  }
+
 
   /* Hero Grid System */
   .hero-grid {
