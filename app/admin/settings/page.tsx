@@ -285,29 +285,33 @@ function AdminSettingsContent() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Settings</h1>
-        <p className="text-gray-600">Manage your business settings and integrations</p>
+    <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Settings</h1>
+        <p className="text-sm sm:text-base text-gray-600">Manage your business settings and integrations</p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 mb-6">
-          <TabsTrigger value="business" className="flex items-center gap-2">
-            <Building className="h-4 w-4" />
-            Business
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 mb-6 h-auto p-1">
+          <TabsTrigger value="business" className="flex items-center justify-center gap-2 text-sm py-3 px-2 data-[state=active]:bg-black data-[state=active]:text-white">
+            <Building className="hidden sm:block h-4 w-4" />
+            <span className="hidden sm:inline">Business</span>
+            <span className="sm:hidden">Business</span>
           </TabsTrigger>
-          <TabsTrigger value="schedule" className="flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            Schedule
+          <TabsTrigger value="schedule" className="flex items-center justify-center gap-2 text-sm py-3 px-2 data-[state=active]:bg-black data-[state=active]:text-white">
+            <Clock className="hidden sm:block h-4 w-4" />
+            <span className="hidden sm:inline">Schedule</span>
+            <span className="sm:hidden">Schedule</span>
           </TabsTrigger>
-          <TabsTrigger value="payments" className="flex items-center gap-2">
-            <CreditCard className="h-4 w-4" />
-            Payments
+          <TabsTrigger value="payments" className="flex items-center justify-center gap-2 text-sm py-3 px-2 data-[state=active]:bg-black data-[state=active]:text-white">
+            <CreditCard className="hidden sm:block h-4 w-4" />
+            <span className="hidden sm:inline">Payments</span>
+            <span className="sm:hidden">Payments</span>
           </TabsTrigger>
-          <TabsTrigger value="integrations" className="flex items-center gap-2">
-            <Link className="h-4 w-4" />
-            Integrations
+          <TabsTrigger value="integrations" className="flex items-center justify-center gap-2 text-sm py-3 px-2 data-[state=active]:bg-black data-[state=active]:text-white">
+            <Link className="hidden sm:block h-4 w-4" />
+            <span className="hidden sm:inline">Integrations</span>
+            <span className="sm:hidden">Apps</span>
           </TabsTrigger>
         </TabsList>
 
@@ -320,7 +324,7 @@ function AdminSettingsContent() {
                 Business Information
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6 p-6">
+            <CardContent className="space-y-6 p-4 sm:p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="business_name">Business Name</Label>
@@ -394,53 +398,57 @@ function AdminSettingsContent() {
                 Business Hours
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6 p-6">
-              <div className="space-y-6">
+            <CardContent className="space-y-6 p-4 sm:p-6">
+              <div className="space-y-4">
                 {businessHours.map((day) => (
-                  <div key={day.day_of_week} className="flex items-center space-x-4 p-4 border rounded-lg">
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        checked={day.is_open}
-                        onCheckedChange={(checked) => {
-                          const updated = businessHours.map(d => 
-                            d.day_of_week === day.day_of_week 
-                              ? { ...d, is_open: checked }
-                              : d
-                          )
-                          setBusinessHours(updated)
-                        }}
-                      />
-                      <Label className="w-20">{day.day_name}</Label>
+                  <div key={day.day_of_week} className="p-4 border rounded-lg space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <Switch
+                          checked={day.is_open}
+                          onCheckedChange={(checked) => {
+                            const updated = businessHours.map(d => 
+                              d.day_of_week === day.day_of_week 
+                                ? { ...d, is_open: checked }
+                                : d
+                            )
+                            setBusinessHours(updated)
+                          }}
+                        />
+                        <Label className="text-sm font-medium">{day.day_name}</Label>
+                      </div>
                     </div>
                     {day.is_open && (
-                      <div className="flex items-center space-x-2">
-                        <Input
-                          type="time"
-                          value={day.open_time}
-                          onChange={(e) => {
-                            const updated = businessHours.map(d => 
-                              d.day_of_week === day.day_of_week 
-                                ? { ...d, open_time: e.target.value }
-                                : d
-                            )
-                            setBusinessHours(updated)
-                          }}
-                          className="w-32"
-                        />
-                        <span>to</span>
-                        <Input
-                          type="time"
-                          value={day.close_time}
-                          onChange={(e) => {
-                            const updated = businessHours.map(d => 
-                              d.day_of_week === day.day_of_week 
-                                ? { ...d, close_time: e.target.value }
-                                : d
-                            )
-                            setBusinessHours(updated)
-                          }}
-                          className="w-32"
-                        />
+                      <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
+                        <div className="flex items-center space-x-2">
+                          <Input
+                            type="time"
+                            value={day.open_time}
+                            onChange={(e) => {
+                              const updated = businessHours.map(d => 
+                                d.day_of_week === day.day_of_week 
+                                  ? { ...d, open_time: e.target.value }
+                                  : d
+                              )
+                              setBusinessHours(updated)
+                            }}
+                            className="w-full sm:w-32"
+                          />
+                          <span className="text-sm text-gray-500">to</span>
+                          <Input
+                            type="time"
+                            value={day.close_time}
+                            onChange={(e) => {
+                              const updated = businessHours.map(d => 
+                                d.day_of_week === day.day_of_week 
+                                  ? { ...d, close_time: e.target.value }
+                                  : d
+                              )
+                              setBusinessHours(updated)
+                            }}
+                            className="w-full sm:w-32"
+                          />
+                        </div>
                       </div>
                     )}
                   </div>
@@ -462,24 +470,29 @@ function AdminSettingsContent() {
                 Buffer Time
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4 p-6">
-              <div className="space-y-2">
-                <Label htmlFor="buffer_time">Buffer Time (minutes)</Label>
-                <p className="text-sm text-gray-600">
-                  Extra time added between appointments to allow for cleanup and preparation
-                </p>
-                <Input
-                  id="buffer_time"
-                  type="number"
-                  min="0"
-                  max="60"
-                  value={scheduleSettings.buffer_time_minutes}
-                  onChange={(e) => setScheduleSettings(prev => ({ 
-                    ...prev, 
-                    buffer_time_minutes: parseInt(e.target.value) || 0 
-                  }))}
-                  className="w-32"
-                />
+            <CardContent className="space-y-4 p-4 sm:p-6">
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="buffer_time">Buffer Time (minutes)</Label>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Extra time added between appointments to allow for cleanup and preparation
+                  </p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Input
+                    id="buffer_time"
+                    type="number"
+                    min="0"
+                    max="60"
+                    value={scheduleSettings.buffer_time_minutes}
+                    onChange={(e) => setScheduleSettings(prev => ({ 
+                      ...prev, 
+                      buffer_time_minutes: parseInt(e.target.value) || 0 
+                    }))}
+                    className="w-24 sm:w-32"
+                  />
+                  <span className="text-sm text-gray-500">minutes</span>
+                </div>
               </div>
               
               <Button onClick={saveBusinessHours} disabled={saving}>
@@ -500,7 +513,7 @@ function AdminSettingsContent() {
                 Payment Settings
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6 p-6">
+            <CardContent className="space-y-6 p-4 sm:p-6">
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -566,8 +579,8 @@ function AdminSettingsContent() {
                 Google Calendar Integration
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-4 border rounded-lg">
+            <CardContent className="space-y-4 p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg space-y-3 sm:space-y-0">
                 <div className="flex items-center space-x-3">
                   {googleCalendar.isConnected ? (
                     <CheckCircle className="h-5 w-5 text-green-500" />
@@ -586,7 +599,7 @@ function AdminSettingsContent() {
                     </p>
                   </div>
                 </div>
-                <div className="flex space-x-2">
+                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                   {googleCalendar.isConnected ? (
                     <Button 
                       variant="outline" 
