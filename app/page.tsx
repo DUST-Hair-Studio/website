@@ -76,15 +76,15 @@ export default function Home() {
       
       <main>
         {/* DUST Title Section */}
-        <div className="w-full text-center pt-16 pb-8 px-4 overflow-hidden" style={{ backgroundColor: '#F5F5F3' }}>
-          <h1 className="dust-heading text-[10rem] xs:text-[12rem] sm:text-[14rem] md:text-[18rem] lg:text-[22rem] xl:text-[26rem] 2xl:text-[30rem] leading-none" style={{ color: '#1C1C1D' }}>
+        <div className="w-full text-center pt-4 pb-2 px-2" style={{ backgroundColor: '#F5F5F3' }}>
+          <h1 className="dust-heading text-[10rem] xs:text-[12rem] sm:text-[14rem] md:text-[18rem] lg:text-[22rem] xl:text-[26rem] 2xl:text-[30rem] leading-none" style={{ color: '#1C1C1D', fontFamily: 'Pragmatica Extended, sans-serif' }}>
             DUST
           </h1>
         </div>
 
         {/* Hero Section */}
         <div className="border-b border-black" style={{ backgroundColor: '#F5F5F3' }}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-2 sm:pt-4">
             {/* Desktop Layout - Side by side */}
             <div className="hidden lg:grid lg:grid-cols-2 gap-16 items-start">
               {/* Hero Image - Larger on desktop */}
@@ -132,7 +132,7 @@ export default function Home() {
               </div>
 
               {/* Text Content - Stacked */}
-              <div className="space-y-8 px-4 sm:px-6 mb-16 sm:mb-20 mt-16 sm:mt-16">
+              <div className="space-y-8 mb-16 sm:mb-20 mt-6 sm:mt-8">
                 <div className="space-y-1">
                   <h2 className="dust-heading text-2xl md:text-3xl tracking-narrow leading-tight" style={{ color: 'var(--dust-black)' }}>
                     A PRIVATE HAIR STUDIO
@@ -153,7 +153,7 @@ export default function Home() {
         </div>
 
         {/* Booking Section */}
-        <div className="py-60" style={{ backgroundColor: '#FAFAFA' }}>
+        <div className="py-40" style={{ backgroundColor: '#FAFAFA' }}>
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="dust-heading text-2xl sm:text-3xl md:text-4xl lg:text-5xl mb-8 tracking-wide" style={{ color: 'var(--dust-black)' }}>
               BOOK AN APPOINTMENT
@@ -316,7 +316,7 @@ export default function Home() {
 
             {/* Bottom Logo */}
             <div className="text-center overflow-hidden">
-              <div className="dust-heading text-[10rem] xs:text-[12rem] sm:text-[14rem] md:text-[18rem] lg:text-[22rem] xl:text-[26rem] 2xl:text-[30rem] leading-none" style={{ color: '#FAFAFA' }}>
+              <div className="dust-heading text-[10rem] xs:text-[12rem] sm:text-[14rem] md:text-[18rem] lg:text-[22rem] xl:text-[26rem] 2xl:text-[30rem] leading-none" style={{ color: '#FAFAFA', fontFamily: 'Pragmatica Extended, sans-serif' }}>
                 DUST
               </div>
             </div>
