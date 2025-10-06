@@ -76,8 +76,8 @@ export default function Home() {
       
       <main>
         {/* DUST Title Section */}
-        <div className="w-full text-center pt-4 pb-2 px-2" style={{ backgroundColor: '#F5F5F3' }}>
-          <h1 className="dust-heading text-[10rem] xs:text-[12rem] sm:text-[14rem] md:text-[18rem] lg:text-[22rem] xl:text-[26rem] 2xl:text-[30rem] leading-none" style={{ color: '#1C1C1D', fontFamily: 'Pragmatica Extended, sans-serif' }}>
+        <div className="w-full text-center pt-4 pb-2 px-4 overflow-hidden" style={{ backgroundColor: '#F5F5F3' }}>
+          <h1 className="dust-heading text-[8rem] xs:text-[10rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[28rem] leading-none" style={{ color: '#1C1C1D', fontFamily: 'Pragmatica Extended, sans-serif' }}>
             DUST
           </h1>
         </div>
@@ -155,15 +155,15 @@ export default function Home() {
         {/* Booking Section */}
         <div className="py-40" style={{ backgroundColor: '#FAFAFA' }}>
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="dust-heading text-2xl sm:text-3xl md:text-4xl lg:text-5xl mb-8 tracking-wide" style={{ color: 'var(--dust-black)' }}>
+            <h2 className="dust-heading text-3xl sm:text-3xl md:text-4xl lg:text-5xl mb-8 tracking-wide" style={{ color: 'var(--dust-black)' }}>
               BOOK AN APPOINTMENT
             </h2>
             
-            <p className="dust-mono text-sm sm:text-base text-gray-700 mb-4 max-w-2xl mx-auto leading-relaxed">
+            <p className="dust-mono text-lg sm:text-base text-gray-700 mb-4 max-w-2xl mx-auto leading-relaxed">
               If this is your first time here, welcome. It&apos;s important we have enough time together so please make sure you choose the appropriate appointment option. If you have any questions please don&apos;t hesitate to reach out through my booking page.
             </p>
             
-            <p className="dust-mono text-sm sm:text-base text-gray-700 mb-12 max-w-2xl mx-auto leading-relaxed">
+            <p className="dust-mono text-lg sm:text-base text-gray-700 mb-12 max-w-2xl mx-auto leading-relaxed">
               See you soon x
             </p>
 
@@ -316,7 +316,7 @@ export default function Home() {
 
             {/* Bottom Logo */}
             <div className="text-center overflow-hidden">
-              <div className="dust-heading text-[10rem] xs:text-[12rem] sm:text-[14rem] md:text-[18rem] lg:text-[22rem] xl:text-[26rem] 2xl:text-[30rem] leading-none" style={{ color: '#FAFAFA', fontFamily: 'Pragmatica Extended, sans-serif' }}>
+              <div className="dust-heading text-[8rem] xs:text-[10rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[28rem] leading-none" style={{ color: '#FAFAFA', fontFamily: 'Pragmatica Extended, sans-serif' }}>
                 DUST
               </div>
             </div>
