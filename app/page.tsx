@@ -77,7 +77,7 @@ export default function Home() {
       <main>
         {/* DUST Title Section */}
         <div className="w-full text-center pt-16 pb-8 px-4 overflow-hidden" style={{ backgroundColor: '#F5F5F3' }}>
-          <h1 className="dust-heading text-[8rem] xs:text-[10rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[28rem] leading-none" style={{ color: '#1C1C1D' }}>
+          <h1 className="dust-heading text-[10rem] xs:text-[12rem] sm:text-[14rem] md:text-[18rem] lg:text-[22rem] xl:text-[26rem] 2xl:text-[30rem] leading-none" style={{ color: '#1C1C1D' }}>
             DUST
           </h1>
         </div>
@@ -316,7 +316,7 @@ export default function Home() {
 
             {/* Bottom Logo */}
             <div className="text-center overflow-hidden">
-              <div className="dust-heading text-[8rem] xs:text-[10rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[28rem] leading-none" style={{ color: '#FAFAFA' }}>
+              <div className="dust-heading text-[10rem] xs:text-[12rem] sm:text-[14rem] md:text-[18rem] lg:text-[22rem] xl:text-[26rem] 2xl:text-[30rem] leading-none" style={{ color: '#FAFAFA' }}>
                 DUST
               </div>
             </div>
