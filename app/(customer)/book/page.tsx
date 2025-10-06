@@ -178,9 +178,9 @@ function BookPageContent() {
       const currentMonth = new Date(today.getFullYear(), today.getMonth(), 1)
       const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1)
       
-      // Get business days for current month first
+      // Get business days for current month first (only future dates)
       const currentMonthBusinessDays: string[] = []
-      const currentDate = new Date(currentMonth)
+      const currentDate = new Date(today.getTime()) // Start from today, not beginning of month
       
       while (currentDate < nextMonth) {
         if (isBusinessDay(currentDate)) {
