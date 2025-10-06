@@ -156,15 +156,15 @@ export default function Home() {
         {/* Booking Section */}
         <div className="py-40" style={{ backgroundColor: '#FAFAFA' }}>
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="dust-heading text-3xl sm:text-3xl md:text-4xl lg:text-5xl mb-8 tracking-wide" style={{ color: 'var(--dust-black)' }}>
+            <h2 className="dust-heading text-3xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl mb-8 tracking-tighter" style={{ color: 'var(--dust-black)' }}>
               BOOK AN APPOINTMENT
             </h2>
             
-            <p className="dust-mono text-lg sm:text-base text-gray-700 mb-4 max-w-2xl mx-auto leading-relaxed">
+            <p className="dust-mono text-lg sm:text-base md:text-lg lg:text-xl xl:text-xl 2xl:text-2xl text-gray-700 mb-4 max-w-2xl mx-auto leading-relaxed">
               If this is your first time here, welcome. It&apos;s important we have enough time together so please make sure you choose the appropriate appointment option. If you have any questions please don&apos;t hesitate to reach out through my booking page.
             </p>
             
-            <p className="dust-mono text-lg sm:text-base text-gray-700 mb-12 max-w-2xl mx-auto leading-relaxed">
+            <p className="dust-mono text-lg sm:text-base md:text-lg lg:text-xl xl:text-xl 2xl:text-2xl text-gray-700 mb-12 max-w-2xl mx-auto leading-relaxed">
               See you soon x
             </p>
 
