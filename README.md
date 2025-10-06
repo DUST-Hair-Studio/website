@@ -14,7 +14,10 @@ A comprehensive booking platform for DUST Hair Studio that replaces Squarespace,
 - **Service Filtering**: Smart service display based on customer type and service availability
 - **Schedule Management**: Business hours configuration with Google Calendar integration
 - **Google Calendar Sync**: Two-way synchronization between bookings and Google Calendar
-- **Production Deployment**: Fully built and tested with 19 routes working
+- **Settings Management**: Comprehensive settings system with Business, Schedule, Payments, and Integrations
+- **Reminder System**: Template management and history tracking for automated communications
+- **Availability Logic**: Robust conflict detection preventing double bookings
+- **Production Deployment**: Fully built and tested with 37 routes working
 
 ## Tech Stack
 
@@ -77,6 +80,8 @@ Current services configured:
 - **Analytics Dashboard**: Revenue tracking, customer counts, booking statistics
 - **Status Management**: Update booking status (pending → confirmed → completed)
 - **Search & Filtering**: Find bookings by customer, service, or status
+- **Settings Management**: Comprehensive business settings with Business, Schedule, Payments, and Integrations tabs
+- **Reminder System**: Template management for automated communications with history tracking
 
 ### 🔐 Authentication System
 - **Customer Authentication**: Login/register with Supabase Auth
@@ -170,6 +175,15 @@ npm run dev
 - `GET /api/admin/google-calendar` - Get Google Calendar connection status
 - `POST /api/admin/google-calendar` - Connect Google Calendar (OAuth callback)
 - `GET /api/admin/availability` - Get available time slots based on business hours and calendar
+- `GET /api/admin/settings` - Get business settings
+- `POST /api/admin/settings` - Update business settings
+- `GET /api/admin/reminders/templates` - Get reminder templates
+- `POST /api/admin/reminders/templates` - Create reminder template
+- `GET /api/admin/reminders/templates/[id]` - Get single template
+- `PUT /api/admin/reminders/templates/[id]` - Update template
+- `PATCH /api/admin/reminders/templates/[id]` - Update template fields
+- `DELETE /api/admin/reminders/templates/[id]` - Delete template
+- `GET /api/admin/reminders/history` - Get reminder history
 
 ### Auth APIs
 - `POST /api/auth/admin/login` - Admin authentication
@@ -192,7 +206,27 @@ npm start
 
 ### Recent Improvements
 
-#### Production Build Fixes (Latest - January 2025)
+#### Booking System & Availability Fixes (Latest - January 2025)
+- ✅ **Fixed Double Booking Issue** - Resolved availability logic preventing multiple bookings at same time
+- ✅ **Fixed Timezone Display Bug** - Friday bookings now correctly display as Friday in admin backend
+- ✅ **Enhanced Conflict Detection** - Robust booking conflict detection with proper duration handling
+- ✅ **Fixed Database Query** - Availability API now correctly fetches booking durations from bookings table
+- ✅ **Authentication Flow Improvements** - Added checks to prevent booking when user is signed out
+- ✅ **Time Format Handling** - Fixed parsing of HH:MM:SS time format from database
+- ✅ **Debug Logging** - Added comprehensive logging for availability conflict detection
+- ✅ **Build Error Resolution** - Fixed all TypeScript errors and unused import warnings
+
+#### Settings & Reminder System (January 2025)
+- ✅ **Comprehensive Settings Page** - Complete settings management with Business, Schedule, Payments, and Integrations tabs
+- ✅ **Dedicated Reminders Page** - Template management system with create, edit, delete, and activate/deactivate functionality
+- ✅ **Reminder Template System** - Full CRUD operations for email templates with variable substitution
+- ✅ **Reminder History Tracking** - Complete history of sent reminders with filtering and search
+- ✅ **Settings API Integration** - RESTful API endpoints for settings management
+- ✅ **Template Management UI** - Professional interface with modal dialogs and toggle switches
+- ✅ **Database Schema Updates** - Added reminder_templates and reminder_history tables
+- ✅ **Navigation Updates** - Added Reminders to admin navigation and removed Notifications tab
+
+#### Production Build Fixes (January 2025)
 - ✅ **TypeScript Error Resolution** - Fixed all `any` type errors across the application
 - ✅ **Next.js 15 Compatibility** - Added proper Suspense boundaries for `useSearchParams()` usage
 - ✅ **Production Build Success** - Application now builds successfully with all 31 routes
@@ -355,7 +389,11 @@ curl "http://localhost:3000/api/admin/business-hours"
 
 **Last Updated**: January 2025  
 **Status**: Production Ready - All Phases Complete with Full Build Success ✅  
-**Build Status**: Successfully builds with all 31 routes and 0 TypeScript errors  
-**Admin Portal**: Fully functional with complete service management, customer management, booking management, and schedule management  
-**Customer Portal**: Complete booking flow with dynamic pricing and real-time availability  
-**Latest Feature**: Production Build Fixes - TypeScript error resolution and Next.js 15 compatibility with proper Suspense boundaries
+**Build Status**: Successfully builds with all 37 routes and 0 TypeScript errors  
+**Admin Portal**: Fully functional with complete service management, customer management, booking management, schedule management, settings management, and reminder system  
+**Customer Portal**: Complete booking flow with dynamic pricing, real-time availability, and robust conflict detection  
+**Latest Features**: 
+- Fixed double booking issue with enhanced availability logic
+- Added comprehensive settings and reminder management system
+- Resolved all timezone and build errors
+- Production-ready with 37 working routes

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { GoogleCalendarService } from '@/lib/google-calendar'
+import { EmailService } from '@/lib/email-service'
 
 export async function POST(request: NextRequest) {
   try {
@@ -180,6 +181,21 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       console.error('Error creating Google Calendar event:', error)
       // Don't fail the booking creation if calendar sync fails
+    }
+
+    // Send confirmation email
+    try {
+      const emailService = new EmailService()
+      const emailSent = await emailService.sendConfirmationEmail(booking)
+      
+      if (emailSent) {
+        console.log('Confirmation email sent successfully')
+      } else {
+        console.log('Failed to send confirmation email')
+      }
+    } catch (error) {
+      console.error('Error sending confirmation email:', error)
+      // Don't fail the booking creation if email fails
     }
 
     // TODO: Generate Square payment link

@@ -83,44 +83,48 @@ export default function Home() {
       <Navigation />
       
       <main>
+        {/* DUST Title Section */}
+        <div className="w-full text-center pt-16 pb-8">
+          <h1 className="dust-heading text-[16rem] sm:text-[20rem] md:text-[24rem] lg:text-[28rem] xl:text-[32rem] 2xl:text-[36rem] leading-none" style={{ color: 'var(--dust-black)' }}>
+            DUST
+          </h1>
+        </div>
+
         {/* Hero Section */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-16">
-          {/* DUST Title */}
-          <div className="text-center mb-12">
-            <h1 className="dust-heading text-[8rem] md:text-[12rem] lg:text-[16rem] xl:text-[20rem] 2xl:text-[24rem] leading-none" style={{ color: 'var(--dust-black)' }}>
-              DUST
-            </h1>
-          </div>
-
-          {/* Hero Content */}
-          <div className="grid lg:grid-cols-3 gap-12 items-start">
-            {/* Hero Image */}
-            <div className="lg:col-span-2">
-              <div className="relative aspect-[3/4] max-w-md mx-auto lg:mx-0">
-                <Image
-                  src="/homepage_images/BannerLuca.webp"
-                  alt="Luca Tullio - DUST Hair Studio"
-                  fill
-                  className="object-cover rounded-sm"
-                  priority
-                />
+        <div className="border-b border-black min-h-screen">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-32">
+            {/* Hero Content - Simple grid layout */}
+            <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 min-h-[600px] lg:min-h-[800px] items-center">
+              {/* Hero Image */}
+              <div className="order-1">
+                <div className="relative aspect-[3/4] max-w-2xl mx-auto lg:mx-0 lg:h-[800px]">
+                  <Image
+                    src="/homepage_images/BannerLuca.webp"
+                    alt="Luca Tullio - DUST Hair Studio"
+                    fill
+                    className="object-cover object-bottom"
+                    priority
+                  />
+                </div>
               </div>
-            </div>
 
-            {/* Studio Description */}
-            <div className="lg:col-span-1 space-y-6">
-              <div className="space-y-2">
-                <h2 className="dust-heading text-2xl md:text-3xl tracking-wide" style={{ color: 'var(--dust-black)' }}>
-                  A PRIVATE HAIR STUDIO
-                </h2>
-                <h3 className="dust-heading text-2xl md:text-3xl tracking-wide" style={{ color: 'var(--dust-black)' }}>
-                  BY LUCA TULLIO
-                </h3>
+              {/* Text Content */}
+              <div className="order-2 flex flex-col justify-start pt-8">
+                <div className="space-y-8">
+                  <div className="space-y-1">
+                    <h2 className="dust-heading text-2xl md:text-3xl lg:text-4xl tracking-narrow leading-tight" style={{ color: 'var(--dust-black)' }}>
+                      A PRIVATE HAIR STUDIO
+                    </h2>
+                    <h3 className="dust-heading text-2xl md:text-3xl lg:text-4xl tracking-narrow leading-tight" style={{ color: 'var(--dust-black)' }}>
+                      BY LUCA TULLIO
+                    </h3>
+                  </div>
+                  
+                  <p className="dust-mono text-sm md:text-base text-gray-700 tracking-wide leading-relaxed max-w-xl">
+                    DUST WAS BORN FROM A DESIRE TO CREATE A PRIVATE AND PERSONALIZED SALON EXPERIENCE FOR EACH INDIVIDUAL CLIENT AND THE HAIR THEY WEAR.
+                  </p>
+                </div>
               </div>
-              
-              <p className="dust-mono text-sm text-gray-700 leading-relaxed max-w-sm">
-                DUST WAS BORN FROM A DESIRE TO CREATE A PRIVATE AND PERSONALIZED SALON EXPERIENCE FOR EACH INDIVIDUAL CLIENT AND THE HAIR THEY WEAR.
-              </p>
             </div>
           </div>
         </div>

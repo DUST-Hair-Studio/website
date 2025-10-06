@@ -32,6 +32,7 @@ function BookPageContent() {
   const [availableTimes, setAvailableTimes] = useState<string[]>([])
   const [loadingTimes, setLoadingTimes] = useState(false)
   const [businessHours, setBusinessHours] = useState<{day_of_week: number; is_open: boolean; open_time: string; close_time: string; timezone: string}[]>([])
+  
   const [step, setStep] = useState(1) // 1: Service, 2: Date/Time, 3: Details, 4: Confirmation
 
   // Handle authentication state changes - MUST be before other useEffects
@@ -111,6 +112,14 @@ function BookPageContent() {
     fetchBusinessHours()
   }, [])
 
+  // Check availability for visible calendar days when service and business hours are loaded
+  useEffect(() => {
+    if (selectedService && businessHours.length > 0) {
+      checkAvailabilityForVisibleDays()
+    }
+  }, [selectedService, businessHours])
+
+
   const handleServiceSelect = (service: Service) => {
     setSelectedService(service)
     setStep(2)
@@ -121,9 +130,10 @@ function BookPageContent() {
     }
   }
 
-  const isBusinessDay = (date: Date) => {
+  const isBusinessDay = (date: Date): boolean => {
     // If business hours haven't loaded yet, allow all dates temporarily
     if (businessHours.length === 0) {
+      console.log('Business hours not loaded yet, allowing date:', date.toDateString())
       return true
     }
     
@@ -131,31 +141,169 @@ function BookPageContent() {
     const dayHours = businessHours.find(hours => hours.day_of_week === dayOfWeek)
     const isOpen = dayHours && dayHours.is_open
     
-    console.log(`Date: ${date.toDateString()}, Day: ${dayOfWeek}, IsOpen: ${isOpen}`)
-    return isOpen
+    console.log(`Date: ${date.toDateString()}, Day: ${dayOfWeek}, DayHours:`, dayHours, `IsOpen: ${isOpen}`)
+    return !!isOpen
   }
 
-  const handleDateSelect = (date: Date | undefined) => {
-    // Only allow selection of business days
-    if (date && !isBusinessDay(date)) {
-      console.log('Selected date is not a business day, ignoring selection')
-      return
+  // State to track dates with no availability
+  const [datesWithNoAvailability, setDatesWithNoAvailability] = useState<Set<string>>(new Set())
+  
+  // Cache for availability checks to avoid duplicate API calls
+  const [availabilityCache, setAvailabilityCache] = useState<Map<string, boolean>>(new Map())
+
+  const hasNoAvailability = (date: Date) => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const dateStr = `${year}-${month}-${day}`
+    const hasNoAvail = datesWithNoAvailability.has(dateStr)
+    console.log(`🔍 hasNoAvailability(${dateStr}): ${hasNoAvail}`)
+    if (dateStr === '2025-10-10') {
+      console.log(`🎯 OCTOBER 10TH CHECK: ${dateStr}, hasNoAvail: ${hasNoAvail}`)
+      console.log(`🎯 OCTOBER 10TH datesWithNoAvailability set:`, Array.from(datesWithNoAvailability))
     }
+    return hasNoAvail
+  }
+
+  // Efficient availability check for visible calendar days (prioritized)
+  const checkAvailabilityForVisibleDays = async () => {
+    if (!selectedService || businessHours.length === 0) return
     
+    console.log('🔍 Checking availability for visible calendar days (prioritized)...')
+    
+    try {
+      const today = new Date()
+      
+      // Check current month first (most likely to be visible)
+      const currentMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+      const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1)
+      
+      // Get business days for current month first
+      const currentMonthBusinessDays: string[] = []
+      const currentDate = new Date(currentMonth)
+      
+      while (currentDate < nextMonth) {
+        if (isBusinessDay(currentDate)) {
+          currentMonthBusinessDays.push(currentDate.toISOString().split('T')[0])
+        }
+        currentDate.setDate(currentDate.getDate() + 1)
+      }
+      
+      // Check which dates we haven't cached yet (prioritize current month)
+      const datesToCheck = currentMonthBusinessDays.filter(dateStr => !availabilityCache.has(dateStr))
+      console.log(`📅 Checking ${datesToCheck.length} dates from current month (${currentMonthBusinessDays.length} total business days in current month)`)
+      
+      if (datesToCheck.length === 0) {
+        console.log('📅 Current month already cached, checking next month...')
+        // If current month is cached, check next month
+        const nextMonthEnd = new Date(today.getFullYear(), today.getMonth() + 2, 0)
+        const nextMonthBusinessDays: string[] = []
+        const nextMonthDate = new Date(nextMonth)
+        
+        while (nextMonthDate <= nextMonthEnd) {
+          if (isBusinessDay(nextMonthDate)) {
+            nextMonthBusinessDays.push(nextMonthDate.toISOString().split('T')[0])
+          }
+          nextMonthDate.setDate(nextMonthDate.getDate() + 1)
+        }
+        
+        const nextMonthDatesToCheck = nextMonthBusinessDays.filter(dateStr => !availabilityCache.has(dateStr))
+        if (nextMonthDatesToCheck.length === 0) {
+          console.log('📅 Next month also cached, using cached results')
+          return
+        }
+        
+        console.log(`📅 Checking ${nextMonthDatesToCheck.length} dates from next month`)
+        datesToCheck.push(...nextMonthDatesToCheck)
+      }
+      
+      // Make parallel API calls only for dates we haven't checked
+      const promises = datesToCheck.map(async (dateStr) => {
+        try {
+          const dayUrl = `/api/admin/availability?startDate=${dateStr}&endDate=${dateStr}&serviceDuration=${selectedService.duration_minutes}`
+          const dayResponse = await fetch(dayUrl)
+          
+          if (dayResponse.ok) {
+            const dayData = await dayResponse.json() as { availableSlots: string[] }
+            const daySlots = dayData.availableSlots || []
+            const hasAvailability = daySlots.length > 0
+            
+            // Cache the result
+            setAvailabilityCache(prev => new Map(prev).set(dateStr, hasAvailability))
+            
+            if (dateStr === '2025-10-10') {
+              console.log(`🎯 OCTOBER 10TH API RESPONSE:`, { dayData, daySlots, length: daySlots.length, hasAvailability })
+            }
+            
+            if (!hasAvailability) {
+              console.log(`❌ ${dateStr} has no availability - will be disabled`)
+              if (dateStr === '2025-10-10') {
+                console.log(`🎯 OCTOBER 10TH: No availability found, will be disabled`)
+              }
+              return dateStr
+            } else {
+              console.log(`✅ ${dateStr} has ${daySlots.length} available slots - will be enabled`)
+              if (dateStr === '2025-10-10') {
+                console.log(`🎯 OCTOBER 10TH: Has ${daySlots.length} available slots, will be enabled`)
+              }
+              return null
+            }
+          } else {
+            console.error(`❌ Failed to fetch availability for ${dateStr}: ${dayResponse.status}`)
+            if (dateStr === '2025-10-10') {
+              console.log(`🎯 OCTOBER 10TH: API request failed with status ${dayResponse.status}`)
+            }
+          }
+        } catch (error) {
+          console.error(`Error checking ${dateStr}:`, error)
+          if (dateStr === '2025-10-10') {
+            console.log(`🎯 OCTOBER 10TH: Error occurred:`, error)
+          }
+        }
+        return null
+      })
+      
+      // Wait for all promises to resolve
+      const results = await Promise.all(promises)
+      const newUnavailableDates = results.filter(date => date !== null) as string[]
+      
+      // Update the unavailable dates set with new findings
+      setDatesWithNoAvailability(prev => {
+        const updated = new Set(prev)
+        newUnavailableDates.forEach(date => updated.add(date))
+        return updated
+      })
+      
+      console.log('📅 New dates to disable (no availability):', newUnavailableDates)
+      
+      // Special check for October 10th
+      if (newUnavailableDates.includes('2025-10-10')) {
+        console.log('🎯 CONFIRMED: October 10th is in the unavailable dates list')
+      } else {
+        console.log('🎯 WARNING: October 10th is NOT in the unavailable dates list')
+      }
+      
+    } catch (error) {
+      console.error('Error checking availability:', error)
+    }
+  }
+
+
+  const handleDateSelect = async (date: Date | undefined) => {
     setSelectedDate(date)
     setSelectedTime('') // Reset time when date changes
     
     // Fetch available times when date is selected
     if (date && selectedService) {
-      fetchAvailableTimes(date)
+      await fetchAvailableTimes(date)
     }
   }
 
-  const fetchAvailableTimes = async (date: Date) => {
+  const fetchAvailableTimes = async (date: Date): Promise<string[]> => {
     console.log('fetchAvailableTimes called with:', { date, selectedService })
     if (!selectedService) {
       console.log('No selected service, returning early')
-      return
+      return []
     }
     
     setLoadingTimes(true)
@@ -173,18 +321,29 @@ function BookPageContent() {
         const data = await response.json() as { availableSlots: string[] }
         console.log('Available slots data:', data.availableSlots)
         
+        if (dateStr === '2025-10-10') {
+          console.log(`🎯 OCTOBER 10TH fetchAvailableTimes API RESPONSE:`, { data, slots: data.availableSlots })
+        }
+        
         // Ensure we have an array of strings and remove duplicates
         const slots = data.availableSlots || []
         const uniqueSlots = [...new Set(slots)]
         
+        if (dateStr === '2025-10-10') {
+          console.log(`🎯 OCTOBER 10TH fetchAvailableTimes RESULT:`, { slots, uniqueSlots })
+        }
+        
         setAvailableTimes(uniqueSlots)
+        return uniqueSlots
       } else {
         console.error('Failed to fetch available times')
         setAvailableTimes([])
+        return []
       }
     } catch (error) {
       console.error('Error fetching available times:', error)
       setAvailableTimes([])
+      return []
     } finally {
       setLoadingTimes(false)
     }
@@ -389,7 +548,27 @@ function BookPageContent() {
                     mode="single"
                     selected={selectedDate}
                     onSelect={handleDateSelect}
-                    disabled={(date) => date < new Date() || !isBusinessDay(date)}
+                    disabled={(date) => {
+                      const isPast = date < new Date()
+                      const isBusinessDayResult = isBusinessDay(date)
+                      const hasNoAvail = hasNoAvailability(date)
+                      // Disable past dates, non-business days, AND dates with no availability
+                      const isDisabled = isPast || !isBusinessDayResult || hasNoAvail
+                      
+                      // Debug October 10th specifically
+                      if (date.getFullYear() === 2025 && date.getMonth() === 9 && date.getDate() === 10) {
+                        console.log(`🎯 OCTOBER 10TH DISABLED CHECK:`, {
+                          date: date.toDateString(),
+                          isPast,
+                          isBusinessDayResult,
+                          hasNoAvail,
+                          isDisabled,
+                          datesWithNoAvailability: Array.from(datesWithNoAvailability)
+                        })
+                      }
+                      
+                      return isDisabled
+                    }}
                     className="border-t border-b w-full"
                   />
                 </div>
