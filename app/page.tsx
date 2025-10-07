@@ -156,7 +156,7 @@ export default function Home() {
         {/* Booking Section */}
         <div className="py-40" style={{ backgroundColor: '#FAFAFA' }}>
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="dust-heading text-3xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl mb-8 tracking-tighter" style={{ color: 'var(--dust-black)' }}>
+            <h2 className="dust-heading text-3xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl mb-8" style={{ color: 'var(--dust-black)' }}>
               BOOK AN APPOINTMENT
             </h2>
             
@@ -270,7 +270,7 @@ export default function Home() {
 
               {/* Hours */}
               <div className="text-center md:text-left">
-                <h3 className="dust-heading text-lg mb-6 tracking-tighter" style={{ color: '#1C1C1D' }}>HOURS</h3>
+                <h3 className="dust-heading text-lg mb-6" style={{ color: '#1C1C1D' }}>HOURS</h3>
                 <div className="dust-mono text-lg space-y-1 tracking-widest" style={{ color: '#1C1C1D' }}>
                   <p>Thursday-Sunday:</p>
                   <p>By Appointment</p>
