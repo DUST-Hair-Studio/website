@@ -15,7 +15,10 @@ export function RegisterForm() {
     confirmPassword: '',
     name: '',
     phone: '',
-    allowSmsNotifications: false
+    birthMonth: '',
+    birthDay: '',
+    allowSmsNotifications: false,
+    allowMarketingEmails: false
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -23,12 +26,40 @@ export function RegisterForm() {
   const router = useRouter()
   const supabase = createClient()
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }))
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target
+    const checked = 'checked' in e.target ? e.target.checked : false
+2    
+    // Format phone number as user types
+    if (name === 'phone') {
+      const formattedPhone = formatPhoneNumber(value)
+      setFormData(prev => ({
+        ...prev,
+        [name]: formattedPhone
+      }))
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value
+      }))
+    }
+  }
+
+  const formatPhoneNumber = (value: string) => {
+    // Remove all non-digit characters
+    const phoneNumber = value.replace(/\D/g, '')
+    
+    // Don't format if empty
+    if (!phoneNumber) return ''
+    
+    // Format based on length
+    if (phoneNumber.length <= 3) {
+      return `(${phoneNumber}`
+    } else if (phoneNumber.length <= 6) {
+      return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3)}`
+    } else {
+      return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6, 10)}`
+    }
   }
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -57,10 +88,10 @@ export function RegisterForm() {
       return
     }
 
-    // Basic phone number format validation
-    const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/
-    if (!phoneRegex.test(formData.phone.replace(/[\s\-\(\)]/g, ''))) {
-      setError('Please enter a valid phone number')
+    // Basic phone number format validation (check for 10 digits after formatting)
+    const phoneDigits = formData.phone.replace(/\D/g, '')
+    if (phoneDigits.length !== 10) {
+      setError('Please enter a valid 10-digit phone number')
       setLoading(false)
       return
     }
@@ -76,7 +107,10 @@ export function RegisterForm() {
           data: {
             name: formData.name,
             phone: formData.phone,
-            allow_sms_notifications: formData.allowSmsNotifications
+            birth_month: formData.birthMonth,
+            birth_day: formData.birthDay,
+            allow_sms_notifications: formData.allowSmsNotifications,
+            allow_marketing_emails: formData.allowMarketingEmails
           }
         }
       })
@@ -98,8 +132,11 @@ export function RegisterForm() {
             email: formData.email,
             name: formData.name,
             phone: formData.phone,
+            birth_month: formData.birthMonth,
+            birth_day: formData.birthDay,
             is_existing_customer: false,
-            allow_sms_notifications: formData.allowSmsNotifications
+            allow_sms_notifications: formData.allowSmsNotifications,
+            allow_marketing_emails: formData.allowMarketingEmails
           })
           .select()
 
@@ -175,6 +212,56 @@ export function RegisterForm() {
               disabled={loading}
             />
           </div>
+
+          <div className="space-y-2">
+            <Label>Birth Date</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <select
+                  id="birthMonth"
+                  name="birthMonth"
+                  value={formData.birthMonth}
+                  onChange={handleInputChange}
+                  disabled={loading}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  <option value="">Month</option>
+                  <option value="01">January</option>
+                  <option value="02">February</option>
+                  <option value="03">March</option>
+                  <option value="04">April</option>
+                  <option value="05">May</option>
+                  <option value="06">June</option>
+                  <option value="07">July</option>
+                  <option value="08">August</option>
+                  <option value="09">September</option>
+                  <option value="10">October</option>
+                  <option value="11">November</option>
+                  <option value="12">December</option>
+                </select>
+              </div>
+              <div>
+                <select
+                  id="birthDay"
+                  name="birthDay"
+                  value={formData.birthDay}
+                  onChange={handleInputChange}
+                  disabled={loading}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  <option value="">Day</option>
+                  {Array.from({ length: 31 }, (_, i) => {
+                    const day = (i + 1).toString().padStart(2, '0');
+                    return (
+                      <option key={day} value={day}>
+                        {i + 1}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            </div>
+          </div>
           
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
@@ -219,6 +306,26 @@ export function RegisterForm() {
               </Label>
               <p className="text-gray-500 mt-1">
                 You can opt out at any time. Standard message rates may apply.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start space-x-3">
+            <input
+              id="allowMarketingEmails"
+              name="allowMarketingEmails"
+              type="checkbox"
+              checked={formData.allowMarketingEmails}
+              onChange={handleInputChange}
+              disabled={loading}
+              className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <div className="text-sm">
+              <Label htmlFor="allowMarketingEmails" className="font-normal cursor-pointer">
+                Email me updates about special offers and studio news
+              </Label>
+              <p className="text-gray-500 mt-1">
+                No spam, just the good stuff. Unsubscribe anytime.
               </p>
             </div>
           </div>

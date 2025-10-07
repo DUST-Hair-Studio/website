@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog'
 import { Switch } from '@/components/ui/switch'
-import { Loader2, Search, Users, UserPlus, User, Calendar, DollarSign, Eye, Filter, CheckSquare, Square, Edit, UserX, UserCheck } from 'lucide-react'
+import { Loader2, Search, Users, UserPlus, User, Calendar, DollarSign, Eye, Filter, CheckSquare, Square, Edit, UserX, UserCheck, Phone, MessageSquare, Mail } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Customer } from '@/types'
 
@@ -37,6 +37,7 @@ export default function AdminCustomersPage() {
     is_existing_customer: false,
     notes: ''
   })
+  const [activePhoneMenu, setActivePhoneMenu] = useState<string | null>(null)
 
   // Fetch customers
   const fetchCustomers = async () => {
@@ -61,6 +62,63 @@ export default function AdminCustomersPage() {
   useEffect(() => {
     fetchCustomers()
   }, [])
+
+  // Close phone menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setActivePhoneMenu(null)
+    }
+    
+    if (activePhoneMenu) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [activePhoneMenu])
+
+  const renderPhoneNumber = (phone: string, customerId: string, className: string = "text-blue-500 hover:text-blue-700 underline cursor-pointer") => {
+    const isActive = activePhoneMenu === customerId
+    
+    return (
+      <div className="relative inline-block">
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            setActivePhoneMenu(isActive ? null : customerId)
+          }}
+          className={className}
+        >
+          {phone}
+        </button>
+        
+        {isActive && (
+          <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-10 min-w-[120px]">
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                window.open(`tel:${phone}`, '_self')
+                setActivePhoneMenu(null)
+              }}
+              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+            >
+              <Phone className="w-3 h-3" />
+              Call
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                window.open(`sms:${phone}`, '_self')
+                setActivePhoneMenu(null)
+              }}
+              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+            >
+              <MessageSquare className="w-3 h-3" />
+              Text
+            </button>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   // Filter customers based on search and type
   const filteredCustomers = customers.filter(customer => {
@@ -584,10 +642,45 @@ export default function AdminCustomersPage() {
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Customer Details</DialogTitle>
-            <DialogDescription>
-              {selectedCustomer?.name} - Customer Information
-            </DialogDescription>
+            <div className="flex justify-between items-center">
+              <div>
+                <DialogTitle>Customer Details</DialogTitle>
+                <DialogDescription>
+                  {selectedCustomer?.name} - Customer Information
+                </DialogDescription>
+              </div>
+              {selectedCustomer && (
+                <div className="flex gap-2 mr-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(`tel:${selectedCustomer.phone}`, '_self')}
+                    className="h-8 w-8 p-0"
+                    title={`Call ${selectedCustomer.name}`}
+                  >
+                    <Phone className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(`sms:${selectedCustomer.phone}`, '_self')}
+                    className="h-8 w-8 p-0"
+                    title={`Text ${selectedCustomer.name}`}
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(`mailto:${selectedCustomer.email}`, '_self')}
+                    className="h-8 w-8 p-0"
+                    title={`Email ${selectedCustomer.name}`}
+                  >
+                    <Mail className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
           </DialogHeader>
           
           {selectedCustomer && (
@@ -598,8 +691,19 @@ export default function AdminCustomersPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   <div>
                     <p><strong>Name:</strong> {selectedCustomer.name}</p>
-                    <p><strong>Email:</strong> {selectedCustomer.email}</p>
-                    <p><strong>Phone:</strong> {selectedCustomer.phone}</p>
+                    <p><strong>Email:</strong> 
+                      <a 
+                        href={`mailto:${selectedCustomer.email}`}
+                        className="text-blue-500 hover:text-blue-700 underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {selectedCustomer.email}
+                      </a>
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <p><strong>Phone:</strong></p>
+                      {renderPhoneNumber(selectedCustomer.phone, selectedCustomer.id, "text-blue-500 hover:text-blue-700 underline cursor-pointer")}
+                    </div>
                   </div>
                   <div>
                     <p><strong>Type:</strong> 

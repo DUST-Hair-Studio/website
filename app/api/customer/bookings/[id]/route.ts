@@ -315,3 +315,255 @@ export async function PUT(
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const supabase = await createServerSupabaseClient()
+    const { id: bookingId } = await params
+    const { status } = await request.json()
+    
+    if (!status) {
+      return NextResponse.json({ error: 'Status is required' }, { status: 400 })
+    }
+    
+    // Only allow cancellation for customers
+    if (status !== 'cancelled') {
+      return NextResponse.json({ error: 'Only cancellation is allowed for customers' }, { status: 400 })
+    }
+    
+    // Get the current user
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    }
+
+    // Find the customer record
+    let customer = null
+    
+    // First try: auth_user_id
+    const { data: customerByAuthId, error: errorByAuthId } = await supabase
+      .from('customers')
+      .select('id')
+      .eq('auth_user_id', user.id)
+      .single()
+    
+    if (customerByAuthId && !errorByAuthId) {
+      customer = customerByAuthId
+    } else {
+      // Second try: email (fallback)
+      const { data: customerByEmail, error: errorByEmail } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('email', user.email)
+        .single()
+      
+      if (customerByEmail && !errorByEmail) {
+        customer = customerByEmail
+      } else {
+        return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
+      }
+    }
+
+    // Get the current booking to verify ownership and check if it can be cancelled
+    const { data: currentBooking, error: currentBookingError } = await supabase
+      .from('bookings')
+      .select(`
+        *,
+        services (
+          name,
+          duration_minutes
+        )
+      `)
+      .eq('id', bookingId)
+      .eq('customer_id', customer.id)
+      .single()
+
+    if (currentBookingError || !currentBooking) {
+      return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
+    }
+
+    // Check if booking can be cancelled
+    const now = new Date()
+    const bookingDateTime = new Date(`${currentBooking.booking_date}T${currentBooking.booking_time}`)
+    
+    if (bookingDateTime <= now) {
+      return NextResponse.json({ error: 'Cannot cancel past appointments' }, { status: 400 })
+    }
+    
+    if (currentBooking.status === 'cancelled') {
+      return NextResponse.json({ error: 'Booking is already cancelled' }, { status: 400 })
+    }
+    
+    if (currentBooking.status === 'completed') {
+      return NextResponse.json({ error: 'Cannot cancel completed appointments' }, { status: 400 })
+    }
+
+    // Update the booking status to cancelled
+    const { data: updatedBooking, error: updateError } = await supabase
+      .from('bookings')
+      .update({
+        status: 'cancelled',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', bookingId)
+      .select(`
+        *,
+        services (
+          name,
+          description,
+          duration_minutes
+        ),
+        customers (
+          name,
+          email,
+          phone
+        )
+      `)
+      .single()
+
+    if (updateError) {
+      console.error('Error cancelling booking:', updateError)
+      return NextResponse.json({ error: 'Failed to cancel booking' }, { status: 500 })
+    }
+
+    // Delete Google Calendar event if it exists
+    try {
+      if (currentBooking.google_calendar_event_id) {
+        const googleCalendar = new GoogleCalendarService()
+        const isConnected = await googleCalendar.isConnected()
+        
+        if (isConnected) {
+          await googleCalendar.deleteBookingEvent(bookingId, currentBooking.google_calendar_event_id)
+          console.log('✅ Google Calendar event deleted for cancelled booking')
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting Google Calendar event:', error)
+      // Don't fail the cancellation if calendar sync fails
+    }
+
+    return NextResponse.json({ 
+      success: true,
+      booking: updatedBooking,
+      message: 'Booking cancelled successfully'
+    })
+
+  } catch (error) {
+    console.error('Customer booking cancellation API error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const supabase = await createServerSupabaseClient()
+    const { id: bookingId } = await params
+    
+    // Get the current user
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    }
+
+    // Find the customer record
+    let customer = null
+    
+    // First try: auth_user_id
+    const { data: customerByAuthId, error: errorByAuthId } = await supabase
+      .from('customers')
+      .select('id')
+      .eq('auth_user_id', user.id)
+      .single()
+    
+    if (customerByAuthId && !errorByAuthId) {
+      customer = customerByAuthId
+    } else {
+      // Second try: email (fallback)
+      const { data: customerByEmail, error: errorByEmail } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('email', user.email)
+        .single()
+      
+      if (customerByEmail && !errorByEmail) {
+        customer = customerByEmail
+      } else {
+        return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
+      }
+    }
+
+    // Get the current booking to verify ownership and check if it can be deleted
+    const { data: currentBooking, error: currentBookingError } = await supabase
+      .from('bookings')
+      .select(`
+        *,
+        services (
+          name,
+          duration_minutes
+        )
+      `)
+      .eq('id', bookingId)
+      .eq('customer_id', customer.id)
+      .single()
+
+    if (currentBookingError || !currentBooking) {
+      return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
+    }
+
+    // Check if booking can be deleted
+    const now = new Date()
+    const bookingDateTime = new Date(`${currentBooking.booking_date}T${currentBooking.booking_time}`)
+    
+    if (bookingDateTime <= now) {
+      return NextResponse.json({ error: 'Cannot delete past appointments' }, { status: 400 })
+    }
+    
+    if (currentBooking.status === 'completed') {
+      return NextResponse.json({ error: 'Cannot delete completed appointments' }, { status: 400 })
+    }
+
+    // Delete Google Calendar event if it exists
+    try {
+      if (currentBooking.google_calendar_event_id) {
+        const googleCalendar = new GoogleCalendarService()
+        const isConnected = await googleCalendar.isConnected()
+        
+        if (isConnected) {
+          await googleCalendar.deleteBookingEvent(bookingId, currentBooking.google_calendar_event_id)
+          console.log('✅ Google Calendar event deleted for cancelled booking')
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting Google Calendar event:', error)
+      // Continue with booking deletion even if calendar sync fails
+    }
+
+    // Delete the booking from the database
+    const { error: deleteError } = await supabase
+      .from('bookings')
+      .delete()
+      .eq('id', bookingId)
+
+    if (deleteError) {
+      console.error('Error deleting booking:', deleteError)
+      return NextResponse.json({ error: 'Failed to delete booking' }, { status: 500 })
+    }
+
+    return NextResponse.json({ 
+      success: true,
+      message: 'Booking cancelled and removed successfully'
+    })
+
+  } catch (error) {
+    console.error('Customer booking deletion API error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}

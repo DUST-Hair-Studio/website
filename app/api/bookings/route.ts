@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { GoogleCalendarService } from '@/lib/google-calendar'
 import { EmailService } from '@/lib/email-service'
+import { ReminderScheduler } from '@/lib/reminder-scheduler'
 
 export async function POST(request: NextRequest) {
   try {
@@ -183,9 +184,12 @@ export async function POST(request: NextRequest) {
       // Don't fail the booking creation if calendar sync fails
     }
 
-    // Send confirmation email
+    // Send confirmation email and schedule reminders
     try {
       const emailService = new EmailService()
+      const reminderScheduler = new ReminderScheduler()
+      
+      // Send confirmation email immediately
       const emailSent = await emailService.sendConfirmationEmail(booking)
       
       if (emailSent) {
@@ -193,9 +197,13 @@ export async function POST(request: NextRequest) {
       } else {
         console.log('Failed to send confirmation email')
       }
+
+      // Schedule all reminder templates for this booking
+      await reminderScheduler.scheduleRemindersForBooking(booking)
+      
     } catch (error) {
-      console.error('Error sending confirmation email:', error)
-      // Don't fail the booking creation if email fails
+      console.error('Error sending confirmation email or scheduling reminders:', error)
+      // Don't fail the booking creation if email/reminder scheduling fails
     }
 
     // TODO: Generate Square payment link

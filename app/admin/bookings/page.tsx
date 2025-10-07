@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Calendar as CalendarComponent } from '@/components/ui/calendar'
-import { CheckCircle, Calendar, DollarSign, CalendarDays, RotateCcw, Search, Filter, Table, Grid3X3 } from 'lucide-react'
+import { CheckCircle, Calendar, DollarSign, CalendarDays, RotateCcw, Search, Filter, Table, Grid3X3, Phone, MessageSquare, Mail } from 'lucide-react'
 import RescheduleModal from '@/components/admin/reschedule-modal'
 
 interface BookingWithDetails extends Booking {
@@ -32,7 +32,6 @@ export default function AdminBookingsPage() {
   const [bookings, setBookings] = useState<BookingWithDetails[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('all')
   const [timeFilter, setTimeFilter] = useState<string>('all')
   const [selectedBooking, setSelectedBooking] = useState<BookingWithDetails | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -43,6 +42,19 @@ export default function AdminBookingsPage() {
   const [viewMode, setViewMode] = useState<'table' | 'calendar'>('table')
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | undefined>(undefined)
   const [showCalendarAppointments, setShowCalendarAppointments] = useState(false)
+  const [activePhoneMenu, setActivePhoneMenu] = useState<string | null>(null)
+
+  // Close phone menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setActivePhoneMenu(null)
+    }
+    
+    if (activePhoneMenu) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [activePhoneMenu])
 
   // Fetch all bookings
   useEffect(() => {
@@ -74,11 +86,9 @@ export default function AdminBookingsPage() {
   const filteredBookings = bookings.filter(booking => {
     const matchesSearch = 
       booking.customers.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.customers.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      booking.customers.phone.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (booking.services?.name || '').toLowerCase().includes(searchTerm.toLowerCase())
     
-    const matchesStatus = statusFilter === 'all' || booking.status === statusFilter
-
     const matchesTime = (() => {
       if (timeFilter === 'all') return true
       if (timeFilter === 'today') {
@@ -92,37 +102,9 @@ export default function AdminBookingsPage() {
       return true
     })()
 
-    return matchesSearch && matchesStatus && matchesTime
+    return matchesSearch && matchesTime
   })
 
-  const handleStatusChange = async (bookingId: string, newStatus: string) => {
-    try {
-      const response = await fetch(`/api/admin/bookings/${bookingId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus })
-      })
-
-      if (response.ok) {
-        const updatedBooking = { ...bookings.find(b => b.id === bookingId)!, status: newStatus as 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no-show' }
-        
-        setBookings(prev => 
-          prev.map(booking => 
-            booking.id === bookingId 
-              ? { ...booking, status: newStatus as 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no-show' }
-              : booking
-          )
-        )
-
-        // Update selectedBooking if it's the same booking being updated
-        if (selectedBooking && selectedBooking.id === bookingId) {
-          setSelectedBooking(updatedBooking)
-        }
-      }
-    } catch (error) {
-      console.error('Error updating booking status:', error)
-    }
-  }
 
 
 
@@ -177,6 +159,75 @@ export default function AdminBookingsPage() {
       case 'no-show': return 'bg-gray-100 text-gray-800'
       default: return 'bg-gray-100 text-gray-800'
     }
+  }
+
+  const getCustomerTypeColor = (customerType: string) => {
+    switch (customerType) {
+      case 'new': return 'bg-purple-100 text-purple-800 border-purple-200'
+      case 'existing': return 'bg-indigo-100 text-indigo-800 border-indigo-200'
+      default: return 'bg-gray-100 text-gray-800 border-gray-200'
+    }
+  }
+
+  const getCustomerTypeColorForCalendar = (customerType: string) => {
+    switch (customerType) {
+      case 'new': return 'bg-purple-100 text-purple-800 hover:bg-purple-200'
+      case 'existing': return 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200'
+      default: return 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+    }
+  }
+
+  const getCustomerTypeDotColor = (customerType: string) => {
+    switch (customerType) {
+      case 'new': return 'bg-purple-400'
+      case 'existing': return 'bg-indigo-400'
+      default: return 'bg-gray-400'
+    }
+  }
+
+  const renderPhoneNumber = (phone: string, bookingId: string, className: string = "text-blue-500 hover:text-blue-700 underline cursor-pointer") => {
+    const isActive = activePhoneMenu === bookingId
+    
+    return (
+      <div className="relative inline-block">
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            setActivePhoneMenu(isActive ? null : bookingId)
+          }}
+          className={className}
+        >
+          {phone}
+        </button>
+        
+        {isActive && (
+          <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-10 min-w-[120px]">
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                window.open(`tel:${phone}`, '_self')
+                setActivePhoneMenu(null)
+              }}
+              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+            >
+              <Phone className="w-3 h-3" />
+              Call
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                window.open(`sms:${phone}`, '_self')
+                setActivePhoneMenu(null)
+              }}
+              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+            >
+              <MessageSquare className="w-3 h-3" />
+              Text
+            </button>
+          </div>
+        )}
+      </div>
+    )
   }
 
   const formatPrice = (price: number) => {
@@ -403,19 +454,6 @@ export default function AdminBookingsPage() {
         
         <div className="flex items-center space-x-2">
           <Filter className="w-4 h-4 text-gray-500" />
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="confirmed">Confirmed</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
-              <SelectItem value="no-show">No Show</SelectItem>
-            </SelectContent>
-          </Select>
           <Select value={timeFilter} onValueChange={setTimeFilter}>
             <SelectTrigger className="w-40">
               <SelectValue placeholder="Time" />
@@ -477,10 +515,10 @@ export default function AdminBookingsPage() {
                       <div className="flex justify-between items-start mb-3">
                         <div>
                           <div className="font-medium text-gray-900">{booking.customers.name}</div>
-                          <div className="text-sm text-gray-500">{booking.customers.email}</div>
+                          {renderPhoneNumber(booking.customers.phone, booking.id, "text-blue-500 hover:text-blue-700 underline cursor-pointer text-sm")}
                         </div>
-                        <Badge className={`${getStatusColor(booking.status)} text-xs px-2 py-1`}>
-                          {booking.status}
+                        <Badge className={`${getCustomerTypeColor(booking.customer_type_at_booking)} text-xs px-2 py-1`}>
+                          {booking.customer_type_at_booking}
                         </Badge>
                       </div>
                       
@@ -507,7 +545,31 @@ export default function AdminBookingsPage() {
                         </div>
                       </div>
                       
-                      <div className="flex gap-2">
+                      <div className="flex gap-1">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="h-8 px-2 text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            window.open(`tel:${booking.customers.phone}`, '_self')
+                          }}
+                          title={`Call ${booking.customers.name}`}
+                        >
+                          <Phone className="w-3 h-3" />
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="h-8 px-2 text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            window.open(`sms:${booking.customers.phone}`, '_self')
+                          }}
+                          title={`Text ${booking.customers.name}`}
+                        >
+                          <MessageSquare className="w-3 h-3" />
+                        </Button>
                         <Button 
                           variant="outline" 
                           size="sm"
@@ -517,23 +579,6 @@ export default function AdminBookingsPage() {
                           <RotateCcw className="w-3 h-3 mr-1" />
                           Reschedule
                         </Button>
-                        <div onClick={(e) => e.stopPropagation()} className="flex-1">
-                          <Select 
-                            value={booking.status} 
-                            onValueChange={(value) => handleStatusChange(booking.id, value)}
-                          >
-                            <SelectTrigger className="h-8 text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="pending">Pending</SelectItem>
-                              <SelectItem value="confirmed">Confirmed</SelectItem>
-                              <SelectItem value="completed">Completed</SelectItem>
-                              <SelectItem value="cancelled">Cancelled</SelectItem>
-                              <SelectItem value="no-show">No Show</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
                       </div>
                     </div>
                   ))}
@@ -549,7 +594,7 @@ export default function AdminBookingsPage() {
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                       </tr>
                     </thead>
@@ -563,7 +608,7 @@ export default function AdminBookingsPage() {
                           <td className="px-4 py-3 whitespace-nowrap">
                             <div>
                               <div className="text-sm font-medium text-gray-900">{booking.customers.name}</div>
-                              <div className="text-sm text-gray-500">{booking.customers.email}</div>
+                              {renderPhoneNumber(booking.customers.phone, booking.id, "text-blue-500 hover:text-blue-700 underline cursor-pointer text-sm")}
                             </div>
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap">
@@ -582,8 +627,8 @@ export default function AdminBookingsPage() {
                             {formatPrice(booking.price_charged)}
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap">
-                            <Badge className={`${getStatusColor(booking.status)} text-xs px-2 py-1`}>
-                              {booking.status}
+                            <Badge className={`${getCustomerTypeColor(booking.customer_type_at_booking)} text-xs px-2 py-1`}>
+                              {booking.customer_type_at_booking}
                             </Badge>
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm">
@@ -597,23 +642,6 @@ export default function AdminBookingsPage() {
                                 <RotateCcw className="w-3 h-3 mr-1" />
                                 Reschedule
                               </Button>
-                              <div onClick={(e) => e.stopPropagation()}>
-                                <Select 
-                                  value={booking.status} 
-                                  onValueChange={(value) => handleStatusChange(booking.id, value)}
-                                >
-                                  <SelectTrigger className="w-24 h-7 text-xs">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="pending">Pending</SelectItem>
-                                    <SelectItem value="confirmed">Confirmed</SelectItem>
-                                    <SelectItem value="completed">Completed</SelectItem>
-                                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                                    <SelectItem value="no-show">No Show</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
                             </div>
                           </td>
                         </tr>
@@ -637,9 +665,21 @@ export default function AdminBookingsPage() {
                     <h2 className="text-lg sm:text-2xl font-bold text-gray-900">
                       {new Date().toLocaleDateString('en-US', { 
                         month: 'long', 
-                        year: 'numeric' 
+                        year: 'numeric'
                       })}
                     </h2>
+                  </div>
+                  
+                  {/* Legend */}
+                  <div className="flex flex-wrap gap-3 mt-2 text-xs">
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 bg-purple-400 rounded-full"></div>
+                      <span className="text-gray-600">New Customer</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 bg-indigo-400 rounded-full"></div>
+                      <span className="text-gray-600">Existing Customer</span>
+                    </div>
                   </div>
                 </div>
 
@@ -692,17 +732,7 @@ export default function AdminBookingsPage() {
                                   e.stopPropagation()
                                   openBookingDetails(booking)
                                 }}
-                                className={`text-xs p-1 rounded truncate cursor-pointer ${
-                                  booking.status === 'cancelled' 
-                                    ? 'bg-red-100 text-red-800 hover:bg-red-200' 
-                                    : booking.status === 'no-show' 
-                                    ? 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                                    : booking.status === 'completed'
-                                    ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                                    : booking.status === 'confirmed'
-                                    ? 'bg-blue-100 text-blue-800 hover:bg-blue-200'
-                                    : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
-                                }`}
+                                className={`text-xs p-1 rounded truncate cursor-pointer ${getCustomerTypeColorForCalendar(booking.customer_type_at_booking)}`}
                               >
                                 {formatTime(booking.booking_time)} - {booking.customers.name}
                               </div>
@@ -721,17 +751,7 @@ export default function AdminBookingsPage() {
                                 {appointments.slice(0, 4).map((booking, i) => (
                                   <div 
                                     key={i} 
-                                    className={`w-1.5 h-1.5 rounded-full ${
-                                      booking.status === 'cancelled' 
-                                        ? 'bg-red-400' 
-                                        : booking.status === 'no-show' 
-                                        ? 'bg-gray-400'
-                                        : booking.status === 'completed'
-                                        ? 'bg-green-400'
-                                        : booking.status === 'confirmed'
-                                        ? 'bg-blue-400'
-                                        : 'bg-yellow-400'
-                                    }`}
+                                    className={`w-1.5 h-1.5 rounded-full ${getCustomerTypeDotColor(booking.customer_type_at_booking)}`}
                                   ></div>
                                 ))}
                                 {appointments.length > 4 && (
@@ -788,73 +808,93 @@ export default function AdminBookingsPage() {
                         </span>
                       </div>
                       
-                      {getBookingsForDate(selectedCalendarDate)
-                        .sort((a, b) => a.booking_time.localeCompare(b.booking_time))
-                        .map((booking) => (
-                        <div
-                          key={booking.id}
-                          onClick={() => openBookingDetails(booking)}
-                          className="p-2 sm:p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                        >
-                          <div className="flex justify-between items-start mb-1">
-                            <div>
-                              <div className="font-semibold text-gray-900 text-base sm:text-lg">{booking.customers.name}</div>
-                              <div className="text-xs sm:text-sm text-gray-500">{booking.customers.email}</div>
-                            </div>
-                            <Badge className={`${getStatusColor(booking.status)} text-xs px-2 sm:px-3 py-1`}>
-                              {booking.status}
-                            </Badge>
-                          </div>
-                          
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm">
-                            <div>
-                              <span className="text-gray-500">Time:</span>
-                              <div className="font-medium">{formatTime(booking.booking_time)}</div>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Duration:</span>
-                              <div className="font-medium">{booking.duration_minutes} min</div>
-                            </div>
-                            <div className="sm:col-span-1">
-                              <span className="text-gray-500">Service:</span>
-                              <div className="font-medium">{booking.services?.name || 'Service not found'}</div>
-                            </div>
-                            <div className="sm:col-span-1">
-                              <span className="text-gray-500">Price:</span>
-                              <div className="font-medium">{formatPrice(booking.price_charged)}</div>
-                            </div>
-                          </div>
-                          
-                          <div className="flex flex-row gap-2 mt-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={(e) => openRescheduleModal(booking, e)}
-                              className="flex-1 text-xs sm:text-sm h-9"
-                            >
-                              <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                              Reschedule
-                            </Button>
-                            <div onClick={(e) => e.stopPropagation()} className="flex-1">
-                              <Select
-                                value={booking.status}
-                                onValueChange={(value) => handleStatusChange(booking.id, value)}
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {getBookingsForDate(selectedCalendarDate)
+                              .sort((a, b) => a.booking_time.localeCompare(b.booking_time))
+                              .map((booking) => (
+                              <tr 
+                                key={booking.id}
+                                onClick={() => openBookingDetails(booking)}
+                                className="hover:bg-gray-50 cursor-pointer transition-colors"
                               >
-                                <SelectTrigger className="text-xs sm:text-sm h-9">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="pending">Pending</SelectItem>
-                                  <SelectItem value="confirmed">Confirmed</SelectItem>
-                                  <SelectItem value="completed">Completed</SelectItem>
-                                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                                  <SelectItem value="no-show">No Show</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                                <td className="px-3 py-2 whitespace-nowrap">
+                                  <div>
+                                    <div className="text-sm font-medium text-gray-900">{booking.customers.name}</div>
+                                    {renderPhoneNumber(booking.customers.phone, booking.id, "text-blue-500 hover:text-blue-700 underline cursor-pointer text-sm")}
+                                  </div>
+                                </td>
+                                <td className="px-3 py-2 whitespace-nowrap">
+                                  <div className="text-sm text-gray-900">{booking.services?.name || 'Service not found'}</div>
+                                </td>
+                                <td className="px-3 py-2 whitespace-nowrap">
+                                  <div className="text-sm text-gray-900">{formatTime(booking.booking_time)}</div>
+                                </td>
+                                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                                  {booking.duration_minutes} min
+                                </td>
+                                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                                  {formatPrice(booking.price_charged)}
+                                </td>
+                                <td className="px-3 py-2 whitespace-nowrap">
+                                  <Badge className={`${getCustomerTypeColor(booking.customer_type_at_booking)} text-xs px-2 py-1`}>
+                                    {booking.customer_type_at_booking}
+                                  </Badge>
+                                </td>
+                                <td className="px-3 py-2 whitespace-nowrap text-sm">
+                                  <div className="flex gap-1">
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      className="h-7 px-2 text-xs"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        window.open(`tel:${booking.customers.phone}`, '_self')
+                                      }}
+                                      title={`Call ${booking.customers.name}`}
+                                    >
+                                      <Phone className="w-3 h-3" />
+                                    </Button>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      className="h-7 px-2 text-xs"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        window.open(`sms:${booking.customers.phone}`, '_self')
+                                      }}
+                                      title={`Text ${booking.customers.name}`}
+                                    >
+                                      <MessageSquare className="w-3 h-3" />
+                                    </Button>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      className="h-7 px-2 text-xs"
+                                      onClick={(e) => openRescheduleModal(booking, e)}
+                                    >
+                                      <RotateCcw className="w-3 h-3 mr-1" />
+                                      Reschedule
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -868,10 +908,45 @@ export default function AdminBookingsPage() {
       <Dialog open={showBookingDetails} onOpenChange={setShowBookingDetails}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Booking Details</DialogTitle>
-            <DialogDescription>
-              {selectedBooking?.customers.name} - {selectedBooking?.services?.name || 'Service not found'}
-            </DialogDescription>
+            <div className="flex justify-between items-center">
+              <div>
+                <DialogTitle>Booking Details</DialogTitle>
+                <DialogDescription>
+                  {selectedBooking?.customers.name} - {selectedBooking?.services?.name || 'Service not found'}
+                </DialogDescription>
+              </div>
+              {selectedBooking && (
+                <div className="flex gap-2 mr-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(`tel:${selectedBooking.customers.phone}`, '_self')}
+                    className="h-8 w-8 p-0"
+                    title={`Call ${selectedBooking.customers.name}`}
+                  >
+                    <Phone className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(`sms:${selectedBooking.customers.phone}`, '_self')}
+                    className="h-8 w-8 p-0"
+                    title={`Text ${selectedBooking.customers.name}`}
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(`mailto:${selectedBooking.customers.email}`, '_self')}
+                    className="h-8 w-8 p-0"
+                    title={`Email ${selectedBooking.customers.name}`}
+                  >
+                    <Mail className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
           </DialogHeader>
           
           {selectedBooking && (
@@ -882,8 +957,19 @@ export default function AdminBookingsPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   <div>
                     <p><strong>Name:</strong> {selectedBooking.customers.name}</p>
-                    <p><strong>Email:</strong> {selectedBooking.customers.email}</p>
-                    <p><strong>Phone:</strong> {selectedBooking.customers.phone}</p>
+                    <p><strong>Email:</strong> 
+                      <a 
+                        href={`mailto:${selectedBooking.customers.email}`}
+                        className="text-blue-500 hover:text-blue-700 underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {selectedBooking.customers.email}
+                      </a>
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <p><strong>Phone:</strong></p>
+                      {renderPhoneNumber(selectedBooking.customers.phone, selectedBooking.id, "text-blue-500 hover:text-blue-700 underline cursor-pointer")}
+                    </div>
                   </div>
                   <div>
                     <p><strong>Type:</strong> {selectedBooking.customer_type_at_booking}</p>
@@ -924,18 +1010,6 @@ export default function AdminBookingsPage() {
                 >
                   🗑️ DELETE BOOKING
                 </Button>
-                <Select value={selectedBooking.status} onValueChange={(value) => handleStatusChange(selectedBooking.id, value)}>
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="confirmed">Confirmed</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                    <SelectItem value="no-show">No Show</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
             </div>
           )}

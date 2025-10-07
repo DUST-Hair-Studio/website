@@ -283,31 +283,9 @@ export default function Home() {
         {/* Footer */}
         <footer className="text-white py-16" style={{ backgroundColor: '#1C1C1D' }}>
           <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid md:grid-cols-2 gap-40 lg:gap-150 xl:gap-180 2xl:gap-250 mb-16">
-              {/* Subscribe */}
-              <div className="text-center md:text-left">
-                <h3 className="dust-heading text-lg text-white mb-4 tracking-wide">SUBSCRIBE</h3>
-                <p className="dust-mono text-sm text-gray-300 mb-6">
-                  Sign up with your email address to receive news and updates.
-                </p>
-                <div className="flex gap-3">
-                  <Input 
-                    type="email" 
-                    placeholder="Email Address" 
-                    className="flex-1 border-white text-gray-900 placeholder-gray-500"
-                    style={{ backgroundColor: '#FAFAFA' }}
-                  />
-                  <Button className="text-gray-900 border border-white px-6" style={{ backgroundColor: '#FAFAFA' }}>
-                    Sign Up
-                  </Button>
-                </div>
-                <p className="dust-mono text-xs text-gray-400 mt-3">
-                  We respect your privacy.
-                </p>
-              </div>
-
+            <div className="mb-16">
               {/* Follow */}
-              <div className="text-center md:text-left">
+              <div className="text-center">
                 <h3 className="dust-heading text-lg text-white mb-4 tracking-wide">FOLLOW</h3>
                 <a href="https://www.instagram.com/dust.hair.studio/" target="_blank" rel="noopener noreferrer" className="dust-mono text-sm text-white underline hover:no-underline">
                   INSTAGRAM

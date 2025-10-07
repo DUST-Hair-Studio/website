@@ -6,7 +6,8 @@ import { Booking, Service } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Calendar, Clock, DollarSign, MapPin, User, RefreshCw, Eye, ArrowLeft } from 'lucide-react'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
+import { Calendar, Clock, DollarSign, MapPin, User, RefreshCw, Eye, ArrowLeft, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import RescheduleModal from '@/components/admin/reschedule-modal'
 
@@ -31,6 +32,9 @@ export default function ManageBookingsPage() {
   const [error, setError] = useState('')
   const [showRescheduleModal, setShowRescheduleModal] = useState(false)
   const [bookingToReschedule, setBookingToReschedule] = useState<BookingWithDetails | null>(null)
+  const [showCancelDialog, setShowCancelDialog] = useState(false)
+  const [bookingToCancel, setBookingToCancel] = useState<BookingWithDetails | null>(null)
+  const [cancelling, setCancelling] = useState(false)
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -122,6 +126,11 @@ export default function ManageBookingsPage() {
            booking.status === 'confirmed'
   }
 
+  const canCancel = (booking: BookingWithDetails) => {
+    return isUpcoming(booking.booking_date, booking.booking_time) && 
+           (booking.status === 'confirmed' || booking.status === 'pending')
+  }
+
   const openRescheduleModal = (booking: BookingWithDetails) => {
     setBookingToReschedule(booking)
     setShowRescheduleModal(true)
@@ -138,6 +147,40 @@ export default function ManageBookingsPage() {
     )
     setShowRescheduleModal(false)
     setBookingToReschedule(null)
+  }
+
+  const openCancelDialog = (booking: BookingWithDetails) => {
+    setBookingToCancel(booking)
+    setShowCancelDialog(true)
+  }
+
+  const handleCancelBooking = async () => {
+    if (!bookingToCancel) return
+
+    try {
+      setCancelling(true)
+      const response = await fetch(`/api/customer/bookings/${bookingToCancel.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to cancel booking')
+      }
+
+      // Remove the booking from local state completely
+      setBookings(prev => 
+        prev.filter(booking => booking.id !== bookingToCancel.id)
+      )
+
+      setShowCancelDialog(false)
+      setBookingToCancel(null)
+    } catch (error) {
+      console.error('Error cancelling booking:', error)
+      setError(error instanceof Error ? error.message : 'Failed to cancel booking')
+    } finally {
+      setCancelling(false)
+    }
   }
 
   const upcomingBookings = bookings.filter(booking => 
@@ -252,6 +295,17 @@ export default function ManageBookingsPage() {
                             Reschedule
                           </Button>
                         )}
+                        {canCancel(booking) && (
+                          <Button 
+                            onClick={() => openCancelDialog(booking)}
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <X className="w-4 h-4 mr-2" />
+                            Cancel
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -340,6 +394,33 @@ export default function ManageBookingsPage() {
         onRescheduleSuccess={handleRescheduleSuccess}
         apiEndpoint="/api/customer/bookings"
       />
+
+      {/* Cancel Confirmation Dialog */}
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Appointment</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel your appointment for{' '}
+              <strong>{bookingToCancel?.services?.name}</strong> on{' '}
+              <strong>{bookingToCancel ? formatDate(bookingToCancel.booking_date) : ''}</strong> at{' '}
+              <strong>{bookingToCancel ? formatTime(bookingToCancel.booking_time) : ''}</strong>?
+              <br /><br />
+              This will remove the appointment from your schedule and cannot be undone. If you need to reschedule instead, please use the reschedule option.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cancelling}>Keep Appointment</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelBooking}
+              disabled={cancelling}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {cancelling ? 'Cancelling...' : 'Cancel'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
