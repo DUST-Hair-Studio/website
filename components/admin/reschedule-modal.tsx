@@ -318,7 +318,7 @@ export default function RescheduleModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="!max-w-none w-[90vw] sm:w-[75vw] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="!max-w-none w-[90vw] sm:w-[75vw] max-h-[90vh] overflow-y-auto pb-8">
         <DialogHeader>
           <DialogTitle>Reschedule Appointment</DialogTitle>
           <DialogDescription>
@@ -370,7 +370,7 @@ export default function RescheduleModal({
               <CardDescription>Choose your preferred date</CardDescription>
             </CardHeader>
             <CardContent className="p-0 relative">
-              <div className="w-full pb-8 px-2">
+              <div className="w-full pb-12 px-2">
                 <Calendar
                   mode="single"
                   selected={selectedDate}

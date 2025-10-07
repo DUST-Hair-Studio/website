@@ -80,6 +80,36 @@
     content: none !important;
   }
 
+  /* Fix calendar cutoff on mobile */
+  .rdp {
+    margin-bottom: 1rem !important;
+  }
+  
+  .rdp-month {
+    margin-bottom: 1rem !important;
+  }
+  
+  /* Ensure calendar has proper spacing in modals */
+  [data-radix-dialog-content] .rdp {
+    padding-bottom: 2rem !important;
+  }
+  
+  /* Fix calendar grid spacing */
+  .rdp-day {
+    min-height: 2.5rem !important;
+  }
+  
+  /* Mobile-specific calendar fixes */
+  @media (max-width: 640px) {
+    .rdp-day {
+      min-height: 2rem !important;
+    }
+    
+    [data-radix-dialog-content] .rdp {
+      padding-bottom: 3rem !important;
+    }
+  }
+
 
   /* Hero Grid System */
   .hero-grid {

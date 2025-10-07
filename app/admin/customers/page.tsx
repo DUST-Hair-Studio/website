@@ -230,7 +230,7 @@ export default function AdminCustomersPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6 mb-6 sm:mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
         <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
@@ -244,7 +244,19 @@ export default function AdminCustomersPage() {
             </div>
           </CardContent>
         </Card>
-
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-lg sm:text-3xl font-bold text-gray-900">{formatPrice(stats.totalRevenue)}</div>
+                <div className="text-xs sm:text-sm text-gray-600 mt-1">Total Revenue</div>
+              </div>
+              <div className="h-6 w-6 sm:h-8 sm:w-8 bg-emerald-50 rounded-lg flex items-center justify-center border border-emerald-200">
+                <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-600" strokeWidth={1.5} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
         <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between">
@@ -273,33 +285,8 @@ export default function AdminCustomersPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xl sm:text-3xl font-bold text-gray-900">{stats.totalBookings}</div>
-                <div className="text-xs sm:text-sm text-gray-600 mt-1">Total Bookings</div>
-              </div>
-              <div className="h-6 w-6 sm:h-8 sm:w-8 bg-purple-50 rounded-lg flex items-center justify-center border border-purple-200">
-                <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-purple-600" strokeWidth={1.5} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-lg sm:text-3xl font-bold text-gray-900">{formatPrice(stats.totalRevenue)}</div>
-                <div className="text-xs sm:text-sm text-gray-600 mt-1">Total Revenue</div>
-              </div>
-              <div className="h-6 w-6 sm:h-8 sm:w-8 bg-emerald-50 rounded-lg flex items-center justify-center border border-emerald-200">
-                <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-600" strokeWidth={1.5} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+
       </div>
 
       {/* Search and Filter */}

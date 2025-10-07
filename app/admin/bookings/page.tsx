@@ -104,6 +104,8 @@ export default function AdminBookingsPage() {
       })
 
       if (response.ok) {
+        const updatedBooking = { ...bookings.find(b => b.id === bookingId)!, status: newStatus as 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no-show' }
+        
         setBookings(prev => 
           prev.map(booking => 
             booking.id === bookingId 
@@ -111,6 +113,11 @@ export default function AdminBookingsPage() {
               : booking
           )
         )
+
+        // Update selectedBooking if it's the same booking being updated
+        if (selectedBooking && selectedBooking.id === bookingId) {
+          setSelectedBooking(updatedBooking)
+        }
       }
     } catch (error) {
       console.error('Error updating booking status:', error)
@@ -308,7 +315,7 @@ export default function AdminBookingsPage() {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-3 sm:space-y-4">
       <div>
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Bookings Management</h1>
         <p className="text-gray-600 text-sm sm:text-base">Manage all customer bookings and appointments</p>
@@ -381,7 +388,7 @@ export default function AdminBookingsPage() {
       </div>
 
       {/* Search and Filter */}
-      <div className="flex flex-col md:flex-row gap-4 mb-12 mt-12">
+      <div className="flex flex-col md:flex-row gap-4 mb-6 mt-6">
         <div className="flex-1">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -619,13 +626,13 @@ export default function AdminBookingsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-2">
           {/* Full-Screen Calendar View */}
           <Card className="border border-gray-200 shadow-sm">
             <CardContent className="p-0">
-              <div className="min-h-[800px]">
+              <div>
                 {/* Calendar Header */}
-                <div className="border-b border-gray-200 p-3 sm:p-6">
+                <div className="border-b border-gray-200 p-2 sm:p-3">
                   <div className="flex justify-between items-center">
                     <h2 className="text-lg sm:text-2xl font-bold text-gray-900">
                       {new Date().toLocaleDateString('en-US', { 
@@ -637,7 +644,7 @@ export default function AdminBookingsPage() {
                 </div>
 
                 {/* Calendar Grid */}
-                <div className="p-3 sm:p-6">
+                <div className="p-2 sm:p-3">
                   {/* Days of Week Header */}
                   <div className="grid grid-cols-7 gap-px mb-2">
                     {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
@@ -685,7 +692,17 @@ export default function AdminBookingsPage() {
                                   e.stopPropagation()
                                   openBookingDetails(booking)
                                 }}
-                                className="text-xs p-1 bg-blue-100 text-blue-800 rounded truncate hover:bg-blue-200 cursor-pointer"
+                                className={`text-xs p-1 rounded truncate cursor-pointer ${
+                                  booking.status === 'cancelled' 
+                                    ? 'bg-red-100 text-red-800 hover:bg-red-200' 
+                                    : booking.status === 'no-show' 
+                                    ? 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                                    : booking.status === 'completed'
+                                    ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                                    : booking.status === 'confirmed'
+                                    ? 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+                                    : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                                }`}
                               >
                                 {formatTime(booking.booking_time)} - {booking.customers.name}
                               </div>
@@ -701,8 +718,21 @@ export default function AdminBookingsPage() {
                           <div className="sm:hidden">
                             {appointments.length > 0 && (
                               <div className="flex flex-wrap gap-0.5 mt-1">
-                                {appointments.slice(0, 4).map((_, i) => (
-                                  <div key={i} className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
+                                {appointments.slice(0, 4).map((booking, i) => (
+                                  <div 
+                                    key={i} 
+                                    className={`w-1.5 h-1.5 rounded-full ${
+                                      booking.status === 'cancelled' 
+                                        ? 'bg-red-400' 
+                                        : booking.status === 'no-show' 
+                                        ? 'bg-gray-400'
+                                        : booking.status === 'completed'
+                                        ? 'bg-green-400'
+                                        : booking.status === 'confirmed'
+                                        ? 'bg-blue-400'
+                                        : 'bg-yellow-400'
+                                    }`}
+                                  ></div>
                                 ))}
                                 {appointments.length > 4 && (
                                   <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
@@ -722,8 +752,8 @@ export default function AdminBookingsPage() {
           {/* Selected Date Details Panel */}
           {selectedCalendarDate && (
             <Card className="border border-gray-200 shadow-sm">
-              <CardContent className="p-4 sm:p-6">
-                <div className="flex justify-between items-center mb-4 sm:mb-6">
+              <CardContent className="p-2 sm:p-3">
+                <div className="flex justify-between items-center mb-2">
                   <h3 className="text-lg sm:text-xl font-semibold text-gray-900">
                     {selectedCalendarDate.toLocaleDateString('en-US', { 
                       weekday: 'long', 
@@ -742,16 +772,16 @@ export default function AdminBookingsPage() {
                   </Button>
                 </div>
                 
-                <div className="space-y-4">
+                <div className="space-y-2">
                   {getBookingsForDate(selectedCalendarDate).length === 0 ? (
-                    <div className="text-center py-12">
-                      <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-500 text-lg">No appointments scheduled</p>
-                      <p className="text-gray-400 text-sm">Click on a date with appointments to see details</p>
+                    <div className="text-center py-4">
+                      <Calendar className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                      <p className="text-gray-500 text-sm">No appointments scheduled</p>
+                      <p className="text-gray-400 text-xs">Click on a date with appointments to see details</p>
                     </div>
                   ) : (
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2 mb-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 mb-2">
                         <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                         <span className="text-sm font-medium text-gray-700">
                           {getBookingsForDate(selectedCalendarDate).length} appointment{getBookingsForDate(selectedCalendarDate).length !== 1 ? 's' : ''} scheduled
@@ -764,9 +794,9 @@ export default function AdminBookingsPage() {
                         <div
                           key={booking.id}
                           onClick={() => openBookingDetails(booking)}
-                          className="p-3 sm:p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                          className="p-2 sm:p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
                         >
-                          <div className="flex justify-between items-start mb-2 sm:mb-3">
+                          <div className="flex justify-between items-start mb-1">
                             <div>
                               <div className="font-semibold text-gray-900 text-base sm:text-lg">{booking.customers.name}</div>
                               <div className="text-xs sm:text-sm text-gray-500">{booking.customers.email}</div>
@@ -795,12 +825,12 @@ export default function AdminBookingsPage() {
                             </div>
                           </div>
                           
-                          <div className="flex flex-col sm:flex-row gap-2 mt-3 sm:mt-4">
+                          <div className="flex flex-row gap-2 mt-2">
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={(e) => openRescheduleModal(booking, e)}
-                              className="flex-1 text-xs sm:text-sm"
+                              className="flex-1 text-xs sm:text-sm h-9"
                             >
                               <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                               Reschedule
@@ -810,7 +840,7 @@ export default function AdminBookingsPage() {
                                 value={booking.status}
                                 onValueChange={(value) => handleStatusChange(booking.id, value)}
                               >
-                                <SelectTrigger className="text-xs sm:text-sm">
+                                <SelectTrigger className="text-xs sm:text-sm h-9">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
