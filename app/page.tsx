@@ -77,7 +77,7 @@ export default function Home() {
       <main>
         {/* DUST Title Section */}
         <div className="w-full text-center pt-4 pb-2 px-4 overflow-hidden" style={{ backgroundColor: '#F5F5F3' }}>
-          <h1 className="dust-heading text-[9.5rem] xs:text-[10rem] sm:text-[12rem] md:text-[24rem] lg:text-[30rem] xl:text-[34rem] 2xl:text-[44rem] leading-none" style={{ color: '#1C1C1D', fontFamily: 'Pragmatica Extended, sans-serif' }}>
+          <h1 className="dust-heading text-[9.5rem] xs:text-[10rem] sm:text-[12rem] md:text-[24rem] lg:text-[26rem] xl:text-[34rem] 2xl:text-[40rem] -ml-15" style={{ color: '#1C1C1D' }}>
             DUST
           </h1>
         </div>
@@ -88,7 +88,7 @@ export default function Home() {
             {/* Desktop Layout - Side by side */}
             <div className="hidden lg:flex lg:items-start lg:relative">
               {/* Hero Image - Larger on desktop */}
-              <div className="relative aspect-[3/4] max-h-[800px] lg:max-h-[900px] w-[600px] lg:w-[800px] -ml-32 lg:-ml-0 xl:-ml-0 2xl:-ml-40">
+              <div className="relative aspect-[3/4] max-h-[800px] lg:max-h-[900px] w-[600px] lg:w-[800px] -ml-32 lg:-ml-0 xl:-ml-0 2xl:-ml-30">
                 <Image
                   src="/homepage_images/BannerLuca.webp"
                   alt="Luca Tullio - DUST Hair Studio"
@@ -260,7 +260,7 @@ export default function Home() {
             <div className="grid md:grid-cols-2 gap-40 lg:gap-150 xl:gap-180 2xl:gap-250">
               {/* Contact Info */}
               <div className="text-center md:text-left">
-                <h3 className="dust-heading text-2xl font-bold mb-6 tracking-tight" style={{ color: '#1C1C1D' }}>DUST</h3>
+                <h3 className="dust-heading text-2xl mb-6 tracking-tight" style={{ color: '#1C1C1D' }}>DUST</h3>
                 <div className="dust-mono text-lg space-y-3 tracking-widest" style={{ color: '#1C1C1D' }}>
                   <p>1942 Riverside Dr.</p>
                   <p>Los Angeles, CA 90039</p>
@@ -270,7 +270,7 @@ export default function Home() {
 
               {/* Hours */}
               <div className="text-center md:text-left">
-                <h3 className="dust-heading text-lg font-bold mb-6 tracking-tighter" style={{ color: '#1C1C1D' }}>HOURS</h3>
+                <h3 className="dust-heading text-lg mb-6 tracking-tighter" style={{ color: '#1C1C1D' }}>HOURS</h3>
                 <div className="dust-mono text-lg space-y-1 tracking-widest" style={{ color: '#1C1C1D' }}>
                   <p>Thursday-Sunday:</p>
                   <p>By Appointment</p>
@@ -317,7 +317,7 @@ export default function Home() {
 
             {/* Bottom Logo */}
             <div className="text-center overflow-hidden">
-              <div className="dust-heading text-[9.5rem] xs:text-[10rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[46rem] leading-none" style={{ color: '#FAFAFA', fontFamily: 'Pragmatica Extended, sans-serif' }}>
+              <div className="dust-heading text-[9.5rem] xs:text-[10rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[40rem]" style={{ color: '#FAFAFA' }}>
                 DUST
               </div>
             </div>

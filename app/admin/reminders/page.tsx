@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Loader2, Bell, Plus, Edit, Trash2, Send, Clock, CheckCircle, XCircle, Mail } from 'lucide-react'
+import { Loader2, Bell, Plus, Edit, Trash2, Send, Clock, CheckCircle, XCircle, Mail, ChevronDown, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface ReminderTemplate {
@@ -82,6 +82,9 @@ function AdminRemindersContent() {
   
   // History state
   const [reminderHistory, setReminderHistory] = useState<ReminderHistory[]>([])
+  
+  // Accordion state
+  const [variablesExpanded, setVariablesExpanded] = useState(false)
   
   // Form state
   const [templateForm, setTemplateForm] = useState({
@@ -300,16 +303,13 @@ function AdminRemindersContent() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-3 mb-6">
-          <TabsTrigger value="templates" className="flex items-center gap-2">
-            <Bell className="h-4 w-4" />
+          <TabsTrigger value="templates">
             Templates
           </TabsTrigger>
-          <TabsTrigger value="history" className="flex items-center gap-2">
-            <Clock className="h-4 w-4" />
+          <TabsTrigger value="history">
             History
           </TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center gap-2">
-            <Mail className="h-4 w-4" />
+          <TabsTrigger value="settings">
             Settings
           </TabsTrigger>
         </TabsList>
@@ -434,33 +434,110 @@ function AdminRemindersContent() {
 
           {/* Available Variables */}
           <Card>
-            <CardHeader>
-              <CardTitle>Available Variables</CardTitle>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {TEMPLATE_VARIABLES.map((variable, index) => (
-                  <div key={index} className="flex items-center space-x-2">
-                    <code className="bg-gray-100 px-2 py-1 rounded text-sm">{variable.variable}</code>
-                    <span className="text-sm text-gray-600">{variable.description}</span>
-                  </div>
-                ))}
+            <CardHeader 
+              className="cursor-pointer hover:bg-gray-50 transition-colors"
+              onClick={() => setVariablesExpanded(!variablesExpanded)}
+            >
+              <div className="flex items-center justify-between">
+                <CardTitle>Available Variables</CardTitle>
+                {variablesExpanded ? (
+                  <ChevronDown className="h-5 w-5 text-gray-500" />
+                ) : (
+                  <ChevronRight className="h-5 w-5 text-gray-500" />
+                )}
               </div>
-            </CardContent>
+            </CardHeader>
+            {variablesExpanded && (
+              <CardContent className="p-6 pt-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {TEMPLATE_VARIABLES.map((variable, index) => (
+                    <div key={index} className="flex items-center space-x-2">
+                      <code className="bg-gray-100 px-2 py-1 rounded text-sm">{variable.variable}</code>
+                      <span className="text-sm text-gray-600">{variable.description}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            )}
           </Card>
 
           {/* Templates List */}
           <div className="space-y-4">
             {templates.map((template) => (
               <Card key={template.id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
+                <CardContent className="p-4 sm:p-6">
+                  {/* Mobile Layout */}
+                  <div className="block sm:hidden">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h3 className="font-semibold text-lg">{template.name}</h3>
+                        <Badge 
+                          className={`mt-1 ${
+                            template.type === 'confirmation' ? 'bg-blue-100 text-blue-800 border-blue-200' :
+                            template.type === 'followup' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+                            template.type === 'reminder' ? 'bg-orange-100 text-orange-800 border-orange-200' :
+                            'bg-gray-100 text-gray-800 border-gray-200'
+                          }`}
+                        >
+                          {template.type}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          checked={template.is_active}
+                          onCheckedChange={(checked) => toggleTemplateStatus(template.id, checked)}
+                          className="data-[state=checked]:bg-green-500"
+                        />
+                        <span className="text-sm text-gray-600">
+                          {template.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2 mb-4">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Subject:</span>
+                        <span className="text-gray-900 font-medium">{template.subject}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Timing:</span>
+                        <span className="text-gray-900">
+                          {template.hours_before === 0 ? 'Immediately' : `${template.hours_before} hours before`}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <p className="text-sm text-gray-500 mb-4 line-clamp-2">
+                      {template.message}
+                    </p>
+                    
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-3 text-xs flex-1"
+                        onClick={() => startEditing(template)}
+                      >
+                        <Edit className="h-3 w-3 mr-1" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-3 text-xs flex-1 text-red-600 hover:text-red-700"
+                        onClick={() => deleteTemplate(template.id)}
+                      >
+                        <Trash2 className="h-3 w-3 mr-1" />
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Desktop Layout */}
+                  <div className="hidden sm:flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-2 mb-2">
                         <h3 className="font-semibold">{template.name}</h3>
-                        <Badge variant={template.is_active ? "default" : "secondary"}>
-                          {template.is_active ? 'Active' : 'Inactive'}
-                        </Badge>
                         <Badge 
                           className={
                             template.type === 'confirmation' ? 'bg-blue-100 text-blue-800 border-blue-200' :
@@ -545,30 +622,68 @@ function AdminRemindersContent() {
             <div className="space-y-4">
               {reminderHistory.map((reminder) => (
                 <Card key={reminder.id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <h3 className="font-semibold">{reminder.customer_name}</h3>
-                          {getStatusBadge(reminder.status)}
-                          <Badge variant="outline">{reminder.template_name}</Badge>
+                  <CardContent className="p-4 sm:p-6">
+                    {/* Mobile Layout */}
+                    <div className="block sm:hidden">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h3 className="font-semibold text-lg">{reminder.customer_name}</h3>
+                          <div className="flex items-center space-x-2 mt-1">
+                            {getStatusBadge(reminder.status)}
+                            <Badge variant="outline" className="text-xs">{reminder.template_name}</Badge>
+                          </div>
                         </div>
-                        <p className="text-sm text-gray-600">
-                          <strong>Email:</strong> {reminder.customer_email}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          <strong>Scheduled for:</strong> {new Date(reminder.scheduled_for).toLocaleString()}
-                        </p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500">Email:</span>
+                          <span className="text-gray-900 font-medium">{reminder.customer_email}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500">Scheduled:</span>
+                          <span className="text-gray-900">{new Date(reminder.scheduled_for).toLocaleString()}</span>
+                        </div>
                         {reminder.sent_at && (
-                          <p className="text-sm text-gray-600">
-                            <strong>Sent at:</strong> {new Date(reminder.sent_at).toLocaleString()}
-                          </p>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-500">Sent:</span>
+                            <span className="text-gray-900">{new Date(reminder.sent_at).toLocaleString()}</span>
+                          </div>
                         )}
                         {reminder.error_message && (
-                          <p className="text-sm text-red-600">
+                          <div className="mt-2 p-2 bg-red-50 rounded text-sm text-red-600">
                             <strong>Error:</strong> {reminder.error_message}
-                          </p>
+                          </div>
                         )}
+                      </div>
+                    </div>
+
+                    {/* Desktop Layout */}
+                    <div className="hidden sm:block">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <h3 className="font-semibold">{reminder.customer_name}</h3>
+                            {getStatusBadge(reminder.status)}
+                            <Badge variant="outline">{reminder.template_name}</Badge>
+                          </div>
+                          <p className="text-sm text-gray-600">
+                            <strong>Email:</strong> {reminder.customer_email}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            <strong>Scheduled for:</strong> {new Date(reminder.scheduled_for).toLocaleString()}
+                          </p>
+                          {reminder.sent_at && (
+                            <p className="text-sm text-gray-600">
+                              <strong>Sent at:</strong> {new Date(reminder.sent_at).toLocaleString()}
+                            </p>
+                          )}
+                          {reminder.error_message && (
+                            <p className="text-sm text-red-600">
+                              <strong>Error:</strong> {reminder.error_message}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </CardContent>

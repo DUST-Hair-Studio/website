@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
 @layer base {
   :root {
@@ -29,9 +30,10 @@
 
 @layer components {
   .dust-heading {
-    font-family: "pragmatica-extended", "Helvetica Neue", Arial, sans-serif;
-    font-weight: 900;
+    font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+    font-weight: 700;
     letter-spacing: -0.08em;
+    line-height: 0.95;
     text-transform: uppercase;
   }
   
