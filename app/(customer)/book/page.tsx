@@ -531,7 +531,7 @@ function BookPageContent() {
     <div className="min-h-screen bg-gray-50">
       <Navigation />
       
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Book Your Appointment</h1>
           <p className="text-gray-600">Choose your service and preferred time</p>
@@ -578,7 +578,7 @@ function BookPageContent() {
 
         {/* Step 2: Date & Time Selection */}
         {step === 2 && selectedService && (
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto">
             {/* Service Information Panel */}
             <Card>
               <CardHeader>
@@ -617,7 +617,7 @@ function BookPageContent() {
                 <CardDescription>Choose your preferred date</CardDescription>
               </CardHeader>
               <CardContent className="p-0 relative">
-                <div className="w-full pb-8 px-2">
+                <div className="w-full pb-12 px-4 sm:pb-8">
                   <Calendar
                     mode="single"
                     selected={selectedDate}
