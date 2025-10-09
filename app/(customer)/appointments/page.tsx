@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { Booking, Service } from '@/types'
 import { Button } from '@/components/ui/button'
+import { formatBusinessDateTime } from '@/lib/timezone-utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
@@ -77,10 +78,8 @@ export default function ManageBookingsPage() {
   }
 
   const formatDate = (dateString: string) => {
-    // Parse date string without timezone conversion to avoid day shift
-    const [year, month, day] = dateString.split('-').map(Number)
-    const date = new Date(year, month - 1, day) // month is 0-indexed
-    return date.toLocaleDateString('en-US', {
+    // Use timezone utilities for consistent date formatting
+    return formatBusinessDateTime(dateString, '00:00:00', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -89,12 +88,14 @@ export default function ManageBookingsPage() {
   }
 
   const formatTime = (timeString: string) => {
-    const [hours, minutes] = timeString.split(':')
-    const hour = parseInt(hours)
-    const ampm = hour >= 12 ? 'PM' : 'AM'
-    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
-    return `${displayHour}:${minutes} ${ampm}`
+    // Format time consistently using timezone utilities
+    return formatBusinessDateTime('2025-01-01', timeString, {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    }).split(' ').slice(-2).join(' ') // Extract just the time part
   }
+
 
   const formatPrice = (priceInCents: number) => {
     return `$${(priceInCents / 100).toFixed(2)}`

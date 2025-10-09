@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { GoogleCalendarService } from '@/lib/google-calendar'
+import { createBusinessDateTime, calculateEndTime } from '@/lib/timezone-utils'
 
 export async function PUT(
   request: NextRequest,
@@ -114,8 +115,9 @@ export async function PUT(
           }
           
           const time24Hour = convertTo24Hour(booking_time)
-          const startDate = new Date(`${booking_date}T${time24Hour}`)
-          const endDate = new Date(startDate.getTime() + currentBooking.services.duration_minutes * 60000)
+          // Use timezone utilities for consistent date handling
+          const startDate = createBusinessDateTime(booking_date, time24Hour)
+          const endDate = calculateEndTime(booking_date, time24Hour, currentBooking.services.duration_minutes)
           
           console.log('🔍 Admin Reschedule - Date Conversion:', {
             originalTime: booking_time,

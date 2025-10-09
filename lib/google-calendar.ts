@@ -1,4 +1,5 @@
 import { createAdminSupabaseClient } from './supabase-server'
+import { createBusinessDateTime, calculateEndTime, toCalendarISOString, BUSINESS_TIMEZONE } from './timezone-utils'
 
 interface GoogleCalendarEvent {
   id: string
@@ -129,19 +130,20 @@ export class GoogleCalendarService {
       const calendarId = calendarData?.value
       if (!calendarId) return null
 
-      const startDateTime = new Date(`${booking.booking_date}T${booking.booking_time}`)
-      const endDateTime = new Date(startDateTime.getTime() + booking.services.duration_minutes * 60000)
+      // Create dates using timezone utilities for consistent handling
+      const startDateTime = createBusinessDateTime(booking.booking_date, booking.booking_time)
+      const endDateTime = calculateEndTime(booking.booking_date, booking.booking_time, booking.services.duration_minutes)
 
       const event: GoogleCalendarEvent = {
         id: '', // Google will assign this
         summary: `${booking.services.name} - ${booking.customers.name}`,
         start: {
-          dateTime: startDateTime.toISOString(),
-          timeZone: 'America/Los_Angeles'
+          dateTime: toCalendarISOString(startDateTime),
+          timeZone: BUSINESS_TIMEZONE
         },
         end: {
-          dateTime: endDateTime.toISOString(),
-          timeZone: 'America/Los_Angeles'
+          dateTime: toCalendarISOString(endDateTime),
+          timeZone: BUSINESS_TIMEZONE
         },
         description: `Customer: ${booking.customers.name}
 Email: ${booking.customers.email}
@@ -241,15 +243,15 @@ Booking ID: ${booking.id}`
         hasEnd: !!currentEvent.end
       })
 
-      // Update the event with new start/end times
+      // Update the event with new start/end times using timezone utilities
       const updatedEvent = {
         start: {
-          dateTime: updates.start.toISOString(),
-          timeZone: 'America/Los_Angeles' // Match the timezone used in createBookingEvent
+          dateTime: toCalendarISOString(updates.start),
+          timeZone: BUSINESS_TIMEZONE
         },
         end: {
-          dateTime: updates.end.toISOString(),
-          timeZone: 'America/Los_Angeles' // Match the timezone used in createBookingEvent
+          dateTime: toCalendarISOString(updates.end),
+          timeZone: BUSINESS_TIMEZONE
         }
       }
 

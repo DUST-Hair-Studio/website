@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { GoogleCalendarService } from '@/lib/google-calendar'
 import { EmailService } from '@/lib/email-service'
 import { ReminderScheduler } from '@/lib/reminder-scheduler'
+import { isFutureAppointment } from '@/lib/timezone-utils'
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,6 +15,11 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     if (!serviceId || !date || !time || !customerInfo) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
+
+    // Validate that the appointment is in the future using timezone-aware check
+    if (!isFutureAppointment(date, time)) {
+      return NextResponse.json({ error: 'Appointment must be scheduled for a future date and time' }, { status: 400 })
     }
 
     // Get service details

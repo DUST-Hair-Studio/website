@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { GoogleCalendarService } from '@/lib/google-calendar'
+import { createBusinessDateTime, getCurrentBusinessTime } from '@/lib/timezone-utils'
 
 export async function GET(
   request: NextRequest,
@@ -149,8 +150,8 @@ export async function PUT(
     })
 
     // Check if booking can be rescheduled
-    const now = new Date()
-    const bookingDateTime = new Date(`${currentBooking.booking_date}T${currentBooking.booking_time}`)
+    const now = getCurrentBusinessTime()
+    const bookingDateTime = createBusinessDateTime(currentBooking.booking_date, currentBooking.booking_time)
     
     if (bookingDateTime <= now) {
       return NextResponse.json({ error: 'Cannot reschedule past appointments' }, { status: 400 })
@@ -387,8 +388,8 @@ export async function PATCH(
     }
 
     // Check if booking can be cancelled
-    const now = new Date()
-    const bookingDateTime = new Date(`${currentBooking.booking_date}T${currentBooking.booking_time}`)
+    const now = getCurrentBusinessTime()
+    const bookingDateTime = createBusinessDateTime(currentBooking.booking_date, currentBooking.booking_time)
     
     if (bookingDateTime <= now) {
       return NextResponse.json({ error: 'Cannot cancel past appointments' }, { status: 400 })
@@ -519,8 +520,8 @@ export async function DELETE(
     }
 
     // Check if booking can be deleted
-    const now = new Date()
-    const bookingDateTime = new Date(`${currentBooking.booking_date}T${currentBooking.booking_time}`)
+    const now = getCurrentBusinessTime()
+    const bookingDateTime = createBusinessDateTime(currentBooking.booking_date, currentBooking.booking_time)
     
     if (bookingDateTime <= now) {
       return NextResponse.json({ error: 'Cannot delete past appointments' }, { status: 400 })

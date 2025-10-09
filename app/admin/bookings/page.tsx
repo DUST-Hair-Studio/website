@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Booking } from '@/types'
 import { Button } from '@/components/ui/button'
+import { formatBusinessDateTime } from '@/lib/timezone-utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -267,28 +268,30 @@ export default function AdminBookingsPage() {
   }
 
   const formatDateTime = (date: string, time: string) => {
-    // Treat the date string as local time, not UTC
-    const bookingDate = new Date(date + 'T00:00:00')
-    const formattedDate = bookingDate.toLocaleDateString('en-US', { 
+    // Use timezone utilities for consistent formatting
+    const formattedDate = formatBusinessDateTime(date, '00:00:00', {
       weekday: 'short', 
       year: 'numeric', 
       month: 'short', 
-      day: 'numeric',
-      timeZone: 'America/Los_Angeles'
+      day: 'numeric'
     })
     
-    return `${formattedDate} at ${formatTime(time)}`
+    const formattedTime = formatBusinessDateTime('2025-01-01', time, {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    }).split(' ').slice(-2).join(' ')
+    
+    return `${formattedDate} at ${formattedTime}`
   }
 
   const formatDate = (date: string) => {
-    // Treat the date string as local time, not UTC
-    const bookingDate = new Date(date + 'T00:00:00')
-    return bookingDate.toLocaleDateString('en-US', { 
+    // Use timezone utilities for consistent formatting
+    return formatBusinessDateTime(date, '00:00:00', {
       weekday: 'long', 
       year: 'numeric', 
       month: 'long', 
-      day: 'numeric',
-      timeZone: 'America/Los_Angeles'
+      day: 'numeric'
     })
   }
 
