@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { GoogleCalendarService } from '@/lib/google-calendar'
+import { EmailService } from '@/lib/email-service'
 import { createBusinessDateTime, calculateEndTime } from '@/lib/timezone-utils'
 
 export async function PUT(
@@ -40,6 +41,10 @@ export async function PUT(
       console.error('Error fetching booking:', fetchError)
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
     }
+
+    // Store old date and time for email
+    const oldDate = currentBooking.booking_date
+    const oldTime = currentBooking.booking_time
 
     // Update the booking in the database
     const { data: updatedBooking, error: updateError } = await supabase
@@ -152,6 +157,30 @@ export async function PUT(
       }
     }
 
+    // Send reschedule email
+    try {
+      const emailService = new EmailService()
+      const bookingData = {
+        id: updatedBooking.id,
+        booking_date: updatedBooking.booking_date,
+        booking_time: updatedBooking.booking_time,
+        duration_minutes: updatedBooking.duration_minutes,
+        services: {
+          name: updatedBooking.services.name,
+          duration_minutes: updatedBooking.services.duration_minutes
+        },
+        customers: {
+          name: updatedBooking.customers.name,
+          email: updatedBooking.customers.email,
+          phone: updatedBooking.customers.phone
+        }
+      }
+      await emailService.sendRescheduleEmail(bookingData, oldDate, oldTime)
+    } catch (error) {
+      console.error('Error sending reschedule email:', error)
+      // Continue with the response even if email fails
+    }
+
     return NextResponse.json({ booking: updatedBooking })
 
   } catch (error) {
@@ -186,12 +215,49 @@ export async function PATCH(
       .from('bookings')
       .update(updateData)
       .eq('id', id)
-      .select('*')
+      .select(`
+        *,
+        services (
+          name,
+          duration_minutes
+        ),
+        customers (
+          name,
+          email,
+          phone
+        )
+      `)
       .single()
 
     if (error) {
       console.error('Error updating booking:', error)
       return NextResponse.json({ error: 'Failed to update booking' }, { status: 500 })
+    }
+
+    // Send cancellation email if status changed to cancelled
+    if (status === 'cancelled') {
+      try {
+        const emailService = new EmailService()
+        const bookingData = {
+          id: booking.id,
+          booking_date: booking.booking_date,
+          booking_time: booking.booking_time,
+          duration_minutes: booking.duration_minutes,
+          services: {
+            name: booking.services.name,
+            duration_minutes: booking.services.duration_minutes
+          },
+          customers: {
+            name: booking.customers.name,
+            email: booking.customers.email,
+            phone: booking.customers.phone
+          }
+        }
+        await emailService.sendCancellationEmail(bookingData)
+      } catch (error) {
+        console.error('Error sending cancellation email:', error)
+        // Continue with the response even if email fails
+      }
     }
 
     return NextResponse.json({ booking })

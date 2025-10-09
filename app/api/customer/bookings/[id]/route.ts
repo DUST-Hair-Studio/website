@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { GoogleCalendarService } from '@/lib/google-calendar'
+import { EmailService } from '@/lib/email-service'
 import { createBusinessDateTime, getCurrentBusinessTime } from '@/lib/timezone-utils'
 
 export async function GET(
@@ -132,6 +133,11 @@ export async function PUT(
         services (
           name,
           duration_minutes
+        ),
+        customers (
+          name,
+          email,
+          phone
         )
       `)
       .eq('id', bookingId)
@@ -141,6 +147,10 @@ export async function PUT(
     if (currentBookingError || !currentBooking) {
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
     }
+
+    // Store old date and time for email
+    const oldDate = currentBooking.booking_date
+    const oldTime = currentBooking.booking_time
 
     console.log('🔍 Current booking data:', {
       id: currentBooking.id,
@@ -305,6 +315,30 @@ export async function PUT(
       // Don't fail the reschedule if calendar sync fails
     }
 
+    // Send reschedule email
+    try {
+      const emailService = new EmailService()
+      const bookingData = {
+        id: updatedBooking.id,
+        booking_date: updatedBooking.booking_date,
+        booking_time: updatedBooking.booking_time,
+        duration_minutes: updatedBooking.duration_minutes,
+        services: {
+          name: updatedBooking.services.name,
+          duration_minutes: updatedBooking.services.duration_minutes
+        },
+        customers: {
+          name: updatedBooking.customers.name,
+          email: updatedBooking.customers.email,
+          phone: updatedBooking.customers.phone
+        }
+      }
+      await emailService.sendRescheduleEmail(bookingData, oldDate, oldTime)
+    } catch (error) {
+      console.error('Error sending reschedule email:', error)
+      // Continue with the response even if email fails
+    }
+
     return NextResponse.json({ 
       success: true,
       booking: updatedBooking,
@@ -445,6 +479,30 @@ export async function PATCH(
     } catch (error) {
       console.error('Error deleting Google Calendar event:', error)
       // Don't fail the cancellation if calendar sync fails
+    }
+
+    // Send cancellation email
+    try {
+      const emailService = new EmailService()
+      const bookingData = {
+        id: updatedBooking.id,
+        booking_date: updatedBooking.booking_date,
+        booking_time: updatedBooking.booking_time,
+        duration_minutes: updatedBooking.duration_minutes,
+        services: {
+          name: updatedBooking.services.name,
+          duration_minutes: updatedBooking.services.duration_minutes
+        },
+        customers: {
+          name: updatedBooking.customers.name,
+          email: updatedBooking.customers.email,
+          phone: updatedBooking.customers.phone
+        }
+      }
+      await emailService.sendCancellationEmail(bookingData)
+    } catch (error) {
+      console.error('Error sending cancellation email:', error)
+      // Continue with the response even if email fails
     }
 
     return NextResponse.json({ 

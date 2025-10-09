@@ -17,7 +17,7 @@ import { toast } from 'sonner'
 interface ReminderTemplate {
   id: string
   name: string
-  type: 'confirmation' | 'reminder' | 'followup' | 'custom'
+  type: 'confirmation' | 'reminder' | 'followup' | 'cancellation' | 'reschedule' | 'custom'
   subject: string
   message: string
   hours_before: number
@@ -44,6 +44,8 @@ const REMINDER_TYPES = [
   { value: 'confirmation', label: 'Confirmation', description: 'Sent immediately after booking' },
   { value: 'reminder', label: 'Reminder', description: 'Sent before appointment' },
   { value: 'followup', label: 'Follow-up', description: 'Sent after appointment' },
+  { value: 'cancellation', label: 'Cancellation', description: 'Sent when booking is cancelled' },
+  { value: 'reschedule', label: 'Reschedule', description: 'Sent when booking is rescheduled' },
   { value: 'custom', label: 'Custom', description: 'Custom reminder template' }
 ]
 
@@ -63,6 +65,8 @@ const TEMPLATE_VARIABLES = [
   { variable: '{appointment_date}', description: 'Appointment date (e.g., January 15, 2024)' },
   { variable: '{appointment_time}', description: 'Appointment time (e.g., 2:00 PM)' },
   { variable: '{appointment_datetime}', description: 'Full date and time' },
+  { variable: '{old_appointment_date}', description: 'Previous appointment date (reschedule only)' },
+  { variable: '{old_appointment_time}', description: 'Previous appointment time (reschedule only)' },
   { variable: '{service_name}', description: 'Name of the booked service' },
   { variable: '{business_name}', description: 'Your business name' },
   { variable: '{business_phone}', description: 'Your business phone number' },

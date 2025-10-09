@@ -7,7 +7,7 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 export interface EmailTemplate {
   id: string
   name: string
-  type: 'confirmation' | 'reminder' | 'followup' | 'custom'
+  type: 'confirmation' | 'reminder' | 'followup' | 'cancellation' | 'reschedule' | 'custom'
   subject: string
   message: string
   hours_before: number
@@ -105,7 +105,7 @@ export class EmailService {
   }
 
   // Get active email template by type
-  private async getEmailTemplate(type: 'confirmation' | 'reminder' | 'followup'): Promise<EmailTemplate | null> {
+  private async getEmailTemplate(type: 'confirmation' | 'reminder' | 'followup' | 'cancellation' | 'reschedule'): Promise<EmailTemplate | null> {
     const { data: template, error } = await this.supabase
       .from('reminder_templates')
       .select('*')
@@ -158,9 +158,9 @@ export class EmailService {
       // Create HTML version of the message
       const htmlMessage = message.replace(/\n/g, '<br>')
 
-      // Generate reschedule link
+      // Generate appointment management link
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-      const rescheduleUrl = `${baseUrl}/appointments/${booking.id}/reschedule`
+      const appointmentsUrl = `${baseUrl}/appointments`
 
       const { data, error } = await resend.emails.send({
         from: businessSettings.business_email,
@@ -174,13 +174,13 @@ export class EmailService {
               ${htmlMessage}
             </div>
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${rescheduleUrl}" style="display: inline-block; background-color: #1C1C1D; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">
+              <a href="${appointmentsUrl}" style="display: inline-block; background-color: #1C1C1D; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">
                 Manage Your Appointment
               </a>
             </div>
             <div style="border-top: 1px solid #eee; padding-top: 20px; font-size: 12px; color: #666;">
               <p>Booking ID: ${booking.id}</p>
-              <p>Need to reschedule? <a href="${rescheduleUrl}" style="color: #1C1C1D;">Click here to manage your appointment</a></p>
+              <p>Need to reschedule? <a href="${appointmentsUrl}" style="color: #1C1C1D;">Click here to manage your appointment</a></p>
               <p>If you have any questions, please contact us at ${businessSettings.business_phone}</p>
             </div>
           </div>
@@ -267,6 +267,193 @@ export class EmailService {
     } catch (error) {
       console.error('Error in sendReminderEmail:', error)
       await this.logEmailSend(booking.id, templateId, 'Reminder', 'failed', undefined, error instanceof Error ? error.message : 'Unknown error')
+      return false
+    }
+  }
+
+  // Send cancellation email when booking is cancelled
+  async sendCancellationEmail(booking: BookingData): Promise<boolean> {
+    try {
+      // Check if Resend is configured
+      if (!resend) {
+        console.log('Resend API key not configured, skipping email')
+        return false
+      }
+
+      const template = await this.getEmailTemplate('cancellation')
+      if (!template) {
+        console.log('No active cancellation template found')
+        return false
+      }
+
+      const businessSettings = await this.getBusinessSettings()
+      
+      // Check if email is enabled
+      const { data: emailEnabled } = await this.supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'email_enabled')
+        .single()
+
+      if (emailEnabled?.value === false) {
+        console.log('Email notifications are disabled')
+        return false
+      }
+
+      const subject = this.replaceTemplateVariables(template.subject, booking, businessSettings)
+      const message = this.replaceTemplateVariables(template.message, booking, businessSettings)
+
+      const htmlMessage = message.replace(/\n/g, '<br>')
+
+      const { data, error } = await resend.emails.send({
+        from: businessSettings.business_email,
+        to: [booking.customers.email],
+        subject,
+        text: message,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #333;">${subject}</h2>
+            <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              ${htmlMessage}
+            </div>
+            <div style="border-top: 1px solid #eee; padding-top: 20px; font-size: 12px; color: #666;">
+              <p>Booking ID: ${booking.id}</p>
+              <p>If you have any questions, please contact us at ${businessSettings.business_phone}</p>
+            </div>
+          </div>
+        `
+      })
+
+      if (error) {
+        console.error('Error sending cancellation email:', error)
+        await this.logEmailSend(booking.id, template.id, template.name, 'failed', undefined, error.message)
+        return false
+      }
+
+      console.log('Cancellation email sent successfully:', data)
+      await this.logEmailSend(booking.id, template.id, template.name, 'sent', data?.id)
+      
+      return true
+    } catch (error) {
+      console.error('Error in sendCancellationEmail:', error)
+      await this.logEmailSend(booking.id, '', 'Cancellation', 'failed', undefined, error instanceof Error ? error.message : 'Unknown error')
+      return false
+    }
+  }
+
+  // Send reschedule email when booking is rescheduled
+  async sendRescheduleEmail(booking: BookingData, oldDate?: string, oldTime?: string): Promise<boolean> {
+    try {
+      console.log('📧 [RESCHEDULE EMAIL] Starting sendRescheduleEmail for booking:', booking.id)
+      
+      // Check if Resend is configured
+      if (!resend) {
+        console.log('❌ [RESCHEDULE EMAIL] Resend API key not configured, skipping email')
+        return false
+      }
+      console.log('✅ [RESCHEDULE EMAIL] Resend API key configured')
+
+      const template = await this.getEmailTemplate('reschedule')
+      if (!template) {
+        console.log('❌ [RESCHEDULE EMAIL] No active reschedule template found')
+        return false
+      }
+      console.log('✅ [RESCHEDULE EMAIL] Template found:', template.name)
+
+      const businessSettings = await this.getBusinessSettings()
+      console.log('✅ [RESCHEDULE EMAIL] Business settings loaded')
+      
+      // Check if email is enabled
+      const { data: emailEnabled } = await this.supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'email_enabled')
+        .single()
+
+      if (emailEnabled?.value === false) {
+        console.log('❌ [RESCHEDULE EMAIL] Email notifications are disabled')
+        return false
+      }
+      console.log('✅ [RESCHEDULE EMAIL] Email notifications enabled')
+
+      let subject = this.replaceTemplateVariables(template.subject, booking, businessSettings)
+      let message = this.replaceTemplateVariables(template.message, booking, businessSettings)
+      console.log('✅ [RESCHEDULE EMAIL] Variables replaced in template')
+
+      // Add old date/time info if provided
+      if (oldDate && oldTime) {
+        console.log('📅 [RESCHEDULE EMAIL] Old date/time provided:', { oldDate, oldTime })
+        const oldAppointmentDate = new Date(oldDate).toLocaleDateString('en-US', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          timeZone: businessSettings.timezone
+        })
+
+        const oldAppointmentTime = new Date(`${oldDate}T${oldTime}`).toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          timeZone: businessSettings.timezone
+        })
+
+        console.log('📅 [RESCHEDULE EMAIL] Formatted old date/time:', { oldAppointmentDate, oldAppointmentTime })
+
+        message = message
+          .replace(/{old_appointment_date}/g, oldAppointmentDate)
+          .replace(/{old_appointment_time}/g, oldAppointmentTime)
+        
+        subject = subject
+          .replace(/{old_appointment_date}/g, oldAppointmentDate)
+          .replace(/{old_appointment_time}/g, oldAppointmentTime)
+      } else {
+        console.log('⚠️ [RESCHEDULE EMAIL] No old date/time provided - will show as placeholders')
+      }
+
+      const htmlMessage = message.replace(/\n/g, '<br>')
+
+      // Generate appointment management link
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+      const appointmentsUrl = `${baseUrl}/appointments`
+
+      const { data, error } = await resend.emails.send({
+        from: businessSettings.business_email,
+        to: [booking.customers.email],
+        subject,
+        text: message,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #333;">${subject}</h2>
+            <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              ${htmlMessage}
+            </div>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${appointmentsUrl}" style="display: inline-block; background-color: #1C1C1D; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">
+                Manage Your Appointment
+              </a>
+            </div>
+            <div style="border-top: 1px solid #eee; padding-top: 20px; font-size: 12px; color: #666;">
+              <p>Booking ID: ${booking.id}</p>
+              <p>Need to reschedule again? <a href="${appointmentsUrl}" style="color: #1C1C1D;">Click here to manage your appointment</a></p>
+              <p>If you have any questions, please contact us at ${businessSettings.business_phone}</p>
+            </div>
+          </div>
+        `
+      })
+
+      if (error) {
+        console.error('❌ [RESCHEDULE EMAIL] Error sending via Resend:', error)
+        await this.logEmailSend(booking.id, template.id, template.name, 'failed', undefined, error.message)
+        return false
+      }
+
+      console.log('✅ [RESCHEDULE EMAIL] Email sent successfully!', { emailId: data?.id, to: booking.customers.email })
+      await this.logEmailSend(booking.id, template.id, template.name, 'sent', data?.id)
+      
+      return true
+    } catch (error) {
+      console.error('❌ [RESCHEDULE EMAIL] Exception in sendRescheduleEmail:', error)
+      await this.logEmailSend(booking.id, '', 'Reschedule', 'failed', undefined, error instanceof Error ? error.message : 'Unknown error')
       return false
     }
   }
