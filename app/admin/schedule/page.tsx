@@ -1,12 +1,15 @@
 "use client"
 
 import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Loader2, Calendar, Clock, Settings, ExternalLink } from 'lucide-react'
+import { toast } from 'sonner'
 import Link from 'next/link'
 
 function AdminScheduleContent() {
+  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(true)
   const [googleCalendar, setGoogleCalendar] = useState({
     isConnected: false,
@@ -29,9 +32,50 @@ function AdminScheduleContent() {
     }
   }
 
+  // Handle OAuth callback
+  const handleOAuthCallback = async () => {
+    const code = searchParams.get('code')
+    const error = searchParams.get('error')
+
+    if (error) {
+      toast.error(`Authorization failed: ${error}`)
+      return
+    }
+
+    if (code) {
+      try {
+        const response = await fetch('/api/admin/google-calendar', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ code }),
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to connect Google Calendar')
+        }
+
+        toast.success('Google Calendar connected successfully!')
+        
+        // Refresh the calendar status
+        await fetchGoogleCalendarStatus()
+      } catch (error) {
+        console.error('Google Calendar callback error:', error)
+        toast.error(error instanceof Error ? error.message : 'Failed to connect Google Calendar')
+      }
+    }
+  }
+
   useEffect(() => {
     fetchGoogleCalendarStatus()
   }, [])
+
+  useEffect(() => {
+    handleOAuthCallback()
+  }, [searchParams])
 
   if (loading) {
     return (
@@ -143,7 +187,7 @@ function AdminScheduleContent() {
             )}
             
             <div className="pt-4 border-t">
-              <Link href="/admin/settings">
+              <Link href="/admin/settings?tab=integrations">
                 <Button variant="outline" className="w-full">
                   <ExternalLink className="w-4 h-4 mr-2" />
                   Manage Integrations
@@ -174,7 +218,7 @@ function AdminScheduleContent() {
               </Button>
             </Link>
             
-            <Link href="/admin/settings">
+            <Link href="/admin/settings?tab=integrations">
               <Button variant="outline" className="w-full h-auto p-4 flex flex-col items-center space-y-2">
                 <Calendar className="w-6 h-6" />
                 <div className="text-center">

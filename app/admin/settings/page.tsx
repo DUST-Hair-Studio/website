@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,6 +10,7 @@ import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Loader2, Calendar, Clock, Link, Unlink, CheckCircle, XCircle, CreditCard, Building } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -70,9 +72,21 @@ const TIMEZONES = [
 ]
 
 function AdminSettingsContent() {
+  const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState('business')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [disconnectDialog, setDisconnectDialog] = useState<{
+    open: boolean
+    type: 'google-calendar' | 'payments' | null
+    title: string
+    description: string
+  }>({
+    open: false,
+    type: null,
+    title: '',
+    description: ''
+  })
   
   // Business Hours State
   const [businessHours, setBusinessHours] = useState<BusinessHours[]>([])
@@ -158,7 +172,13 @@ function AdminSettingsContent() {
 
   useEffect(() => {
     fetchSettings()
-  }, [])
+    
+    // Check for tab parameter in URL
+    const tab = searchParams.get('tab')
+    if (tab && ['business', 'payments', 'integrations'].includes(tab)) {
+      setActiveTab(tab)
+    }
+  }, [searchParams])
 
   // Save business hours
   const saveBusinessHours = async () => {
@@ -258,21 +278,40 @@ function AdminSettingsContent() {
     }
   }
 
-  const handleGoogleCalendarDisconnect = async () => {
+  const handleGoogleCalendarDisconnect = () => {
+    setDisconnectDialog({
+      open: true,
+      type: 'google-calendar',
+      title: 'Disconnect Google Calendar',
+      description: 'Are you sure you want to disconnect Google Calendar? This will stop syncing bookings and calendar events. You can reconnect at any time.'
+    })
+  }
+
+  const confirmDisconnect = async () => {
     try {
-      const response = await fetch('/api/admin/google-calendar', {
-        method: 'DELETE'
-      })
-      
-      if (response.ok) {
-        setGoogleCalendar({ isConnected: false, hasToken: false })
-        toast.success('Google Calendar disconnected successfully')
-      } else {
-        throw new Error('Failed to disconnect Google Calendar')
+      if (disconnectDialog.type === 'google-calendar') {
+        const response = await fetch('/api/admin/google-calendar', {
+          method: 'DELETE'
+        })
+        
+        if (response.ok) {
+          setGoogleCalendar({ isConnected: false, hasToken: false })
+          toast.success('Google Calendar disconnected successfully')
+        } else {
+          throw new Error('Failed to disconnect Google Calendar')
+        }
       }
+      
+      // Close dialog
+      setDisconnectDialog({
+        open: false,
+        type: null,
+        title: '',
+        description: ''
+      })
     } catch (error) {
-      console.error('Error disconnecting Google Calendar:', error)
-      toast.error('Failed to disconnect Google Calendar')
+      console.error('Error disconnecting integration:', error)
+      toast.error('Failed to disconnect integration')
     }
   }
 
@@ -632,6 +671,36 @@ function AdminSettingsContent() {
           </Card>
         </TabsContent>
       </Tabs>
+      
+      {/* Disconnect Confirmation Dialog */}
+      <AlertDialog open={disconnectDialog.open} onOpenChange={(open) => {
+        if (!open) {
+          setDisconnectDialog({
+            open: false,
+            type: null,
+            title: '',
+            description: ''
+          })
+        }
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{disconnectDialog.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {disconnectDialog.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDisconnect}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Disconnect
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

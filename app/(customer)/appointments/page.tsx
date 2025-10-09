@@ -184,7 +184,7 @@ export default function ManageBookingsPage() {
   }
 
   const upcomingBookings = bookings.filter(booking => 
-    isUpcoming(booking.booking_date, booking.booking_time)
+    isUpcoming(booking.booking_date, booking.booking_time) && booking.status !== 'cancelled'
   )
   
   const pastBookings = bookings.filter(booking => 

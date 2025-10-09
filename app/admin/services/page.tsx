@@ -216,11 +216,6 @@ export default function AdminServicesPage() {
         <div className="flex items-center justify-center">
           <div className="text-lg">Loading services...</div>
         </div>
-        <div className="mt-4 text-center">
-          <Button onClick={() => console.log('Test button clicked!')}>
-            Test Button (should be clickable)
-          </Button>
-        </div>
       </div>
     )
   }
