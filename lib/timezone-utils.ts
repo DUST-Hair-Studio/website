@@ -3,17 +3,17 @@
  * This prevents the recurring timezone issues by centralizing all date operations
  */
 
-import { createAdminSupabaseClient } from './supabase-server'
-
 // Default timezone - will be overridden by database setting
 export const DEFAULT_BUSINESS_TIMEZONE = 'America/Los_Angeles'
 
 /**
- * Gets the configured business timezone from the database
+ * Gets the configured business timezone from the database (server-side only)
  * @returns Promise<string> - The business timezone
  */
 export async function getBusinessTimezone(): Promise<string> {
   try {
+    // Dynamic import to avoid server-side code in client components
+    const { createAdminSupabaseClient } = await import('./supabase-server')
     const supabase = createAdminSupabaseClient()
     const { data } = await supabase
       .from('settings')
