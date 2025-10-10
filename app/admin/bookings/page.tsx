@@ -251,18 +251,12 @@ export default function AdminBookingsPage() {
   }
 
   const formatTime = (time: string) => {
-    const timeOptions: Intl.DateTimeFormatOptions = {
-      timeZone: 'America/Los_Angeles',
+    // Use timezone utilities for consistent time formatting
+    const formattedTime = formatBusinessDateTime('2025-01-01', time, {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true
-    }
-    
-    // Convert time string to PST format
-    const [hours, minutes] = time.split(':')
-    const timeInPST = new Date()
-    timeInPST.setHours(parseInt(hours), parseInt(minutes), 0, 0)
-    const formattedTime = timeInPST.toLocaleTimeString('en-US', timeOptions)
+    }, 'America/Los_Angeles')
     
     return `${formattedTime} PST`
   }
@@ -648,8 +642,7 @@ export default function AdminBookingsPage() {
                           </td>
                           <td className="px-3 py-3 whitespace-nowrap">
                             <div>
-                              <div className="text-sm text-gray-900">{formatDate(booking.booking_date)}</div>
-                              <div className="text-xs text-gray-500">{formatTime(booking.booking_time)}</div>
+                              <div className="text-sm text-gray-900">{formatDateTime(booking.booking_date, booking.booking_time)}</div>
                             </div>
                           </td>
                           <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-900">
@@ -706,8 +699,7 @@ export default function AdminBookingsPage() {
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap">
                             <div>
-                              <div className="text-sm text-gray-900">{formatDate(booking.booking_date)}</div>
-                              <div className="text-sm text-gray-500">{formatTime(booking.booking_time)}</div>
+                              <div className="text-sm text-gray-900">{formatDateTime(booking.booking_date, booking.booking_time)}</div>
                             </div>
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
