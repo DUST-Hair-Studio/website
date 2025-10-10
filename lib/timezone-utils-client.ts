@@ -19,8 +19,11 @@ export function createBusinessDateTime(dateString: string, timeString: string, t
     ? `${timeString}:00` 
     : timeString
   
-  // Create date string in ISO format with proper timezone offset
-  const isoString = `${dateString}T${fullTimeString}${getTimezoneOffsetString(timezone)}`
+  // Create a date object to check DST for the specific date
+  const dateToCheck = new Date(`${dateString}T${fullTimeString}`)
+  
+  // Create date string in ISO format with proper timezone offset (including DST)
+  const isoString = `${dateString}T${fullTimeString}${getTimezoneOffsetString(timezone, dateToCheck)}`
   
   return new Date(isoString)
 }
@@ -28,10 +31,27 @@ export function createBusinessDateTime(dateString: string, timeString: string, t
 /**
  * Helper function to get timezone offset string
  * @param timezone - The timezone identifier
+ * @param date - The date to check (for DST calculation)
  * @returns Offset string like "-08:00" or "-07:00"
  */
-function getTimezoneOffsetString(timezone: string): string {
-  // For now, use a simple mapping - this could be enhanced with a proper timezone library
+function getTimezoneOffsetString(timezone: string, date: Date = new Date()): string {
+  // Use Intl.DateTimeFormat to get the actual timezone offset for the given date
+  // This properly handles daylight saving time
+  const formatter = new Intl.DateTimeFormat('en', {
+    timeZone: timezone,
+    timeZoneName: 'longOffset'
+  })
+  
+  const parts = formatter.formatToParts(date)
+  const offsetPart = parts.find(part => part.type === 'timeZoneName')
+  
+  if (offsetPart?.value) {
+    // Convert "GMT-08:00" to "-08:00"
+    const offset = offsetPart.value.replace('GMT', '').trim()
+    return offset
+  }
+  
+  // Fallback for unsupported timezones
   const timezoneOffsets: Record<string, string> = {
     'America/Los_Angeles': '-08:00', // PST, PDT is -07:00 but we'll handle that separately
     'America/New_York': '-05:00',    // EST, EDT is -04:00

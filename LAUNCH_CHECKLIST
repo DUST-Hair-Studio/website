@@ -1,0 +1,39 @@
+🚀 DUST Hair Studio - Production Launch Checklist
+Environment Variables Setup (Vercel)
+Required Environment Variables in Vercel Dashboard:
+Go to Vercel Dashboard → Your Project → Settings → Environment Variables
+Add these variables:
+Set Environment: Select "Production" for all variables
+Redeploy: Trigger a new deployment after adding variables
+Database Migration (Supabase)
+Run this SQL in Supabase SQL Editor:
+Email Templates Verification
+Check if templates exist:
+If missing, create them:
+Code Deployment Status
+✅ Already Deployed:
+Email service with cancellation/reschedule methods
+API routes updated to trigger emails
+Frontend UI updated for new template types
+TypeScript build errors fixed
+🔍 Verify Deployment:
+Check Vercel deployment logs for successful build
+Confirm all commits are pushed to main branch
+Test that admin panel shows "Cancellation" and "Reschedule" template types
+Testing Checklist
+Production Testing:
+Create a test booking
+Reschedule the booking → Should send reschedule email
+Cancel the booking → Should send cancellation email
+Check email delivery in Resend dashboard
+Verify appointment links work correctly
+MX Records (Separate Chat)
+Email deliverability configuration
+SPF/DKIM records for Resend
+Domain authentication
+🎯 Priority Order:
+Environment Variables (Vercel)
+Database Migration (Supabase)
+Test Email Functionality
+MX Records (separate chat)
+Would you like me to help you with any specific step from this checklist?
