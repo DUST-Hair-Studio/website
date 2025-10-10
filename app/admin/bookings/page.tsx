@@ -274,13 +274,13 @@ export default function AdminBookingsPage() {
       year: 'numeric', 
       month: 'short', 
       day: 'numeric'
-    })
+    }, 'America/Los_Angeles')
     
     const formattedTime = formatBusinessDateTime('2025-01-01', time, {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true
-    }).split(' ').slice(-2).join(' ')
+    }, 'America/Los_Angeles').split(' ').slice(-2).join(' ')
     
     return `${formattedDate} at ${formattedTime}`
   }
@@ -292,7 +292,7 @@ export default function AdminBookingsPage() {
       year: 'numeric', 
       month: 'long', 
       day: 'numeric'
-    })
+    }, 'America/Los_Angeles')
   }
 
   // Calendar helper functions
