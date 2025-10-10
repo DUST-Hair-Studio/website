@@ -209,6 +209,8 @@ export default function AdminBookingsPage() {
         <button
           onClick={(e) => {
             e.stopPropagation()
+            e.preventDefault()
+            console.log('Phone button clicked, current active:', activePhoneMenu, 'bookingId:', bookingId)
             setActivePhoneMenu(isActive ? null : bookingId)
           }}
           className={className}
@@ -217,11 +219,17 @@ export default function AdminBookingsPage() {
         </button>
         
         {isActive && (
-          <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-10 min-w-[120px]">
+          <div className="absolute bg-white border border-gray-200 rounded-md shadow-xl z-[9999] min-w-[120px] overflow-visible" 
+               style={{
+                 top: 'auto',
+                 bottom: '100%',
+                 left: '0',
+                 marginBottom: '4px'
+               }}>
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                window.open(`tel:${phone}`, '_self')
+                window.location.href = `tel:${phone}`
                 setActivePhoneMenu(null)
               }}
               className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
@@ -232,7 +240,7 @@ export default function AdminBookingsPage() {
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                window.open(`sms:${phone}`, '_self')
+                window.location.href = `sms:${phone}`
                 setActivePhoneMenu(null)
               }}
               className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
@@ -251,42 +259,56 @@ export default function AdminBookingsPage() {
   }
 
   const formatTime = (time: string) => {
-    // Use timezone utilities for consistent time formatting
-    const formattedTime = formatBusinessDateTime('2025-01-01', time, {
+    // Create a proper date-time object for time formatting
+    const dateTime = new Date(`2025-01-01T${time}`)
+    const timeOptions: Intl.DateTimeFormatOptions = {
+      timeZone: 'America/Los_Angeles',
       hour: 'numeric',
       minute: '2-digit',
       hour12: true
-    }, 'America/Los_Angeles')
+    }
     
-    return `${formattedTime} PST`
+    return `${dateTime.toLocaleTimeString('en-US', timeOptions)} PST`
   }
 
   const formatDateTime = (date: string, time: string) => {
-    // Use timezone utilities for consistent formatting
-    const formattedDate = formatBusinessDateTime(date, '00:00:00', {
-      weekday: 'short', 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric'
-    }, 'America/Los_Angeles')
+    // Create the actual date-time and format it properly
+    const dateTime = new Date(`${date}T${time}`)
     
-    const formattedTime = formatBusinessDateTime('2025-01-01', time, {
+    // Format date part
+    const dateOptions: Intl.DateTimeFormatOptions = {
+      timeZone: 'America/Los_Angeles',
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    }
+    const datePart = dateTime.toLocaleDateString('en-US', dateOptions)
+    
+    // Format time part
+    const timeOptions: Intl.DateTimeFormatOptions = {
+      timeZone: 'America/Los_Angeles',
       hour: 'numeric',
       minute: '2-digit',
       hour12: true
-    }, 'America/Los_Angeles').split(' ').slice(-2).join(' ')
+    }
+    const timePart = dateTime.toLocaleTimeString('en-US', timeOptions)
     
-    return `${formattedDate} at ${formattedTime}`
+    return `${datePart} at ${timePart}`
   }
 
   const formatDate = (date: string) => {
-    // Use timezone utilities for consistent formatting
-    return formatBusinessDateTime(date, '00:00:00', {
+    // Format date without time
+    const dateObj = new Date(`${date}T00:00:00`)
+    const dateOptions: Intl.DateTimeFormatOptions = {
+      timeZone: 'America/Los_Angeles',
       weekday: 'long', 
       year: 'numeric', 
       month: 'long', 
       day: 'numeric'
-    }, 'America/Los_Angeles')
+    }
+    
+    return dateObj.toLocaleDateString('en-US', dateOptions)
   }
 
   // Calendar helper functions
@@ -1002,7 +1024,11 @@ export default function AdminBookingsPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => window.open(`tel:${selectedBooking.customers.phone}`, '_self')}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      e.preventDefault()
+                      window.location.href = `tel:${selectedBooking.customers.phone}`
+                    }}
                     className="h-8 w-8 p-0"
                     title={`Call ${selectedBooking.customers.name}`}
                   >
@@ -1011,21 +1037,24 @@ export default function AdminBookingsPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => window.open(`sms:${selectedBooking.customers.phone}`, '_self')}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      e.preventDefault()
+                      window.location.href = `sms:${selectedBooking.customers.phone}`
+                    }}
                     className="h-8 w-8 p-0"
                     title={`Text ${selectedBooking.customers.name}`}
                   >
                     <MessageSquare className="w-4 h-4" />
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.open(`mailto:${selectedBooking.customers.email}`, '_self')}
-                    className="h-8 w-8 p-0"
+                  <a
+                    href={`mailto:${selectedBooking.customers.email}`}
+                    className="inline-flex items-center justify-center h-8 w-8 border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md transition-colors"
                     title={`Email ${selectedBooking.customers.name}`}
+                    onClick={(e) => e.stopPropagation()}
                   >
                     <Mail className="w-4 h-4" />
-                  </Button>
+                  </a>
                 </div>
               )}
             </div>
@@ -1042,8 +1071,11 @@ export default function AdminBookingsPage() {
                     <p><strong>Email:</strong> 
                       <a 
                         href={`mailto:${selectedBooking.customers.email}`}
-                        className="text-blue-500 hover:text-blue-700 underline"
-                        onClick={(e) => e.stopPropagation()}
+                        className="text-blue-500 hover:text-blue-700 underline cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          window.location.href = `mailto:${selectedBooking.customers.email}`
+                        }}
                       >
                         {selectedBooking.customers.email}
                       </a>
@@ -1068,10 +1100,9 @@ export default function AdminBookingsPage() {
                   <div>
                     <p><strong>Service:</strong> {selectedBooking.services?.name || 'Service not found'}</p>
                     <p><strong>Duration:</strong> {selectedBooking.duration_minutes} minutes</p>
-                    <p><strong>Date:</strong> {formatDate(selectedBooking.booking_date)}</p>
+                    <p><strong>Date & Time:</strong> {formatDateTime(selectedBooking.booking_date, selectedBooking.booking_time)}</p>
                   </div>
                   <div>
-                    <p><strong>Time:</strong> {formatTime(selectedBooking.booking_time)}</p>
                     <p><strong>Status:</strong> {selectedBooking.status}</p>
                     <p><strong>Created:</strong> {new Date(selectedBooking.created_at).toLocaleDateString()}</p>
                   </div>
