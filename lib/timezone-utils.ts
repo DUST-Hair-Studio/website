@@ -121,14 +121,14 @@ export function getBusinessTimezoneOffset(date: Date = new Date()): number {
   const november = new Date(year, 10, 1) // November 1st
   
   // Find second Sunday in March
-  let secondSundayMarch = new Date(march)
+  const secondSundayMarch = new Date(march)
   while (secondSundayMarch.getDay() !== 0) {
     secondSundayMarch.setDate(secondSundayMarch.getDate() + 1)
   }
   secondSundayMarch.setDate(secondSundayMarch.getDate() + 7)
   
   // Find first Sunday in November
-  let firstSundayNovember = new Date(november)
+  const firstSundayNovember = new Date(november)
   while (firstSundayNovember.getDay() !== 0) {
     firstSundayNovember.setDate(firstSundayNovember.getDate() + 1)
   }

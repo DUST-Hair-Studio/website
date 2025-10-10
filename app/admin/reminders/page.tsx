@@ -93,7 +93,7 @@ function AdminRemindersContent() {
   // Form state
   const [templateForm, setTemplateForm] = useState({
     name: '',
-    type: 'reminder' as 'confirmation' | 'reminder' | 'followup' | 'custom',
+    type: 'reminder' as 'confirmation' | 'reminder' | 'followup' | 'cancellation' | 'reschedule' | 'custom',
     subject: '',
     message: '',
     hours_before: 24,
@@ -351,7 +351,7 @@ function AdminRemindersContent() {
                     <Label htmlFor="template_type">Template Type</Label>
                     <Select
                       value={templateForm.type}
-                      onValueChange={(value: string) => setTemplateForm(prev => ({ ...prev, type: value as 'confirmation' | 'reminder' | 'followup' | 'custom' }))}
+                      onValueChange={(value: string) => setTemplateForm(prev => ({ ...prev, type: value as 'confirmation' | 'reminder' | 'followup' | 'cancellation' | 'reschedule' | 'custom' }))}
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue />
