@@ -160,8 +160,8 @@ export async function PUT(
     })
 
     // Check if booking can be rescheduled
-    const now = getCurrentBusinessTime()
-    const bookingDateTime = createBusinessDateTime(currentBooking.booking_date, currentBooking.booking_time)
+    const now = await getCurrentBusinessTime()
+    const bookingDateTime = await createBusinessDateTime(currentBooking.booking_date, currentBooking.booking_time)
     
     if (bookingDateTime <= now) {
       return NextResponse.json({ error: 'Cannot reschedule past appointments' }, { status: 400 })
@@ -422,8 +422,8 @@ export async function PATCH(
     }
 
     // Check if booking can be cancelled
-    const now = getCurrentBusinessTime()
-    const bookingDateTime = createBusinessDateTime(currentBooking.booking_date, currentBooking.booking_time)
+    const now = await getCurrentBusinessTime()
+    const bookingDateTime = await createBusinessDateTime(currentBooking.booking_date, currentBooking.booking_time)
     
     if (bookingDateTime <= now) {
       return NextResponse.json({ error: 'Cannot cancel past appointments' }, { status: 400 })
@@ -578,8 +578,8 @@ export async function DELETE(
     }
 
     // Check if booking can be deleted
-    const now = getCurrentBusinessTime()
-    const bookingDateTime = createBusinessDateTime(currentBooking.booking_date, currentBooking.booking_time)
+    const now = await getCurrentBusinessTime()
+    const bookingDateTime = await createBusinessDateTime(currentBooking.booking_date, currentBooking.booking_time)
     
     if (bookingDateTime <= now) {
       return NextResponse.json({ error: 'Cannot delete past appointments' }, { status: 400 })

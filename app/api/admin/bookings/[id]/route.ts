@@ -121,8 +121,8 @@ export async function PUT(
           
           const time24Hour = convertTo24Hour(booking_time)
           // Use timezone utilities for consistent date handling
-          const startDate = createBusinessDateTime(booking_date, time24Hour)
-          const endDate = calculateEndTime(booking_date, time24Hour, currentBooking.services.duration_minutes)
+          const startDate = await createBusinessDateTime(booking_date, time24Hour)
+          const endDate = await calculateEndTime(booking_date, time24Hour, currentBooking.services.duration_minutes)
           
           console.log('🔍 Admin Reschedule - Date Conversion:', {
             originalTime: booking_time,

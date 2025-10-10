@@ -3,24 +3,70 @@
  * This prevents the recurring timezone issues by centralizing all date operations
  */
 
-export const BUSINESS_TIMEZONE = 'America/Los_Angeles' // Pacific Time
+import { createAdminSupabaseClient } from './supabase-server'
+
+// Default timezone - will be overridden by database setting
+export const DEFAULT_BUSINESS_TIMEZONE = 'America/Los_Angeles'
+
+/**
+ * Gets the configured business timezone from the database
+ * @returns Promise<string> - The business timezone
+ */
+export async function getBusinessTimezone(): Promise<string> {
+  try {
+    const supabase = createAdminSupabaseClient()
+    const { data } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'business_timezone')
+      .single()
+    
+    return data?.value || DEFAULT_BUSINESS_TIMEZONE
+  } catch (error) {
+    console.error('Error fetching business timezone:', error)
+    return DEFAULT_BUSINESS_TIMEZONE
+  }
+}
 
 /**
  * Creates a Date object in the business timezone from date and time strings
  * @param dateString - Date in YYYY-MM-DD format
  * @param timeString - Time in HH:MM:SS or HH:MM format
+ * @param timezone - Optional timezone override (defaults to configured business timezone)
  * @returns Date object representing the local time in business timezone
  */
-export function createBusinessDateTime(dateString: string, timeString: string): Date {
+export async function createBusinessDateTime(dateString: string, timeString: string, timezone?: string): Promise<Date> {
   // Ensure time string has seconds if not provided
   const fullTimeString = timeString.includes(':') && timeString.split(':').length === 2 
     ? `${timeString}:00` 
     : timeString
   
-  // Create date string in ISO format with Pacific timezone offset
-  const isoString = `${dateString}T${fullTimeString}-08:00`
+  // Get the business timezone
+  const businessTimezone = timezone || await getBusinessTimezone()
+  
+  // Create date string in ISO format with proper timezone offset
+  const isoString = `${dateString}T${fullTimeString}${getTimezoneOffsetString(businessTimezone)}`
   
   return new Date(isoString)
+}
+
+/**
+ * Helper function to get timezone offset string
+ * @param timezone - The timezone identifier
+ * @returns Offset string like "-08:00" or "-07:00"
+ */
+function getTimezoneOffsetString(timezone: string): string {
+  // For now, use a simple mapping - this could be enhanced with a proper timezone library
+  const timezoneOffsets: Record<string, string> = {
+    'America/Los_Angeles': '-08:00', // PST, PDT is -07:00 but we'll handle that separately
+    'America/New_York': '-05:00',    // EST, EDT is -04:00
+    'America/Chicago': '-06:00',     // CST, CDT is -05:00
+    'America/Denver': '-07:00',      // MST, MDT is -06:00
+    'America/Phoenix': '-07:00',     // MST (no DST)
+    'UTC': '+00:00'
+  }
+  
+  return timezoneOffsets[timezone] || '-08:00'
 }
 
 /**
@@ -37,17 +83,20 @@ export function toCalendarISOString(date: Date): string {
  * @param dateString - Date in YYYY-MM-DD format
  * @param timeString - Time in HH:MM:SS or HH:MM format
  * @param options - Intl.DateTimeFormat options
+ * @param timezone - Optional timezone override
  * @returns Formatted date string
  */
-export function formatBusinessDateTime(
+export async function formatBusinessDateTime(
   dateString: string, 
   timeString: string, 
-  options: Intl.DateTimeFormatOptions = {}
-): string {
-  const date = createBusinessDateTime(dateString, timeString)
+  options: Intl.DateTimeFormatOptions = {},
+  timezone?: string
+): Promise<string> {
+  const businessTimezone = timezone || await getBusinessTimezone()
+  const date = await createBusinessDateTime(dateString, timeString, businessTimezone)
   
   const defaultOptions: Intl.DateTimeFormatOptions = {
-    timeZone: BUSINESS_TIMEZONE,
+    timeZone: businessTimezone,
     weekday: 'long',
     year: 'numeric',
     month: 'long',
@@ -63,14 +112,34 @@ export function formatBusinessDateTime(
 
 /**
  * Gets the current time in business timezone
- * @returns Date object in business timezone
+ * @returns Promise<Date> - Date object in business timezone
  */
-export function getCurrentBusinessTime(): Date {
-  // Create a date object representing the current time in Pacific timezone
-  // by using the timezone offset
+export async function getCurrentBusinessTime(): Promise<Date> {
+  // Create a date object representing the current time in business timezone
+  const businessTimezone = await getBusinessTimezone()
   const now = new Date()
-  const pacificOffset = getBusinessTimezoneOffset(now)
-  return new Date(now.getTime() - (pacificOffset * 60 * 1000))
+  
+  // Use Intl.DateTimeFormat to get the time in the business timezone
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: businessTimezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  })
+  
+  const parts = formatter.formatToParts(now)
+  const year = parts.find(p => p.type === 'year')?.value
+  const month = parts.find(p => p.type === 'month')?.value
+  const day = parts.find(p => p.type === 'day')?.value
+  const hour = parts.find(p => p.type === 'hour')?.value
+  const minute = parts.find(p => p.type === 'minute')?.value
+  const second = parts.find(p => p.type === 'second')?.value
+  
+  return new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}`)
 }
 
 /**
@@ -78,14 +147,16 @@ export function getCurrentBusinessTime(): Date {
  * @param startDate - Start date
  * @param startTime - Start time
  * @param durationMinutes - Duration in minutes
- * @returns End Date object in business timezone
+ * @param timezone - Optional timezone override
+ * @returns Promise<Date> - End Date object in business timezone
  */
-export function calculateEndTime(
+export async function calculateEndTime(
   startDate: string, 
   startTime: string, 
-  durationMinutes: number
-): Date {
-  const startDateTime = createBusinessDateTime(startDate, startTime)
+  durationMinutes: number,
+  timezone?: string
+): Promise<Date> {
+  const startDateTime = await createBusinessDateTime(startDate, startTime, timezone)
   return new Date(startDateTime.getTime() + durationMinutes * 60000)
 }
 
@@ -93,11 +164,12 @@ export function calculateEndTime(
  * Validates if a date/time is in the future
  * @param dateString - Date in YYYY-MM-DD format
  * @param timeString - Time in HH:MM:SS or HH:MM format
- * @returns true if the appointment is in the future
+ * @param timezone - Optional timezone override
+ * @returns Promise<boolean> - true if the appointment is in the future
  */
-export function isFutureAppointment(dateString: string, timeString: string): boolean {
-  const appointmentTime = createBusinessDateTime(dateString, timeString)
-  const now = getCurrentBusinessTime()
+export async function isFutureAppointment(dateString: string, timeString: string, timezone?: string): Promise<boolean> {
+  const appointmentTime = await createBusinessDateTime(dateString, timeString, timezone)
+  const now = await getCurrentBusinessTime()
   return appointmentTime > now
 }
 

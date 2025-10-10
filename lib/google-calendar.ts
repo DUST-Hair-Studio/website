@@ -1,5 +1,5 @@
 import { createAdminSupabaseClient } from './supabase-server'
-import { createBusinessDateTime, calculateEndTime, toCalendarISOString, BUSINESS_TIMEZONE } from './timezone-utils'
+import { createBusinessDateTime, calculateEndTime, toCalendarISOString, getBusinessTimezone } from './timezone-utils'
 
 interface GoogleCalendarEvent {
   id: string
@@ -130,20 +130,23 @@ export class GoogleCalendarService {
       const calendarId = calendarData?.value
       if (!calendarId) return null
 
+      // Get the configured business timezone
+      const businessTimezone = await getBusinessTimezone()
+      
       // Create dates using timezone utilities for consistent handling
-      const startDateTime = createBusinessDateTime(booking.booking_date, booking.booking_time)
-      const endDateTime = calculateEndTime(booking.booking_date, booking.booking_time, booking.services.duration_minutes)
+      const startDateTime = await createBusinessDateTime(booking.booking_date, booking.booking_time, businessTimezone)
+      const endDateTime = await calculateEndTime(booking.booking_date, booking.booking_time, booking.services.duration_minutes, businessTimezone)
 
       const event: GoogleCalendarEvent = {
         id: '', // Google will assign this
         summary: `${booking.services.name} - ${booking.customers.name}`,
         start: {
           dateTime: toCalendarISOString(startDateTime),
-          timeZone: BUSINESS_TIMEZONE
+          timeZone: businessTimezone
         },
         end: {
           dateTime: toCalendarISOString(endDateTime),
-          timeZone: BUSINESS_TIMEZONE
+          timeZone: businessTimezone
         },
         description: `Customer: ${booking.customers.name}
 Email: ${booking.customers.email}
@@ -243,15 +246,18 @@ Booking ID: ${booking.id}`
         hasEnd: !!currentEvent.end
       })
 
+      // Get the configured business timezone
+      const businessTimezone = await getBusinessTimezone()
+      
       // Update the event with new start/end times using timezone utilities
       const updatedEvent = {
         start: {
           dateTime: toCalendarISOString(updates.start),
-          timeZone: BUSINESS_TIMEZONE
+          timeZone: businessTimezone
         },
         end: {
           dateTime: toCalendarISOString(updates.end),
-          timeZone: BUSINESS_TIMEZONE
+          timeZone: businessTimezone
         }
       }
 

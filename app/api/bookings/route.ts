@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate that the appointment is in the future using timezone-aware check
-    if (!isFutureAppointment(date, time)) {
+    if (!(await isFutureAppointment(date, time))) {
       return NextResponse.json({ error: 'Appointment must be scheduled for a future date and time' }, { status: 400 })
     }
 
