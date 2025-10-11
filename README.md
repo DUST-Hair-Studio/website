@@ -220,6 +220,7 @@ npm run dev
 ### Square Payment APIs
 - `GET /api/test-square` - Test Square integration and payment link creation
 - `POST /api/bookings` - Create booking with automatic payment link generation (enhanced)
+- `POST /api/webhooks/square` - Square webhook endpoint for automatic payment status updates
 
 ## Deployment
 
@@ -238,7 +239,18 @@ npm start
 
 ### Recent Improvements
 
-#### Production Build Fixes (Latest - January 2025)
+#### UI/UX Enhancements & Payment Integration (Latest - January 2025)
+- ✅ **Responsive KPI Cards** - Implemented vertical layout with number on top, icon/label below for tablet/mobile
+- ✅ **Kebab Menu Actions** - Replaced individual buttons with three-dot dropdown menus for booking and customer actions
+- ✅ **Revenue Calculation Fix** - Fixed dynamic revenue calculation on bookings dashboard (was hardcoded to $0.00)
+- ✅ **Square Webhook Integration** - Automatic payment status updates via Square webhooks
+- ✅ **Customer Spending Tracking** - Added total_spent field with automatic updates when payments are received
+- ✅ **Conditional Pay Link Button** - Pay Link button now hidden for paid bookings in booking details modal
+- ✅ **Enhanced Dropdown Menus** - White background for kebab menus with proper hover states
+- ✅ **Improved Responsive Design** - All admin pages now stack cards vertically on mobile/tablet
+- ✅ **Database Migration** - Added customer total_spent tracking with RPC function for automatic updates
+
+#### Production Build Fixes (January 2025)
 - ✅ **TypeScript Error Resolution** - Fixed all `any` type errors across the application
 - ✅ **Next.js 15 Compatibility** - Added proper Suspense boundaries for `useSearchParams()` usage
 - ✅ **Production Build Success** - Application now builds successfully with all 31 routes
@@ -310,11 +322,14 @@ npm start
 - ✅ **Square SDK v43 Integration** - Full integration with Square's latest SDK for Next.js 15
 - ✅ **Quick Pay Checkout** - Payment link generation using Square's hosted checkout pages
 - ✅ **Admin-Controlled Payment Flow** - Payment links generated but not auto-sent to customers
+- ✅ **Square Webhook Integration** - Automatic payment status updates via webhook notifications
 - ✅ **Database Schema Enhancement** - Added payment tracking fields to bookings table
 - ✅ **BigInt Amount Handling** - Proper handling of monetary amounts using BigInt for precision
 - ✅ **Environment Configuration** - Sandbox and production Square environment support
 - ✅ **Payment Link Management** - Store and track Square payment links, order IDs, and transaction IDs
 - ✅ **POS Integration Ready** - Database schema supports in-person Square POS payment tracking
+- ✅ **Customer Spending Tracking** - Automatic total_spent updates when payments are received
+- ✅ **Webhook Signature Verification** - Secure webhook processing with signature validation
 
 #### Technical Improvements
 - ✅ **Admin API Endpoints** - Complete REST API for service management (`/api/admin/services`)
