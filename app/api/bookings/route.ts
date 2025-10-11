@@ -283,8 +283,7 @@ export async function POST(request: NextRequest) {
     console.error('Booking API error:', error)
     console.error('Error details:', {
       message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-      body: body
+      stack: error instanceof Error ? error.stack : undefined
     })
     return NextResponse.json({ 
       error: 'Internal server error',

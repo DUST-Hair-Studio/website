@@ -56,12 +56,15 @@ export async function getPaymentLinkStatus(paymentLinkId: string) {
   try {
     const squareClient = await getSquareClient();
     
-    const { result } = await squareClient.checkout.paymentLinks.get(paymentLinkId);
+    const response = await squareClient.checkout.paymentLinks.get({ id: paymentLinkId });
+    
+    // Access properties with type assertion to handle Square SDK type differences
+    const paymentLink = response.paymentLink as unknown as Record<string, unknown>;
     
     return {
-      status: result.paymentLink?.status,
-      url: result.paymentLink?.url,
-      orderId: result.paymentLink?.orderId,
+      status: paymentLink?.status,
+      url: paymentLink?.url,
+      orderId: paymentLink?.orderId,
     };
   } catch (error) {
     console.error('Failed to retrieve payment link status:', error);

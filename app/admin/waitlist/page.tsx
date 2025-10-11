@@ -395,8 +395,8 @@ export default function AdminWaitlistPage() {
             </div>
           ) : (
             <>
-              {/* Mobile Layout */}
-              <div className="block md:hidden space-y-3 p-6">
+              {/* Mobile & Tablet Layout */}
+              <div className="block lg:hidden space-y-3 p-4 sm:p-6">
                 {filteredRequests.map((request) => (
                   <div key={request.id} className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
                     <div className="flex items-start justify-between">
@@ -479,87 +479,6 @@ export default function AdminWaitlistPage() {
                     </div>
                   </div>
                 ))}
-              </div>
-
-              {/* Tablet Layout */}
-              <div className="hidden md:block lg:hidden overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Range</th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredRequests.map((request) => (
-                      <tr key={request.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-3 py-3 whitespace-nowrap">
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">{request.customers.name}</div>
-                            <div className="text-xs text-gray-500 flex items-center mt-0.5">
-                              <Mail className="w-3 h-3 mr-1" />
-                              {request.customers.email}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-3 py-3 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{request.services.name}</div>
-                          <div className="text-xs text-gray-500">{request.services.duration_minutes} min</div>
-                        </td>
-                        <td className="px-3 py-3 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{formatDate(request.start_date)}</div>
-                          <div className="text-xs text-gray-500">to {formatDate(request.end_date)}</div>
-                        </td>
-                        <td className="px-3 py-3 whitespace-nowrap">
-                          {getStatusBadge(request.status)}
-                        </td>
-                        <td className="px-3 py-3 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{formatDate(request.created_at)}</div>
-                        </td>
-                        <td className="px-3 py-3 whitespace-nowrap">
-                          <div className="flex gap-1">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              className="h-7 px-2 text-xs"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                window.open(`sms:${request.customers.phone}`, '_self')
-                              }}
-                              title={`Text ${request.customers.name}`}
-                            >
-                              <MessageSquare className="w-3 h-3" />
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              className="h-7 px-2 text-xs"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                window.open(`tel:${request.customers.phone}`, '_self')
-                              }}
-                              title={`Call ${request.customers.name}`}
-                            >
-                              <Phone className="w-3 h-3" />
-                            </Button>
-                            <a
-                              href={`mailto:${request.customers.email}`}
-                              className="h-7 px-2 text-xs inline-flex items-center justify-center border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md transition-colors"
-                              onClick={(e) => e.stopPropagation()}
-                              title={`Email ${request.customers.name}`}
-                            >
-                              <Mail className="w-3 h-3" />
-                            </a>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
               </div>
 
               {/* Desktop Layout */}

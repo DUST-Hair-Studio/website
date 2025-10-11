@@ -147,7 +147,7 @@ export async function GET(request: NextRequest) {
  * Find available time slots for a service within a date range
  */
 async function findAvailableSlots(
-  supabase: any,
+  supabase: ReturnType<typeof createAdminSupabaseClient>,
   googleCalendar: GoogleCalendarService,
   startDate: string,
   endDate: string,
@@ -299,8 +299,8 @@ function checkSlotAvailability(
   date: string,
   time: string,
   durationMinutes: number,
-  bookings: any[],
-  blockedTimes: any[]
+  bookings: Array<{ booking_date: string; booking_time: string; duration_minutes: number }>,
+  blockedTimes: Array<{ date: string; start_time: string; end_time: string }>
 ): boolean {
   // Check against existing bookings
   for (const booking of bookings) {
@@ -365,8 +365,16 @@ function getMinutesDifference(startTime: string, endTime: string): number {
  * Send waitlist notification email
  */
 async function sendWaitlistNotification(
-  supabase: any,
-  request: any,
+  supabase: ReturnType<typeof createAdminSupabaseClient>,
+  request: { 
+    id: string;
+    customer_id: string; 
+    service_id: string;
+    start_date: string;
+    end_date: string;
+    services: { name: string }; 
+    customers: { name: string; email: string };
+  },
   availableDate: string,
   availableTime: string
 ): Promise<boolean> {
@@ -398,7 +406,7 @@ async function sendWaitlistNotification(
       .select('key, value')
       .in('key', ['business_name', 'business_phone', 'business_email', 'business_address', 'business_timezone'])
 
-    const settingsMap = settings?.reduce((acc: any, setting: any) => {
+    const settingsMap = settings?.reduce((acc: Record<string, string>, setting: { key: string; value: string }) => {
       acc[setting.key] = setting.value
       return acc
     }, {} as Record<string, string>) || {}

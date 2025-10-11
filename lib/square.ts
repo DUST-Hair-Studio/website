@@ -11,8 +11,8 @@ if (!process.env.SQUARE_ENVIRONMENT) {
 // Create a function that returns the Square client
 export async function getSquareClient() {
   try {
-    // Use require for better compatibility with Next.js
-    const square = require('square');
+    // Use dynamic import for better compatibility with Next.js
+    const square = await import('square');
     
     // Square SDK v43+ uses SquareClient instead of Client
     const { SquareClient, SquareEnvironment } = square;

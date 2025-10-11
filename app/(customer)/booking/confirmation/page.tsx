@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -23,7 +23,7 @@ interface BookingDetails {
   status: string
 }
 
-export default function BookingConfirmationPage() {
+function BookingConfirmationContent() {
   const searchParams = useSearchParams()
   const bookingId = searchParams.get('id')
   const [booking, setBooking] = useState<BookingDetails | null>(null)
@@ -153,10 +153,10 @@ export default function BookingConfirmationPage() {
 
             {/* Next Steps */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-semibold text-blue-900 mb-2">What's Next?</h4>
+              <h4 className="font-semibold text-blue-900 mb-2">What&apos;s Next?</h4>
               <ul className="text-sm text-blue-800 space-y-1">
-                <li>• You'll receive a confirmation email with your appointment details</li>
-                <li>• We'll send you a reminder before your appointment</li>
+                <li>• You&apos;ll receive a confirmation email with your appointment details</li>
+                <li>• We&apos;ll send you a reminder before your appointment</li>
                 <li>• If you need to reschedule, please contact us at least 24 hours in advance</li>
                 <li>• See you at your appointment!</li>
               </ul>
@@ -175,5 +175,13 @@ export default function BookingConfirmationPage() {
         </Card>
       </div>
     </div>
+  )
+}
+
+export default function BookingConfirmationPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <BookingConfirmationContent />
+    </Suspense>
   )
 }

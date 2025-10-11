@@ -431,8 +431,8 @@ export default function AdminCustomersPage() {
             </div>
           ) : (
             <>
-              {/* Mobile Card Layout */}
-              <div className="block md:hidden">
+              {/* Mobile & Tablet Card Layout */}
+              <div className="block lg:hidden">
                 {filteredCustomers.map((customer) => (
                   <div 
                     key={customer.id}
@@ -532,7 +532,7 @@ export default function AdminCustomersPage() {
               </div>
 
               {/* Desktop Table Layout */}
-              <div className="hidden md:block overflow-x-auto">
+              <div className="hidden lg:block overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>

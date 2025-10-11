@@ -182,8 +182,8 @@ export function GCalBlockedTime() {
         <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
           <h4 className="font-medium mb-2">Instructions:</h4>
           <ol className="text-sm text-gray-600 space-y-1 list-decimal list-inside">
-            <li>Set a date range (or use "Set Current Month")</li>
-            <li>Click "Test Google Calendar Sync"</li>
+            <li>Set a date range (or use &quot;Set Current Month&quot;)</li>
+            <li>Click &quot;Test Google Calendar Sync&quot;</li>
             <li>Check your server console/terminal for detailed logs with 🔍 🔴 ✅ emojis</li>
             <li>Logs will show:
               <ul className="ml-6 mt-1 list-disc list-inside">

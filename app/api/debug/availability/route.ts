@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
       .in('status', ['pending', 'confirmed'])
 
     // Get Google Calendar blocked time
-    let googleCalendarStatus = {
+    const googleCalendarStatus = {
       isConnected: false,
       blockedSlots: [] as Array<{ date: string; start_time: string; end_time: string }>,
       error: null as string | null

@@ -14,16 +14,18 @@ export async function GET(request: NextRequest) {
       hasAccessToken: false,
       hasRefreshToken: false,
       hasCalendarId: false,
-      tokenExpiry: null as string | null
+      tokenExpiry: null as string | null,
+      tokenStatus: 'UNKNOWN' as string,
+      hoursUntilExpiry: 0 as number
     },
-    settings: {} as Record<string, any>,
+    settings: {} as Record<string, string | null>,
     testFetch: {
       success: false,
       eventCount: 0,
       blockedSlotCount: 0,
       error: null as string | null,
-      rawEvents: [] as any[],
-      blockedSlots: [] as any[]
+      rawEvents: [] as Array<{ start: { dateTime: string }; end: { dateTime: string }; summary: string }>,
+      blockedSlots: [] as Array<{ date: string; start_time: string; end_time: string }>
     }
   }
 
@@ -65,7 +67,8 @@ export async function GET(request: NextRequest) {
         
         // Check if token is expired or expiring soon
         const now = Date.now()
-        const timeUntilExpiry = diagnostics.settings.google_token_expires_at - now
+        const expiresAt = diagnostics.settings.google_token_expires_at
+        const timeUntilExpiry = expiresAt ? parseInt(expiresAt) - now : 0
         const hoursUntilExpiry = timeUntilExpiry / (1000 * 60 * 60)
         
         diagnostics.connection['tokenStatus'] = 

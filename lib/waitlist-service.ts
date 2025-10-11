@@ -122,10 +122,17 @@ export class WaitlistService {
    * Send waitlist notification email
    */
   private async sendWaitlistNotificationEmail(
-    waitlistRequest: any,
+    waitlistRequest: { 
+      customer_id: string; 
+      service_id: string;
+      start_date: string;
+      end_date: string;
+      services: { name: string };
+      customers: { name: string; email: string };
+    },
     availableDate: string,
     availableTime: string,
-    businessSettings: any
+    businessSettings: { business_name: string; timezone: string; business_phone: string; business_email: string }
   ): Promise<boolean> {
     try {
       if (!resend) {
