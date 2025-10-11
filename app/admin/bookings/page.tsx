@@ -680,8 +680,8 @@ export default function AdminBookingsPage() {
               </div>
             ) : (
               <>
-                {/* Mobile Card Layout */}
-                <div className="block lg:hidden">
+                {/* Mobile & Tablet Card Layout */}
+                <div className="block xl:hidden">
                   {filteredBookings.map((booking) => (
                     <div 
                       key={booking.id}
@@ -778,16 +778,18 @@ export default function AdminBookingsPage() {
                               <RotateCcw className="w-4 h-4 mr-2" />
                               Reschedule
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={(e: React.MouseEvent) => {
-                                e.stopPropagation()
-                                generatePaymentLink(booking)
-                              }}
-                              disabled={booking.payment_status === 'paid'}
-                            >
-                              <CreditCard className="w-4 h-4 mr-2" />
-                              Pay with Square
-                            </DropdownMenuItem>
+                            {booking.price_charged && booking.price_charged > 0 && (
+                              <DropdownMenuItem 
+                                onClick={(e: React.MouseEvent) => {
+                                  e.stopPropagation()
+                                  generatePaymentLink(booking)
+                                }}
+                                disabled={booking.payment_status === 'paid'}
+                              >
+                                <CreditCard className="w-4 h-4 mr-2" />
+                                Pay with Square
+                              </DropdownMenuItem>
+                            )}
                             {booking.status !== 'completed' && (
                               <DropdownMenuItem 
                                 onClick={(e: React.MouseEvent) => {
@@ -807,8 +809,8 @@ export default function AdminBookingsPage() {
                   ))}
                 </div>
 
-                {/* Tablet Layout */}
-                <div className="hidden lg:block md:block xl:hidden overflow-x-auto overflow-y-visible">
+                {/* Tablet Layout - REMOVED */}
+                <div className="hidden overflow-x-auto overflow-y-visible">
                   <table className="w-full">
                     <thead className="bg-gray-50 border-b border-gray-200">
                       <tr>
@@ -887,16 +889,18 @@ export default function AdminBookingsPage() {
                                   <RotateCcw className="w-4 h-4 mr-2" />
                                   Reschedule
                                 </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  onClick={(e: React.MouseEvent) => {
-                                    e.stopPropagation()
-                                    generatePaymentLink(booking)
-                                  }}
-                                  disabled={booking.payment_status === 'paid'}
-                                >
-                                  <CreditCard className="w-4 h-4 mr-2" />
-                                  Pay with Square
-                                </DropdownMenuItem>
+                                {booking.price_charged && booking.price_charged > 0 && (
+                                  <DropdownMenuItem 
+                                    onClick={(e: React.MouseEvent) => {
+                                      e.stopPropagation()
+                                      generatePaymentLink(booking)
+                                    }}
+                                    disabled={booking.payment_status === 'paid'}
+                                  >
+                                    <CreditCard className="w-4 h-4 mr-2" />
+                                    Pay with Square
+                                  </DropdownMenuItem>
+                                )}
                                 {booking.status !== 'completed' && (
                                   <DropdownMenuItem 
                                     onClick={(e: React.MouseEvent) => {
@@ -998,16 +1002,18 @@ export default function AdminBookingsPage() {
                                   <RotateCcw className="w-4 h-4 mr-2" />
                                   Reschedule
                                 </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  onClick={(e: React.MouseEvent) => {
-                                    e.stopPropagation()
-                                    generatePaymentLink(booking)
-                                  }}
-                                  disabled={booking.payment_status === 'paid'}
-                                >
-                                  <CreditCard className="w-4 h-4 mr-2" />
-                                  Pay with Square
-                                </DropdownMenuItem>
+                                {booking.price_charged && booking.price_charged > 0 && (
+                                  <DropdownMenuItem 
+                                    onClick={(e: React.MouseEvent) => {
+                                      e.stopPropagation()
+                                      generatePaymentLink(booking)
+                                    }}
+                                    disabled={booking.payment_status === 'paid'}
+                                  >
+                                    <CreditCard className="w-4 h-4 mr-2" />
+                                    Pay with Square
+                                  </DropdownMenuItem>
+                                )}
                                 {booking.status !== 'completed' && (
                                   <DropdownMenuItem 
                                     onClick={(e: React.MouseEvent) => {
@@ -1302,16 +1308,18 @@ export default function AdminBookingsPage() {
                                           <RotateCcw className="w-4 h-4 mr-2" />
                                           Reschedule
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem 
-                                          onClick={(e: React.MouseEvent) => {
-                                            e.stopPropagation()
-                                            generatePaymentLink(booking)
-                                          }}
-                                          disabled={booking.payment_status === 'paid'}
-                                        >
-                                          <CreditCard className="w-4 h-4 mr-2" />
-                                          Pay with Square
-                                        </DropdownMenuItem>
+                                        {booking.price_charged && booking.price_charged > 0 && (
+                                          <DropdownMenuItem 
+                                            onClick={(e: React.MouseEvent) => {
+                                              e.stopPropagation()
+                                              generatePaymentLink(booking)
+                                            }}
+                                            disabled={booking.payment_status === 'paid'}
+                                          >
+                                            <CreditCard className="w-4 h-4 mr-2" />
+                                            Pay with Square
+                                          </DropdownMenuItem>
+                                        )}
                                         {booking.status !== 'completed' && (
                                           <DropdownMenuItem 
                                             onClick={(e: React.MouseEvent) => {
@@ -1438,7 +1446,7 @@ export default function AdminBookingsPage() {
                     <p><strong>Created:</strong> {new Date(selectedBooking.created_at).toLocaleDateString()}</p>
                     <div className="flex items-center gap-2">
                       <p><strong>Price:</strong> {formatPrice(selectedBooking.price_charged)}</p>
-                      {selectedBooking.payment_status !== 'paid' && (
+                      {selectedBooking.payment_status !== 'paid' && selectedBooking.price_charged && selectedBooking.price_charged > 0 && (
                         <Button 
                           variant="outline" 
                           size="sm"
