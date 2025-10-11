@@ -198,7 +198,7 @@ export default function AdminServicesPage() {
   }
 
   const formatPrice = (priceInCents: number) => {
-    return `$${(priceInCents / 100).toFixed(2)}`
+    return `$${Math.round(priceInCents / 100)}`
   }
 
   const formatDuration = (minutes: number) => {
@@ -484,20 +484,20 @@ export default function AdminServicesPage() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-600">New Customer Price</p>
-                  <p className="text-lg font-bold text-blue-600">{formatPrice(service.new_customer_price)}</p>
+                  <p className="text-lg font-bold text-purple-600">{formatPrice(service.new_customer_price)}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-600">Existing Customer Price</p>
-                  <p className="text-lg font-bold text-green-600">{formatPrice(service.existing_customer_price)}</p>
+                  <p className="text-lg font-bold text-indigo-600">{formatPrice(service.existing_customer_price)}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-600">Availability</p>
                   <div className="flex flex-col space-y-1">
                     {service.is_new_customer && (
-                      <Badge variant="outline" className="w-fit">New Customers</Badge>
+                      <Badge className="w-fit bg-purple-100 text-purple-800">New Customers</Badge>
                     )}
                     {service.is_existing_customer && (
-                      <Badge variant="outline" className="w-fit">Existing Customers</Badge>
+                      <Badge className="w-fit bg-indigo-100 text-indigo-800">Existing Customers</Badge>
                     )}
                   </div>
                 </div>
@@ -608,10 +608,10 @@ export default function AdminServicesPage() {
                       <p className="text-sm font-medium text-gray-600">Availability</p>
                       <div className="flex flex-col space-y-1">
                         {service.is_new_customer && (
-                          <Badge variant="outline" className="w-fit bg-gray-100 text-gray-600">New Customers</Badge>
+                          <Badge className="w-fit bg-purple-100 text-purple-800">New Customers</Badge>
                         )}
                         {service.is_existing_customer && (
-                          <Badge variant="outline" className="w-fit bg-gray-100 text-gray-600">Existing Customers</Badge>
+                          <Badge className="w-fit bg-indigo-100 text-indigo-800">Existing Customers</Badge>
                         )}
                       </div>
                     </div>

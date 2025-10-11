@@ -8,14 +8,16 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Switch } from '@/components/ui/switch'
-import { Loader2, Search, Users, UserPlus, User, Calendar, DollarSign, Eye, Filter, CheckSquare, Square, Edit, UserX, UserCheck, Phone, MessageSquare, Mail } from 'lucide-react'
+import { Loader2, Search, Users, UserPlus, User, Calendar, DollarSign, Eye, Filter, CheckSquare, Square, Edit, UserX, UserCheck, Phone, MessageSquare, Mail, MoreVertical } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Customer } from '@/types'
 
 interface CustomerWithStats extends Customer {
   total_bookings: number
   last_booking_date?: string
+  last_booking_price?: number
   total_spent: number
 }
 
@@ -248,7 +250,7 @@ export default function AdminCustomersPage() {
 
   // Format price
   const formatPrice = (cents: number) => {
-    return `$${(cents / 100).toFixed(2)}`
+    return `$${Math.round(cents / 100)}`
   }
 
   // Format date
@@ -288,42 +290,42 @@ export default function AdminCustomersPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
         <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
           <CardContent className="p-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xl sm:text-3xl font-bold text-gray-900">{stats.total}</div>
-                <div className="text-xs sm:text-sm text-gray-600 mt-1">Total Customers</div>
-              </div>
-              <div className="h-6 w-6 sm:h-8 sm:w-8 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-200">
-                <Users className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" strokeWidth={1.5} />
+            <div className="flex flex-col items-center text-center">
+              <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{stats.total}</div>
+              <div className="flex items-center gap-2">
+                <div className="h-5 w-5 sm:h-6 sm:w-6 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-200">
+                  <Users className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" strokeWidth={1.5} />
+                </div>
+                <div className="text-xs sm:text-sm text-gray-600">Total Customers</div>
               </div>
             </div>
           </CardContent>
         </Card>
         <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
           <CardContent className="p-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-lg sm:text-3xl font-bold text-gray-900">{formatPrice(stats.totalRevenue)}</div>
-                <div className="text-xs sm:text-sm text-gray-600 mt-1">Total Revenue</div>
-              </div>
-              <div className="h-6 w-6 sm:h-8 sm:w-8 bg-emerald-50 rounded-lg flex items-center justify-center border border-emerald-200">
-                <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-600" strokeWidth={1.5} />
+            <div className="flex flex-col items-center text-center">
+              <div className="text-lg sm:text-3xl font-bold text-gray-900 mb-2">{formatPrice(stats.totalRevenue)}</div>
+              <div className="flex items-center gap-2">
+                <div className="h-5 w-5 sm:h-6 sm:w-6 bg-emerald-50 rounded-lg flex items-center justify-center border border-emerald-200">
+                  <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-600" strokeWidth={1.5} />
+                </div>
+                <div className="text-xs sm:text-sm text-gray-600">Total Revenue</div>
               </div>
             </div>
           </CardContent>
         </Card>
         <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
           <CardContent className="p-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xl sm:text-3xl font-bold text-gray-900">{stats.new}</div>
-                <div className="text-xs sm:text-sm text-gray-600 mt-1">New Customers</div>
-              </div>
-              <div className="h-6 w-6 sm:h-8 sm:w-8 bg-orange-50 rounded-lg flex items-center justify-center border border-orange-200">
-                <UserPlus className="h-3 w-3 sm:h-4 sm:w-4 text-orange-600" strokeWidth={1.5} />
+            <div className="flex flex-col items-center text-center">
+              <div className="text-xl sm:text-3xl font-bold text-gray-900 mb-2">{stats.new}</div>
+              <div className="flex items-center gap-2">
+                <div className="h-5 w-5 sm:h-6 sm:w-6 bg-orange-50 rounded-lg flex items-center justify-center border border-orange-200">
+                  <UserPlus className="h-3 w-3 sm:h-4 sm:w-4 text-orange-600" strokeWidth={1.5} />
+                </div>
+                <div className="text-xs sm:text-sm text-gray-600">New Customers</div>
               </div>
             </div>
           </CardContent>
@@ -331,13 +333,13 @@ export default function AdminCustomersPage() {
 
         <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
           <CardContent className="p-4 sm:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xl sm:text-3xl font-bold text-gray-900">{stats.existing}</div>
-                <div className="text-xs sm:text-sm text-gray-600 mt-1">Existing Customers</div>
-              </div>
-              <div className="h-6 w-6 sm:h-8 sm:w-8 bg-green-50 rounded-lg flex items-center justify-center border border-green-200">
-                <User className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" strokeWidth={1.5} />
+            <div className="flex flex-col items-center text-center">
+              <div className="text-xl sm:text-3xl font-bold text-gray-900 mb-2">{stats.existing}</div>
+              <div className="flex items-center gap-2">
+                <div className="h-5 w-5 sm:h-6 sm:w-6 bg-green-50 rounded-lg flex items-center justify-center border border-green-200">
+                  <User className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" strokeWidth={1.5} />
+                </div>
+                <div className="text-xs sm:text-sm text-gray-600">Existing Customers</div>
               </div>
             </div>
           </CardContent>
@@ -465,7 +467,7 @@ export default function AdminCustomersPage() {
                       </div>
                       <Badge 
                         variant={customer.is_existing_customer ? "default" : "secondary"}
-                        className={customer.is_existing_customer ? "bg-green-100 text-green-800" : "bg-orange-100 text-orange-800"}
+                        className={customer.is_existing_customer ? "bg-indigo-100 text-indigo-800" : "bg-purple-100 text-purple-800"}
                       >
                         {customer.is_existing_customer ? 'Existing' : 'New'}
                       </Badge>
@@ -477,44 +479,53 @@ export default function AdminCustomersPage() {
                         <span className="text-gray-900">{customer.total_bookings}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Total Spent:</span>
-                        <span className="text-green-600">{formatPrice(customer.total_spent)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
                         <span className="text-gray-500">Last Booking:</span>
-                        <span className="text-gray-900">
-                          {customer.last_booking_date ? formatDate(customer.last_booking_date) : 'Never'}
-                        </span>
+                        <div className="text-right">
+                          <div className="text-gray-900">
+                            {customer.last_booking_date ? formatDate(customer.last_booking_date) : 'Never'}
+                          </div>
+                          {customer.last_booking_price && (
+                            <div className="text-xs text-gray-500">{formatPrice(customer.last_booking_price)}</div>
+                          )}
+                        </div>
                       </div>
                     </div>
                     
                     <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="h-8 px-3 text-xs flex-1"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setSelectedCustomer(customer)
-                          setShowDetailsDialog(true)
-                        }}
-                      >
-                        <Eye className="w-3 h-3 mr-1" />
-                        View Details
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="h-8 px-3 text-xs flex-1"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          openEditDialog(customer)
-                        }}
-                        disabled={isSubmitting}
-                      >
-                        <Edit className="w-3 h-3 mr-1" />
-                        Edit
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="h-8 px-2 text-xs"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="w-3 h-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem 
+                            onClick={(e: React.MouseEvent) => {
+                              e.stopPropagation()
+                              setSelectedCustomer(customer)
+                              setShowDetailsDialog(true)
+                            }}
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={(e: React.MouseEvent) => {
+                              e.stopPropagation()
+                              openEditDialog(customer)
+                            }}
+                            disabled={isSubmitting}
+                          >
+                            <Edit className="w-4 h-4 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
                 ))}
@@ -542,7 +553,6 @@ export default function AdminCustomersPage() {
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bookings</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Spent</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Booking</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
@@ -584,7 +594,7 @@ export default function AdminCustomersPage() {
                         <td className="px-4 py-3 whitespace-nowrap">
                           <Badge 
                             variant={customer.is_existing_customer ? "default" : "secondary"}
-                            className={customer.is_existing_customer ? "bg-green-100 text-green-800" : "bg-orange-100 text-orange-800"}
+                            className={customer.is_existing_customer ? "bg-indigo-100 text-indigo-800" : "bg-purple-100 text-purple-800"}
                           >
                             {customer.is_existing_customer ? 'Existing' : 'New'}
                           </Badge>
@@ -593,40 +603,48 @@ export default function AdminCustomersPage() {
                           {customer.total_bookings}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                          <span className="text-green-600">{formatPrice(customer.total_spent)}</span>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                          {customer.last_booking_date ? formatDate(customer.last_booking_date) : 'Never'}
+                          <div>
+                            <div>{customer.last_booking_date ? formatDate(customer.last_booking_date) : 'Never'}</div>
+                            {customer.last_booking_price && (
+                              <div className="text-xs text-gray-500">{formatPrice(customer.last_booking_price)}</div>
+                            )}
+                          </div>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm">
-                          <div className="flex gap-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              className="h-7 px-2 text-xs"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setSelectedCustomer(customer)
-                                setShowDetailsDialog(true)
-                              }}
-                            >
-                              <Eye className="w-3 h-3 mr-1" />
-                              View
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              className="h-7 px-2 text-xs"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                openEditDialog(customer)
-                              }}
-                              disabled={isSubmitting}
-                            >
-                              <Edit className="w-3 h-3 mr-1" />
-                              Edit
-                            </Button>
-                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="h-7 px-2 text-xs"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <MoreVertical className="w-3 h-3" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem 
+                                onClick={(e: React.MouseEvent) => {
+                                  e.stopPropagation()
+                                  setSelectedCustomer(customer)
+                                  setShowDetailsDialog(true)
+                                }}
+                              >
+                                <Eye className="w-4 h-4 mr-2" />
+                                View
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={(e: React.MouseEvent) => {
+                                  e.stopPropagation()
+                                  openEditDialog(customer)
+                                }}
+                                disabled={isSubmitting}
+                              >
+                                <Edit className="w-4 h-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </td>
                       </tr>
                     ))}
@@ -709,7 +727,7 @@ export default function AdminCustomersPage() {
                     <p><strong>Type:</strong> 
                       <Badge 
                         variant={selectedCustomer.is_existing_customer ? "default" : "secondary"}
-                        className={`ml-2 ${selectedCustomer.is_existing_customer ? "bg-green-100 text-green-800" : "bg-orange-100 text-orange-800"}`}
+                        className={`ml-2 ${selectedCustomer.is_existing_customer ? "bg-indigo-100 text-indigo-800" : "bg-purple-100 text-purple-800"}`}
                       >
                         {selectedCustomer.is_existing_customer ? 'Existing' : 'New'}
                       </Badge>

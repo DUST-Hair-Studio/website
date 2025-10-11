@@ -36,15 +36,12 @@ export async function GET() {
       const lastBooking = bookings.length > 0 
         ? bookings.sort((a: { booking_date: string }, b: { booking_date: string }) => new Date(b.booking_date).getTime() - new Date(a.booking_date).getTime())[0]
         : null
-      const totalSpent = bookings
-        .filter((b: { status: string }) => b.status === 'completed')
-        .reduce((sum: number, b: { price_charged?: number }) => sum + (b.price_charged || 0), 0)
-
       return {
         ...customer,
         total_bookings: totalBookings,
         last_booking_date: lastBooking?.booking_date || null,
-        total_spent: totalSpent,
+        last_booking_price: lastBooking?.price_charged || null,
+        total_spent: customer.total_spent || 0, // Use database field, fallback to 0
         bookings: undefined // Remove the raw bookings data to keep response clean
       }
     })

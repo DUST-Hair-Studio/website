@@ -521,7 +521,7 @@ function BookPageContent() {
   }
 
   const formatPrice = (price: number) => {
-    return price === 0 ? "Free" : `$${(price / 100).toFixed(2)}`
+    return price === 0 ? "Free" : `$${Math.round(price / 100)}`
   }
 
   const formatDuration = (minutes: number) => {

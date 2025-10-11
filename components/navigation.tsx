@@ -13,6 +13,7 @@ export function Navigation() {
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false)
   const [customer, setCustomer] = useState<{ is_existing_customer: boolean; name?: string } | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [isCheckingAdmin, setIsCheckingAdmin] = useState(false)
   const [isSigningOut, setIsSigningOut] = useState(false)
 
   // Close dropdowns when clicking outside
@@ -39,8 +40,11 @@ export function Navigation() {
       if (!user) {
         setCustomer(null)
         setIsAdmin(false)
+        setIsCheckingAdmin(false)
         return
       }
+
+      setIsCheckingAdmin(true)
 
       try {
         // Fetch customer data
@@ -59,6 +63,8 @@ export function Navigation() {
       } catch (error) {
         console.error('Error fetching user data:', error)
         setIsAdmin(false)
+      } finally {
+        setIsCheckingAdmin(false)
       }
     }
 
@@ -102,26 +108,32 @@ export function Navigation() {
           <div className="hidden md:flex items-center space-x-4">
             {isLoggedIn ? (
               <>
-                {!isAdmin && (
+                {isCheckingAdmin ? (
+                  <div className="animate-pulse bg-gray-200 h-8 w-20 rounded"></div>
+                ) : (
                   <>
-                    <Link href="/appointments">
-                      <Button variant="outline" className="border-black text-black hover:bg-gray-100">
-                        Manage Bookings
-                      </Button>
-                    </Link>
-                    <Link href="/waitlist">
-                      <Button variant="ghost" className="text-black hover:bg-gray-100">
-                        Waitlist
-                      </Button>
-                    </Link>
+                    {!isAdmin && (
+                      <>
+                        <Link href="/appointments">
+                          <Button variant="outline" className="border-black text-black hover:bg-gray-100">
+                            Manage Bookings
+                          </Button>
+                        </Link>
+                        <Link href="/waitlist">
+                          <Button variant="ghost" className="text-black hover:bg-gray-100">
+                            Waitlist
+                          </Button>
+                        </Link>
+                      </>
+                    )}
+                    {isAdmin && (
+                      <Link href="/admin">
+                        <Button variant="outline" className="border-black text-black hover:bg-gray-100">
+                          Admin Portal
+                        </Button>
+                      </Link>
+                    )}
                   </>
-                )}
-                {isAdmin && (
-                  <Link href="/admin">
-                    <Button variant="outline" className="border-black text-black hover:bg-gray-100">
-                      Admin Portal
-                    </Button>
-                  </Link>
                 )}
                 <div className="relative" data-dropdown="profile">
                   <button
@@ -203,32 +215,40 @@ export function Navigation() {
             <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 border-t border-gray-200">
               {isLoggedIn ? (
                 <>
-                  {!isAdmin && (
+                  {isCheckingAdmin ? (
+                    <div className="px-3 py-2">
+                      <div className="animate-pulse bg-gray-200 h-8 w-24 rounded"></div>
+                    </div>
+                  ) : (
                     <>
-                      <Link 
-                        href="/appointments" 
-                        className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        Manage Bookings
-                      </Link>
-                      <Link 
-                        href="/waitlist" 
-                        className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        Waitlist
-                      </Link>
+                      {!isAdmin && (
+                        <>
+                          <Link 
+                            href="/appointments" 
+                            className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            Manage Bookings
+                          </Link>
+                          <Link 
+                            href="/waitlist" 
+                            className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            Waitlist
+                          </Link>
+                        </>
+                      )}
+                      {isAdmin && (
+                        <Link 
+                          href="/admin" 
+                          className="block px-3 py-2 text-base font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-md"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                          Admin Portal
+                        </Link>
+                      )}
                     </>
-                  )}
-                  {isAdmin && (
-                    <Link 
-                      href="/admin" 
-                      className="block px-3 py-2 text-base font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-md"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      Admin Portal
-                    </Link>
                   )}
                   <div className="px-3 py-2">
                     <div className="mb-4"></div>

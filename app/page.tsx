@@ -207,7 +207,7 @@ export default function Home() {
                   return filteredServices.map((service, index) => {
                     // For non-logged in users, show new customer pricing
                     const price = isLoggedIn && customer?.is_existing_customer ? service.existing_customer_price : service.new_customer_price;
-                    const formattedPrice = price === 0 ? "Free" : `$${(price / 100).toFixed(2)}`;
+                    const formattedPrice = price === 0 ? "Free" : `$${Math.round(price / 100)}`;
                     
                     // Format duration
                     const hours = Math.floor(service.duration_minutes / 60);

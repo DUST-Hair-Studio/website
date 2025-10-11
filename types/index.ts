@@ -8,6 +8,7 @@ export interface Customer {
   password_hash?: string; // Only present during auth operations
   is_existing_customer: boolean;
   total_bookings: number;
+  total_spent?: number; // Total amount spent in cents
   last_booking_date?: string;
   notes?: string;
   allow_sms_notifications: boolean;
@@ -53,11 +54,15 @@ export interface Booking {
   duration_minutes: number;
   price_charged: number; // in cents
   customer_type_at_booking: 'new' | 'existing';
-  payment_link?: string;
-  payment_status: 'pending' | 'paid' | 'failed' | 'refunded';
+  payment_status: 'pending' | 'paid' | 'refunded';
   google_calendar_event_id?: string;
-  square_payment_id?: string;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no-show';
+  // Square payment links (generated for admin use only)
+  square_payment_url?: string; // Payment link URL (admin can share when needed)
+  square_order_id?: string; // Square order ID
+  square_payment_link_id?: string; // Square payment link ID
+  square_transaction_id?: string; // Square POS transaction ID (for in-person payments)
+  paid_at?: string;
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
   sms_confirmation_sent: boolean;
   sms_reminder_sent: boolean;
   sms_followup_sent: boolean;

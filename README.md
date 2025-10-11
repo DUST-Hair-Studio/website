@@ -23,6 +23,7 @@ A comprehensive booking platform for DUST Hair Studio that replaces Squarespace,
 - **Database**: Supabase (PostgreSQL)
 - **Auth**: Supabase Auth
 - **UI Components**: Custom components with shadcn/ui
+- **Payments**: Square SDK v43 (Quick Pay Checkout & POS integration)
 - **Hosting**: Vercel
 
 ## Core Architecture
@@ -40,8 +41,42 @@ auth.users (Supabase managed)
 customers (id, email, first_name, last_name, phone, is_existing_customer, auth_user_id)
 admin_users (id, email, name, role, auth_user_id)
 services (id, name, description, new_customer_price, existing_customer_price, is_existing_customer, is_new_customer)
-bookings (id, customer_id, service_id, booking_date, booking_time, price_charged, customer_type_at_booking, status)
+bookings (id, customer_id, service_id, booking_date, booking_time, price_charged, customer_type_at_booking, status, square_payment_url, square_order_id, square_payment_link_id, square_transaction_id, paid_at)
 ```
+
+### Square Payment Integration
+
+The application integrates with Square for payment processing using a hybrid approach:
+
+#### Payment Strategy: Pay After Service
+- **No Pre-Payment Required**: Customers book appointments without payment
+- **Admin-Generated Payment Links**: Payment links created but not auto-sent to customers
+- **Flexible Payment Sharing**: Admin can share links via text, email, or in-person
+- **POS Integration**: Track in-person payments made via Square POS after service
+
+#### Square SDK Implementation
+- **SDK Version**: Square SDK v43 with Next.js 15 compatibility
+- **Environment Support**: Sandbox and Production environments
+- **Quick Pay Checkout**: Creates hosted payment pages for easy customer payments
+- **BigInt Handling**: Proper handling of monetary amounts using BigInt for precision
+
+#### Database Schema for Payments
+```sql
+-- Square payment fields added to bookings table
+ALTER TABLE bookings 
+ADD COLUMN square_payment_url TEXT,           -- Generated payment link (admin use only)
+ADD COLUMN square_order_id VARCHAR(255),      -- Square order tracking
+ADD COLUMN square_payment_link_id VARCHAR(255), -- Square payment link management
+ADD COLUMN square_transaction_id VARCHAR(255), -- Square POS transaction ID (for in-person payments)
+ADD COLUMN paid_at TIMESTAMP WITH TIME ZONE;  -- Payment completion timestamp
+```
+
+#### Payment Workflow
+1. **Booking Creation**: Customer books appointment (no payment required)
+2. **Payment Link Generation**: System automatically creates Square payment link
+3. **Admin Management**: Payment links stored for admin dashboard display
+4. **Payment Collection**: Admin shares link when needed or collects payment in-person via Square POS
+5. **Payment Tracking**: Manual or automated payment status updates
 
 ### Service Management System
 Services have flexible customer type restrictions:
@@ -124,11 +159,18 @@ SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# Square Payment Integration
+SQUARE_ACCESS_TOKEN=your_square_access_token
+SQUARE_ENVIRONMENT=sandbox
+SQUARE_LOCATION_ID=your_square_location_id
 ```
 
 **Required Keys:**
 - `SUPABASE_SERVICE_ROLE_KEY`: Found in Supabase project settings under "API" → "Service Role Key"
 - `GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET`: Create in [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → Credentials
+- `SQUARE_ACCESS_TOKEN`: Found in [Square Developer Dashboard](https://developer.squareup.com/) → Applications → Your App → Credentials
+- `SQUARE_LOCATION_ID`: Found in Square Developer Dashboard → Locations → Your Location → Location Details
 - `NEXT_PUBLIC_APP_URL`: Your app's base URL (use `https://yourdomain.com` in production)
 
 ### Installation
@@ -174,6 +216,10 @@ npm run dev
 ### Auth APIs
 - `POST /api/auth/admin/login` - Admin authentication
 - `POST /api/admin/create-user` - Create admin users
+
+### Square Payment APIs
+- `GET /api/test-square` - Test Square integration and payment link creation
+- `POST /api/bookings` - Create booking with automatic payment link generation (enhanced)
 
 ## Deployment
 
@@ -259,6 +305,16 @@ npm start
 - ✅ **Label Spacing** - Added proper spacing between field labels and input elements
 - ✅ **Toggle Switch Redesign** - Larger, more professional toggle switches with green/gray color scheme
 - ✅ **Form Validation** - Improved error handling and user feedback
+
+#### Square Payment Integration (Latest - January 2025)
+- ✅ **Square SDK v43 Integration** - Full integration with Square's latest SDK for Next.js 15
+- ✅ **Quick Pay Checkout** - Payment link generation using Square's hosted checkout pages
+- ✅ **Admin-Controlled Payment Flow** - Payment links generated but not auto-sent to customers
+- ✅ **Database Schema Enhancement** - Added payment tracking fields to bookings table
+- ✅ **BigInt Amount Handling** - Proper handling of monetary amounts using BigInt for precision
+- ✅ **Environment Configuration** - Sandbox and production Square environment support
+- ✅ **Payment Link Management** - Store and track Square payment links, order IDs, and transaction IDs
+- ✅ **POS Integration Ready** - Database schema supports in-person Square POS payment tracking
 
 #### Technical Improvements
 - ✅ **Admin API Endpoints** - Complete REST API for service management (`/api/admin/services`)
@@ -604,6 +660,63 @@ curl "http://localhost:3000/api/admin/availability?startDate=2025-10-09&endDate=
 curl "http://localhost:3000/api/admin/business-hours"
 ```
 
+### Square Payment Issues
+
+#### Payment Link Creation Failures
+**Symptoms**: `createPaymentLink` function throws errors
+**Common Causes & Solutions**:
+
+1. **BigInt Serialization Error**
+   ```
+   Error: Do not know how to serialize a BigInt
+   ```
+   **Solution**: Ensure BigInt values are converted to strings for JSON serialization
+
+2. **Invalid Phone Number Format**
+   ```
+   Error: Invalid phone number
+   ```
+   **Solution**: Use E.164 format (`+15551234567`) or omit phone number entirely
+
+3. **Invalid Email Address**
+   ```
+   Error: Invalid email address
+   ```
+   **Solution**: Use valid email format or remove `prePopulatedData` section
+
+4. **Square Client Initialization Issues**
+   ```
+   Error: Client is not a constructor
+   ```
+   **Solution**: Use `require('square')` instead of ES6 imports for better Next.js compatibility
+
+#### Square SDK Compatibility Issues
+**Problem**: Square SDK v43 with Next.js 15 compatibility
+**Solutions**:
+1. **Use CommonJS require**: `const square = require('square')`
+2. **Correct API structure**: `squareClient.checkout.paymentLinks.create()`
+3. **BigInt for amounts**: `amount: BigInt(priceInCents)`
+4. **Async client access**: Use `await getSquareClient()` pattern
+
+#### Testing Square Integration
+```bash
+# Test Square connection and payment link creation
+curl http://localhost:3000/api/test-square
+
+# Expected successful response:
+{
+  "success": true,
+  "tests": {
+    "paymentLink": {
+      "success": true,
+      "paymentUrl": "https://sandbox.square.link/u/...",
+      "orderId": "...",
+      "paymentLinkId": "..."
+    }
+  }
+}
+```
+
 ### Performance Issues
 
 #### Calendar Loading Slowly
@@ -623,10 +736,11 @@ curl "http://localhost:3000/api/admin/business-hours"
 
 ## Future Enhancements (Planned)
 
-### Phase 3: Payments & Communications
-- Square Checkout API for payment links
-- Twilio SMS integration for confirmations
-- Automated reminders and follow-ups
+### Phase 3: Payments & Communications ✅
+- ✅ **Square Quick Pay Checkout** - Payment link generation for admin-controlled payment sharing
+- ✅ **Square POS Integration** - In-person payment tracking after appointments
+- - Twilio SMS integration for confirmations
+- - Automated reminders and follow-ups
 
 ### Phase 4: Advanced Features
 - Customer loyalty tracking
@@ -689,6 +803,7 @@ const [businessHours, setBusinessHours] = useState<{day_of_week: number; is_open
 **Last Updated**: January 2025  
 **Status**: Production Ready - All Phases Complete with Full Build Success ✅  
 **Build Status**: Successfully builds with all 31 routes and 0 TypeScript errors  
-**Admin Portal**: Fully functional with complete service management, customer management, booking management, and schedule management  
+**Admin Portal**: Fully functional with complete service management, customer management, booking management, schedule management, and payment integration  
 **Customer Portal**: Complete booking flow with dynamic pricing and real-time availability  
-**Latest Feature**: Calendar Availability System - Comprehensive documentation and troubleshooting guide for the complex calendar logic
+**Payment Integration**: Square Quick Pay Checkout with admin-controlled payment link generation  
+**Latest Feature**: Square Payment Integration - Complete payment link generation and admin payment management system

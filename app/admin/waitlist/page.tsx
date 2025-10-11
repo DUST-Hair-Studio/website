@@ -257,17 +257,17 @@ export default function AdminWaitlistPage() {
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
         {/* Total Requests */}
         <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
           <CardContent className="p-4 md:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl md:text-3xl font-bold text-gray-900">{stats.total}</div>
-                <div className="text-xs md:text-sm text-gray-600 mt-1">Total Requests</div>
-              </div>
-              <div className="h-6 w-6 md:h-8 md:w-8 bg-gray-50 rounded-lg flex items-center justify-center border border-gray-200">
-                <ListChecks className="h-3 w-3 md:h-4 md:w-4 text-gray-600" strokeWidth={1.5} />
+            <div className="flex flex-col items-center text-center">
+              <div className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{stats.total}</div>
+              <div className="flex items-center gap-2">
+                <div className="h-5 w-5 md:h-6 md:w-6 bg-gray-50 rounded-lg flex items-center justify-center border border-gray-200">
+                  <ListChecks className="h-3 w-3 md:h-4 md:w-4 text-gray-600" strokeWidth={1.5} />
+                </div>
+                <div className="text-xs md:text-sm text-gray-600">Total Requests</div>
               </div>
             </div>
           </CardContent>
@@ -276,13 +276,13 @@ export default function AdminWaitlistPage() {
         {/* Pending */}
         <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
           <CardContent className="p-4 md:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl md:text-3xl font-bold text-yellow-600">{stats.pending}</div>
-                <div className="text-xs md:text-sm text-gray-600 mt-1">Pending</div>
-              </div>
-              <div className="h-6 w-6 md:h-8 md:w-8 bg-yellow-50 rounded-lg flex items-center justify-center border border-yellow-200">
-                <Clock className="h-3 w-3 md:h-4 md:w-4 text-yellow-600" strokeWidth={1.5} />
+            <div className="flex flex-col items-center text-center">
+              <div className="text-2xl md:text-3xl font-bold text-yellow-600 mb-2">{stats.pending}</div>
+              <div className="flex items-center gap-2">
+                <div className="h-5 w-5 md:h-6 md:w-6 bg-yellow-50 rounded-lg flex items-center justify-center border border-yellow-200">
+                  <Clock className="h-3 w-3 md:h-4 md:w-4 text-yellow-600" strokeWidth={1.5} />
+                </div>
+                <div className="text-xs md:text-sm text-gray-600">Pending</div>
               </div>
             </div>
           </CardContent>
@@ -291,13 +291,13 @@ export default function AdminWaitlistPage() {
         {/* Notified */}
         <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
           <CardContent className="p-4 md:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl md:text-3xl font-bold text-blue-600">{stats.notified}</div>
-                <div className="text-xs md:text-sm text-gray-600 mt-1">Notified</div>
-              </div>
-              <div className="h-6 w-6 md:h-8 md:w-8 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-200">
-                <Bell className="h-3 w-3 md:h-4 md:w-4 text-blue-600" strokeWidth={1.5} />
+            <div className="flex flex-col items-center text-center">
+              <div className="text-2xl md:text-3xl font-bold text-blue-600 mb-2">{stats.notified}</div>
+              <div className="flex items-center gap-2">
+                <div className="h-5 w-5 md:h-6 md:w-6 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-200">
+                  <Bell className="h-3 w-3 md:h-4 md:w-4 text-blue-600" strokeWidth={1.5} />
+                </div>
+                <div className="text-xs md:text-sm text-gray-600">Notified</div>
               </div>
             </div>
           </CardContent>
@@ -306,13 +306,13 @@ export default function AdminWaitlistPage() {
         {/* Converted */}
         <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
           <CardContent className="p-4 md:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl md:text-3xl font-bold text-green-600">{stats.converted}</div>
-                <div className="text-xs md:text-sm text-gray-600 mt-1">Converted</div>
-              </div>
-              <div className="h-6 w-6 md:h-8 md:w-8 bg-green-50 rounded-lg flex items-center justify-center border border-green-200">
-                <CheckCircle className="h-3 w-3 md:h-4 md:w-4 text-green-600" strokeWidth={1.5} />
+            <div className="flex flex-col items-center text-center">
+              <div className="text-2xl md:text-3xl font-bold text-green-600 mb-2">{stats.converted}</div>
+              <div className="flex items-center gap-2">
+                <div className="h-5 w-5 md:h-6 md:w-6 bg-green-50 rounded-lg flex items-center justify-center border border-green-200">
+                  <CheckCircle className="h-3 w-3 md:h-4 md:w-4 text-green-600" strokeWidth={1.5} />
+                </div>
+                <div className="text-xs md:text-sm text-gray-600">Converted</div>
               </div>
             </div>
           </CardContent>
@@ -321,13 +321,13 @@ export default function AdminWaitlistPage() {
         {/* Expired */}
         <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
           <CardContent className="p-4 md:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl md:text-3xl font-bold text-gray-600">{stats.expired}</div>
-                <div className="text-xs md:text-sm text-gray-600 mt-1">Expired</div>
-              </div>
-              <div className="h-6 w-6 md:h-8 md:w-8 bg-gray-50 rounded-lg flex items-center justify-center border border-gray-200">
-                <AlertCircle className="h-3 w-3 md:h-4 md:w-4 text-gray-600" strokeWidth={1.5} />
+            <div className="flex flex-col items-center text-center">
+              <div className="text-2xl md:text-3xl font-bold text-gray-600 mb-2">{stats.expired}</div>
+              <div className="flex items-center gap-2">
+                <div className="h-5 w-5 md:h-6 md:w-6 bg-gray-50 rounded-lg flex items-center justify-center border border-gray-200">
+                  <AlertCircle className="h-3 w-3 md:h-4 md:w-4 text-gray-600" strokeWidth={1.5} />
+                </div>
+                <div className="text-xs md:text-sm text-gray-600">Expired</div>
               </div>
             </div>
           </CardContent>
@@ -336,13 +336,13 @@ export default function AdminWaitlistPage() {
         {/* Cancelled */}
         <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
           <CardContent className="p-4 md:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl md:text-3xl font-bold text-red-600">{stats.cancelled}</div>
-                <div className="text-xs md:text-sm text-gray-600 mt-1">Cancelled</div>
-              </div>
-              <div className="h-6 w-6 md:h-8 md:w-8 bg-red-50 rounded-lg flex items-center justify-center border border-red-200">
-                <XCircle className="h-3 w-3 md:h-4 md:w-4 text-red-600" strokeWidth={1.5} />
+            <div className="flex flex-col items-center text-center">
+              <div className="text-2xl md:text-3xl font-bold text-red-600 mb-2">{stats.cancelled}</div>
+              <div className="flex items-center gap-2">
+                <div className="h-5 w-5 md:h-6 md:w-6 bg-red-50 rounded-lg flex items-center justify-center border border-red-200">
+                  <XCircle className="h-3 w-3 md:h-4 md:w-4 text-red-600" strokeWidth={1.5} />
+                </div>
+                <div className="text-xs md:text-sm text-gray-600">Cancelled</div>
               </div>
             </div>
           </CardContent>

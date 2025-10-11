@@ -210,9 +210,16 @@ export async function PATCH(
     const supabase = await createServerSupabaseClient()
     const { id } = await params
     const body = await request.json()
-    const { status, admin_notes } = body
+    const { status, admin_notes, payment_status, square_transaction_id } = body
 
-    const updateData: { updated_at: string; status?: string; admin_notes?: string } = {
+    const updateData: { 
+      updated_at: string; 
+      status?: string; 
+      admin_notes?: string;
+      payment_status?: string;
+      square_transaction_id?: string;
+      paid_at?: string;
+    } = {
       updated_at: new Date().toISOString()
     }
 
@@ -222,6 +229,18 @@ export async function PATCH(
 
     if (admin_notes !== undefined) {
       updateData.admin_notes = admin_notes
+    }
+
+    if (payment_status) {
+      updateData.payment_status = payment_status
+      // If marking as paid, set paid_at timestamp
+      if (payment_status === 'paid') {
+        updateData.paid_at = new Date().toISOString()
+      }
+    }
+
+    if (square_transaction_id) {
+      updateData.square_transaction_id = square_transaction_id
     }
 
     const { data: booking, error } = await supabase
@@ -305,13 +324,20 @@ export async function DELETE(
     // and to notify waitlist
     const { data: booking, error: fetchError } = await supabase
       .from('bookings')
-      .select('google_calendar_event_id, booking_date, booking_time, service_id')
+      .select('google_calendar_event_id, booking_date, booking_time, service_id, payment_status')
       .eq('id', id)
       .single()
 
     if (fetchError) {
       console.error('Error fetching booking for deletion:', fetchError)
       return NextResponse.json({ error: 'Failed to fetch booking' }, { status: 500 })
+    }
+
+    // Prevent deletion of paid bookings
+    if (booking?.payment_status === 'paid') {
+      return NextResponse.json({ 
+        error: 'Cannot delete a booking that has been paid. Please contact support if this is an error.' 
+      }, { status: 400 })
     }
 
     // Delete Google Calendar event if it exists
@@ -328,6 +354,12 @@ export async function DELETE(
         // Continue with booking deletion even if calendar sync fails
       }
     }
+
+    // First, clear any waitlist references to this booking
+    await supabase
+      .from('waitlist_requests')
+      .update({ converted_booking_id: null })
+      .eq('converted_booking_id', id)
 
     // Delete the booking from the database
     const { error } = await supabase

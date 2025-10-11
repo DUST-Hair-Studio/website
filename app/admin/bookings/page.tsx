@@ -4,14 +4,14 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Booking } from '@/types'
 import { Button } from '@/components/ui/button'
-import { formatBusinessDateTime } from '@/lib/timezone-utils-client'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Calendar as CalendarComponent } from '@/components/ui/calendar'
-import { CheckCircle, Calendar, DollarSign, CalendarDays, RotateCcw, Search, Filter, Table, Grid3X3, Phone, MessageSquare, Mail, ListChecks } from 'lucide-react'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuPortal } from '@/components/ui/dropdown-menu'
+import { CheckCircle, Calendar, DollarSign, CalendarDays, RotateCcw, Search, Filter, Table, Phone, MessageSquare, Mail, ListChecks, CreditCard, MoreVertical, CheckSquare } from 'lucide-react'
+import { toast } from 'sonner'
 import RescheduleModal from '@/components/admin/reschedule-modal'
 
 interface BookingWithDetails extends Booking {
@@ -34,8 +34,9 @@ export default function AdminBookingsPage() {
   const [bookings, setBookings] = useState<BookingWithDetails[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [timeFilter, setTimeFilter] = useState<string>('all')
+  const [timeFilter, setTimeFilter] = useState<string>('upcoming')
   const [statusFilter, setStatusFilter] = useState<string>('active')
+  const [paymentFilter, setPaymentFilter] = useState<string>('all')
   const [selectedBooking, setSelectedBooking] = useState<BookingWithDetails | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [bookingToDelete, setBookingToDelete] = useState<string | null>(null)
@@ -44,7 +45,6 @@ export default function AdminBookingsPage() {
   const [bookingToReschedule, setBookingToReschedule] = useState<BookingWithDetails | null>(null)
   const [viewMode, setViewMode] = useState<'table' | 'calendar'>('table')
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | undefined>(undefined)
-  const [showCalendarAppointments, setShowCalendarAppointments] = useState(false)
   const [activePhoneMenu, setActivePhoneMenu] = useState<string | null>(null)
   const [waitlistCount, setWaitlistCount] = useState(0)
 
@@ -68,6 +68,45 @@ export default function AdminBookingsPage() {
       setWaitlistCount(data.waitlist?.length || 0)
     } catch (error) {
       console.error('Error fetching waitlist count:', error)
+    }
+  }
+
+  // Generate payment link for a booking
+  const generatePaymentLink = async (booking: BookingWithDetails) => {
+    try {
+      const response = await fetch('/api/bookings/generate-payment-link', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bookingId: booking.id,
+          serviceName: booking.services?.name || 'Service',
+          price: booking.price_charged,
+          customerEmail: booking.customers.email,
+          customerPhone: booking.customers.phone,
+          customerName: booking.customers.name
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate payment link')
+      }
+
+      const data = await response.json()
+      
+      // Open the payment link in a new tab
+      if (data.paymentUrl) {
+        window.open(data.paymentUrl, '_blank')
+        toast.success('Payment link generated!', {
+          description: 'The payment page has opened in a new tab.'
+        })
+      }
+    } catch (error) {
+      console.error('Error generating payment link:', error)
+      toast.error('Failed to generate payment link', {
+        description: 'Please try again or check your Square configuration.'
+      })
     }
   }
 
@@ -132,7 +171,13 @@ export default function AdminBookingsPage() {
       return booking.status === statusFilter
     })()
 
-    return matchesSearch && matchesTime && matchesStatus
+    // Filter by payment status
+    const matchesPayment = (() => {
+      if (paymentFilter === 'all') return true
+      return booking.payment_status === paymentFilter
+    })()
+
+    return matchesSearch && matchesTime && matchesStatus && matchesPayment
   })
 
 
@@ -150,9 +195,19 @@ export default function AdminBookingsPage() {
         setShowDeleteConfirm(false)
         setBookingToDelete(null)
         setSelectedBooking(null) // Close the modal if it's open
+        toast.success('Booking deleted successfully')
+      } else {
+        // Handle error response
+        const errorData = await response.json()
+        toast.error(errorData.error || 'Failed to delete booking')
+        setShowDeleteConfirm(false)
+        setBookingToDelete(null)
       }
     } catch (error) {
       console.error('Error deleting booking:', error)
+      toast.error('Failed to delete booking')
+      setShowDeleteConfirm(false)
+      setBookingToDelete(null)
     }
   }
 
@@ -180,13 +235,45 @@ export default function AdminBookingsPage() {
     setBookingToReschedule(null)
   }
 
+  // Mark booking as complete
+  const markBookingComplete = async (booking: BookingWithDetails) => {
+    try {
+      const response = await fetch(`/api/admin/bookings/${booking.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: 'completed'
+        })
+      })
+
+      if (response.ok) {
+        // Update the booking in local state
+        setBookings(prev => 
+          prev.map(b => 
+            b.id === booking.id 
+              ? { ...b, status: 'completed' as const }
+              : b
+          )
+        )
+        toast.success('Booking marked as complete')
+      } else {
+        const errorData = await response.json()
+        toast.error(errorData.error || 'Failed to mark booking as complete')
+      }
+    } catch (error) {
+      console.error('Error marking booking as complete:', error)
+      toast.error('Failed to mark booking as complete')
+    }
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800'
       case 'confirmed': return 'bg-blue-100 text-blue-800'
       case 'completed': return 'bg-green-100 text-green-800'
       case 'cancelled': return 'bg-red-100 text-red-800'
-      case 'no-show': return 'bg-gray-100 text-gray-800'
       default: return 'bg-gray-100 text-gray-800'
     }
   }
@@ -215,13 +302,22 @@ export default function AdminBookingsPage() {
     }
   }
 
+  const getPaymentStatusColor = (status: string) => {
+    switch (status) {
+      case 'paid': return 'bg-green-100 text-green-800 border-green-200'
+      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+      case 'refunded': return 'bg-red-100 text-red-800 border-red-200'
+      default: return 'bg-gray-100 text-gray-800 border-gray-200'
+    }
+  }
+
   const renderPhoneNumber = (phone: string, bookingId: string, className: string = "text-blue-500 hover:text-blue-700 underline cursor-pointer") => {
     const isActive = activePhoneMenu === bookingId
     
     return (
       <div className="relative inline-block">
         <button
-          onClick={(e) => {
+          onClick={(e: React.MouseEvent) => {
             e.stopPropagation()
             e.preventDefault()
             console.log('Phone button clicked, current active:', activePhoneMenu, 'bookingId:', bookingId)
@@ -241,7 +337,7 @@ export default function AdminBookingsPage() {
                  marginBottom: '4px'
                }}>
             <button
-              onClick={(e) => {
+              onClick={(e: React.MouseEvent) => {
                 e.stopPropagation()
                 window.location.href = `tel:${phone}`
                 setActivePhoneMenu(null)
@@ -252,7 +348,7 @@ export default function AdminBookingsPage() {
               Call
             </button>
             <button
-              onClick={(e) => {
+              onClick={(e: React.MouseEvent) => {
                 e.stopPropagation()
                 window.location.href = `sms:${phone}`
                 setActivePhoneMenu(null)
@@ -269,7 +365,7 @@ export default function AdminBookingsPage() {
   }
 
   const formatPrice = (price: number) => {
-    return price === 0 ? "Free" : `$${(price / 100).toFixed(2)}`
+    return price === 0 ? "Free" : `$${Math.round(price / 100)}`
   }
 
   const formatTime = (time: string) => {
@@ -308,7 +404,12 @@ export default function AdminBookingsPage() {
     }
     const timePart = dateTime.toLocaleTimeString('en-US', timeOptions)
     
-    return `${datePart} at ${timePart}`
+    return (
+      <div>
+        <div className="text-sm text-gray-900">{datePart}</div>
+        <div className="text-xs text-gray-500">{timePart}</div>
+      </div>
+    )
   }
 
   const formatDate = (date: string) => {
@@ -337,12 +438,6 @@ export default function AdminBookingsPage() {
 
   const handleCalendarDateSelect = (date: Date | undefined) => {
     setSelectedCalendarDate(date)
-    if (date) {
-      const appointments = getBookingsForDate(date)
-      if (appointments.length > 0) {
-        setShowCalendarAppointments(true)
-      }
-    }
   }
 
   const getCalendarDayModifiers = (date: Date) => {
@@ -421,16 +516,16 @@ export default function AdminBookingsPage() {
       </div>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
         <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
           <CardContent className="p-4 md:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl md:text-3xl font-bold text-gray-900">{bookings.filter(b => b.status === 'confirmed').length}</div>
-                <div className="text-xs md:text-sm text-gray-600 mt-1">Confirmed</div>
-              </div>
-              <div className="h-6 w-6 md:h-8 md:w-8 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-200">
-                <CheckCircle className="h-3 w-3 md:h-4 md:w-4 text-blue-600" strokeWidth={1.5} />
+            <div className="flex flex-col items-center text-center">
+              <div className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{bookings.filter(b => b.status === 'confirmed').length}</div>
+              <div className="flex items-center gap-2">
+                <div className="h-5 w-5 md:h-6 md:w-6 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-200">
+                  <CheckCircle className="h-3 w-3 md:h-4 md:w-4 text-blue-600" strokeWidth={1.5} />
+                </div>
+                <div className="text-xs md:text-sm text-gray-600">Confirmed</div>
               </div>
             </div>
           </CardContent>
@@ -438,13 +533,13 @@ export default function AdminBookingsPage() {
         <Link href="/admin/waitlist" className="block">
           <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50 hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="p-4 md:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-2xl md:text-3xl font-bold text-gray-900">{waitlistCount}</div>
-                  <div className="text-xs md:text-sm text-gray-600 mt-1">Waitlist</div>
-                </div>
-                <div className="h-6 w-6 md:h-8 md:w-8 bg-purple-50 rounded-lg flex items-center justify-center border border-purple-200">
-                  <ListChecks className="h-3 w-3 md:h-4 md:w-4 text-purple-600" strokeWidth={1.5} />
+              <div className="flex flex-col items-center text-center">
+                <div className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{waitlistCount}</div>
+                <div className="flex items-center gap-2">
+                  <div className="h-5 w-5 md:h-6 md:w-6 bg-purple-50 rounded-lg flex items-center justify-center border border-purple-200">
+                    <ListChecks className="h-3 w-3 md:h-4 md:w-4 text-purple-600" strokeWidth={1.5} />
+                  </div>
+                  <div className="text-xs md:text-sm text-gray-600">Waitlist</div>
                 </div>
               </div>
             </CardContent>
@@ -452,21 +547,21 @@ export default function AdminBookingsPage() {
         </Link>
         <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
           <CardContent className="p-4 md:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl md:text-3xl font-bold text-gray-900">
-                  {bookings.filter(b => {
-                    const today = new Date().toISOString().split('T')[0]
-                    // Parse booking date without timezone conversion to avoid day shift
-                    const [year, month, day] = b.booking_date.split('-').map(Number)
-                    const bookingDate = new Date(year, month - 1, day).toISOString().split('T')[0]
-                    return bookingDate === today
-                  }).length}
-                </div>
-                <div className="text-xs md:text-sm text-gray-600 mt-1">Today</div>
+            <div className="flex flex-col items-center text-center">
+              <div className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+                {bookings.filter(b => {
+                  const today = new Date().toISOString().split('T')[0]
+                  // Parse booking date without timezone conversion to avoid day shift
+                  const [year, month, day] = b.booking_date.split('-').map(Number)
+                  const bookingDate = new Date(year, month - 1, day).toISOString().split('T')[0]
+                  return bookingDate === today
+                }).length}
               </div>
-              <div className="h-6 w-6 md:h-8 md:w-8 bg-orange-50 rounded-lg flex items-center justify-center border border-orange-200">
-                <CalendarDays className="h-3 w-3 md:h-4 md:w-4 text-orange-600" strokeWidth={1.5} />
+              <div className="flex items-center gap-2">
+                <div className="h-5 w-5 md:h-6 md:w-6 bg-orange-50 rounded-lg flex items-center justify-center border border-orange-200">
+                  <CalendarDays className="h-3 w-3 md:h-4 md:w-4 text-orange-600" strokeWidth={1.5} />
+                </div>
+                <div className="text-xs md:text-sm text-gray-600">Today</div>
               </div>
             </div>
           </CardContent>
@@ -475,13 +570,18 @@ export default function AdminBookingsPage() {
         {/* Revenue Card */}
         <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
           <CardContent className="p-4 md:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl md:text-3xl font-bold text-gray-900">$0.00</div>
-                <div className="text-xs md:text-sm text-gray-600 mt-1">Revenue</div>
+            <div className="flex flex-col items-center text-center">
+              <div className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+                ${Math.round(bookings
+                  .filter(b => b.payment_status === 'paid')
+                  .reduce((sum, b) => sum + (b.price_charged || 0), 0) / 100
+                )}
               </div>
-              <div className="h-6 w-6 md:h-8 md:w-8 bg-emerald-50 rounded-lg flex items-center justify-center border border-emerald-200">
-                <DollarSign className="h-3 w-3 md:h-4 md:w-4 text-emerald-600" strokeWidth={1.5} />
+              <div className="flex items-center gap-2">
+                <div className="h-5 w-5 md:h-6 md:w-6 bg-emerald-50 rounded-lg flex items-center justify-center border border-emerald-200">
+                  <DollarSign className="h-3 w-3 md:h-4 md:w-4 text-emerald-600" strokeWidth={1.5} />
+                </div>
+                <div className="text-xs md:text-sm text-gray-600">Revenue</div>
               </div>
             </div>
           </CardContent>
@@ -510,9 +610,9 @@ export default function AdminBookingsPage() {
                 <SelectValue placeholder="Time" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Time</SelectItem>
-                <SelectItem value="today">Today</SelectItem>
                 <SelectItem value="upcoming">Upcoming</SelectItem>
+                <SelectItem value="today">Today</SelectItem>
+                <SelectItem value="all">All Time</SelectItem>
                 <SelectItem value="past">Past</SelectItem>
               </SelectContent>
             </Select>
@@ -527,7 +627,17 @@ export default function AdminBookingsPage() {
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="completed">Completed</SelectItem>
                 <SelectItem value="cancelled">Cancelled</SelectItem>
-                <SelectItem value="no-show">No Show</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={paymentFilter} onValueChange={setPaymentFilter}>
+              <SelectTrigger className="w-full sm:w-36 md:w-40">
+                <SelectValue placeholder="Payment" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Payments</SelectItem>
+                <SelectItem value="paid">Paid</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="refunded">Refunded</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -578,12 +688,10 @@ export default function AdminBookingsPage() {
                       onClick={() => openBookingDetails(booking)}
                       className="p-4 border-b border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors"
                     >
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <div className="font-medium text-gray-900">{booking.customers.name}</div>
-                          {renderPhoneNumber(booking.customers.phone, booking.id, "text-blue-500 hover:text-blue-700 underline cursor-pointer text-sm")}
-                        </div>
-                        <Badge className={`${getCustomerTypeColor(booking.customer_type_at_booking)} text-xs px-2 py-1`}>
+                      <div className="mb-3">
+                        <div className="font-medium text-gray-900">{booking.customers.name}</div>
+                        <div className="text-sm text-gray-500">{booking.customers.email}</div>
+                        <Badge className={`${getCustomerTypeColor(booking.customer_type_at_booking)} text-xs px-2 py-1 mt-1`}>
                           {booking.customer_type_at_booking}
                         </Badge>
                       </div>
@@ -591,23 +699,32 @@ export default function AdminBookingsPage() {
                       <div className="space-y-2 mb-3">
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-500">Service:</span>
-                          <span className="text-gray-900">{booking.services?.name || 'Service not found'}</span>
+                          <div className="text-right">
+                            <div className="text-gray-900">{booking.services?.name || 'Service not found'}</div>
+                            <div className="text-xs text-gray-500">{booking.duration_minutes} min</div>
+                          </div>
                         </div>
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">Date:</span>
-                          <span className="text-gray-900">{formatDate(booking.booking_date)}</span>
+                          <span className="text-gray-500">Date & Time:</span>
+                          {formatDateTime(booking.booking_date, booking.booking_time)}
                         </div>
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">Time:</span>
-                          <span className="text-gray-900">{formatTime(booking.booking_time)}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">Duration:</span>
-                          <span className="text-gray-900">{booking.duration_minutes} min</span>
+                          <span className="text-gray-500">Phone:</span>
+                          <div className="text-gray-900 cursor-pointer hover:text-blue-700" onClick={(e) => {
+                            e.stopPropagation()
+                            window.open(`tel:${booking.customers.phone}`, '_self')
+                          }}>
+                            {renderPhoneNumber(booking.customers.phone, booking.id, "text-blue-500 hover:text-blue-700 underline cursor-pointer")}
+                          </div>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-500">Price:</span>
-                          <span className="text-gray-900">{formatPrice(booking.price_charged)}</span>
+                          <div className="text-right">
+                            <div className="text-gray-900">{formatPrice(booking.price_charged)}</div>
+                            <Badge className={`${getPaymentStatusColor(booking.payment_status)} text-xs px-2 py-1 mt-1`}>
+                              {booking.payment_status}
+                            </Badge>
+                          </div>
                         </div>
                       </div>
                       
@@ -616,7 +733,7 @@ export default function AdminBookingsPage() {
                           variant="outline" 
                           size="sm"
                           className="h-8 px-2 text-xs"
-                          onClick={(e) => {
+                          onClick={(e: React.MouseEvent) => {
                             e.stopPropagation()
                             window.open(`tel:${booking.customers.phone}`, '_self')
                           }}
@@ -628,7 +745,7 @@ export default function AdminBookingsPage() {
                           variant="outline" 
                           size="sm"
                           className="h-8 px-2 text-xs"
-                          onClick={(e) => {
+                          onClick={(e: React.MouseEvent) => {
                             e.stopPropagation()
                             window.open(`sms:${booking.customers.phone}`, '_self')
                           }}
@@ -636,28 +753,69 @@ export default function AdminBookingsPage() {
                         >
                           <MessageSquare className="w-3 h-3" />
                         </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="h-8 px-3 text-xs flex-1"
-                          onClick={(e) => openRescheduleModal(booking, e)}
-                        >
-                          <RotateCcw className="w-3 h-3 mr-1" />
-                          Reschedule
-                        </Button>
+                        
+                        {/* Kebab Menu */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="h-8 px-2 text-xs"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreVertical className="w-3 h-3" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuPortal>
+                            <DropdownMenuContent align="end" className="z-[9999]" side="bottom" alignOffset={0} sideOffset={8}>
+                            <DropdownMenuItem 
+                              onClick={(e: React.MouseEvent) => {
+                                e.stopPropagation()
+                                openRescheduleModal(booking, e)
+                              }}
+                              disabled={booking.status === 'completed'}
+                            >
+                              <RotateCcw className="w-4 h-4 mr-2" />
+                              Reschedule
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={(e: React.MouseEvent) => {
+                                e.stopPropagation()
+                                generatePaymentLink(booking)
+                              }}
+                              disabled={booking.payment_status === 'paid'}
+                            >
+                              <CreditCard className="w-4 h-4 mr-2" />
+                              Pay with Square
+                            </DropdownMenuItem>
+                            {booking.status !== 'completed' && (
+                              <DropdownMenuItem 
+                                onClick={(e: React.MouseEvent) => {
+                                  e.stopPropagation()
+                                  markBookingComplete(booking)
+                                }}
+                              >
+                                <CheckSquare className="w-4 h-4 mr-2" />
+                                Mark Complete
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                          </DropdownMenuPortal>
+                        </DropdownMenu>
                       </div>
                     </div>
                   ))}
                 </div>
 
                 {/* Tablet Layout */}
-                <div className="hidden lg:block md:block xl:hidden overflow-x-auto">
+                <div className="hidden lg:block md:block xl:hidden overflow-x-auto overflow-y-visible">
                   <table className="w-full">
                     <thead className="bg-gray-50 border-b border-gray-200">
                       <tr>
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                       </tr>
@@ -672,32 +830,87 @@ export default function AdminBookingsPage() {
                           <td className="px-3 py-3 whitespace-nowrap">
                             <div>
                               <div className="text-sm font-medium text-gray-900">{booking.customers.name}</div>
-                              {renderPhoneNumber(booking.customers.phone, booking.id, "text-blue-500 hover:text-blue-700 underline cursor-pointer text-xs")}
+                              <Badge className={`${getCustomerTypeColor(booking.customer_type_at_booking)} text-xs px-2 py-1 mt-1`}>
+                                {booking.customer_type_at_booking}
+                              </Badge>
                             </div>
-                          </td>
-                          <td className="px-3 py-3 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{booking.services?.name || 'Service not found'}</div>
                           </td>
                           <td className="px-3 py-3 whitespace-nowrap">
                             <div>
-                              <div className="text-sm text-gray-900">{formatDateTime(booking.booking_date, booking.booking_time)}</div>
+                              <div className="text-sm text-gray-900">{booking.services?.name || 'Service not found'}</div>
+                              <div className="text-xs text-gray-500">{booking.duration_minutes} min</div>
+                            </div>
+                          </td>
+                          <td className="px-3 py-3 whitespace-nowrap">
+                            {formatDateTime(booking.booking_date, booking.booking_time)}
+                          </td>
+                          <td className="px-3 py-3 whitespace-nowrap">
+                            <div>
+                              <div className="text-sm text-gray-900 cursor-pointer hover:text-blue-700" onClick={(e) => {
+                                e.stopPropagation()
+                                window.open(`tel:${booking.customers.phone}`, '_self')
+                              }}>
+                                {renderPhoneNumber(booking.customers.phone, booking.id, "text-blue-500 hover:text-blue-700 underline cursor-pointer")}
+                              </div>
+                              <div className="text-xs text-gray-500">{booking.customers.email}</div>
                             </div>
                           </td>
                           <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-900">
-                            {formatPrice(booking.price_charged)}
-                          </td>
-                          <td className="px-3 py-3 whitespace-nowrap text-sm">
-                            <div className="flex gap-1">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                className="h-7 px-2 text-xs"
-                                onClick={(e) => openRescheduleModal(booking, e)}
-                              >
-                                <RotateCcw className="w-3 h-3 mr-1" />
-                                Reschedule
-                              </Button>
+                            <div>
+                              <div>{formatPrice(booking.price_charged)}</div>
+                              <Badge className={`${getPaymentStatusColor(booking.payment_status)} text-xs px-2 py-1 mt-1`}>
+                                {booking.payment_status}
+                              </Badge>
                             </div>
+                          </td>
+                          <td className="px-3 py-3 whitespace-nowrap text-sm relative">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  className="h-7 px-2 text-xs"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MoreVertical className="w-3 h-3" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuPortal>
+                            <DropdownMenuContent align="end" className="z-[9999]" side="bottom" alignOffset={0} sideOffset={8}>
+                                <DropdownMenuItem 
+                                  onClick={(e: React.MouseEvent) => {
+                                    e.stopPropagation()
+                                    openRescheduleModal(booking, e)
+                                  }}
+                                  disabled={booking.status === 'completed'}
+                                >
+                                  <RotateCcw className="w-4 h-4 mr-2" />
+                                  Reschedule
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={(e: React.MouseEvent) => {
+                                    e.stopPropagation()
+                                    generatePaymentLink(booking)
+                                  }}
+                                  disabled={booking.payment_status === 'paid'}
+                                >
+                                  <CreditCard className="w-4 h-4 mr-2" />
+                                  Pay with Square
+                                </DropdownMenuItem>
+                                {booking.status !== 'completed' && (
+                                  <DropdownMenuItem 
+                                    onClick={(e: React.MouseEvent) => {
+                                      e.stopPropagation()
+                                      markBookingComplete(booking)
+                                    }}
+                                  >
+                                    <CheckSquare className="w-4 h-4 mr-2" />
+                                    Mark Complete
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                          </DropdownMenuPortal>
+                            </DropdownMenu>
                           </td>
                         </tr>
                       ))}
@@ -706,16 +919,15 @@ export default function AdminBookingsPage() {
                 </div>
 
                 {/* Desktop Table Layout */}
-                <div className="hidden xl:block overflow-x-auto">
+                <div className="hidden xl:block overflow-x-auto overflow-y-visible">
                   <table className="w-full">
                     <thead className="bg-gray-50 border-b border-gray-200">
                       <tr>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                       </tr>
                     </thead>
@@ -729,40 +941,87 @@ export default function AdminBookingsPage() {
                           <td className="px-4 py-3 whitespace-nowrap">
                             <div>
                               <div className="text-sm font-medium text-gray-900">{booking.customers.name}</div>
-                              {renderPhoneNumber(booking.customers.phone, booking.id, "text-blue-500 hover:text-blue-700 underline cursor-pointer text-sm")}
+                              <Badge className={`${getCustomerTypeColor(booking.customer_type_at_booking)} text-xs px-2 py-1 mt-1`}>
+                                {booking.customer_type_at_booking}
+                              </Badge>
                             </div>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{booking.services?.name || 'Service not found'}</div>
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap">
                             <div>
-                              <div className="text-sm text-gray-900">{formatDateTime(booking.booking_date, booking.booking_time)}</div>
+                              <div className="text-sm text-gray-900">{booking.services?.name || 'Service not found'}</div>
+                              <div className="text-xs text-gray-500">{booking.duration_minutes} min</div>
                             </div>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                            {booking.duration_minutes} min
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                            {formatPrice(booking.price_charged)}
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap">
-                            <Badge className={`${getCustomerTypeColor(booking.customer_type_at_booking)} text-xs px-2 py-1`}>
-                              {booking.customer_type_at_booking}
-                            </Badge>
+                            <div className="text-sm text-gray-900">{formatDateTime(booking.booking_date, booking.booking_time)}</div>
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm">
-                            <div className="flex gap-2">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                className="h-7 px-2 text-xs"
-                                onClick={(e) => openRescheduleModal(booking, e)}
-                              >
-                                <RotateCcw className="w-3 h-3 mr-1" />
-                                Reschedule
-                              </Button>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div>
+                              <div className="text-sm text-gray-900 cursor-pointer hover:text-blue-700" onClick={(e) => {
+                                e.stopPropagation()
+                                window.open(`tel:${booking.customers.phone}`, '_self')
+                              }}>
+                                {renderPhoneNumber(booking.customers.phone, booking.id, "text-blue-500 hover:text-blue-700 underline cursor-pointer")}
+                              </div>
+                              <div className="text-xs text-gray-500">{booking.customers.email}</div>
                             </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                            <div>
+                              <div>{formatPrice(booking.price_charged)}</div>
+                              <Badge className={`${getPaymentStatusColor(booking.payment_status)} text-xs px-2 py-1 mt-1`}>
+                                {booking.payment_status}
+                              </Badge>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm relative">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  className="h-7 px-2 text-xs"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MoreVertical className="w-3 h-3" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuPortal>
+                            <DropdownMenuContent align="end" className="z-[9999]" side="bottom" alignOffset={0} sideOffset={8}>
+                                <DropdownMenuItem 
+                                  onClick={(e: React.MouseEvent) => {
+                                    e.stopPropagation()
+                                    openRescheduleModal(booking, e)
+                                  }}
+                                  disabled={booking.status === 'completed'}
+                                >
+                                  <RotateCcw className="w-4 h-4 mr-2" />
+                                  Reschedule
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={(e: React.MouseEvent) => {
+                                    e.stopPropagation()
+                                    generatePaymentLink(booking)
+                                  }}
+                                  disabled={booking.payment_status === 'paid'}
+                                >
+                                  <CreditCard className="w-4 h-4 mr-2" />
+                                  Pay with Square
+                                </DropdownMenuItem>
+                                {booking.status !== 'completed' && (
+                                  <DropdownMenuItem 
+                                    onClick={(e: React.MouseEvent) => {
+                                      e.stopPropagation()
+                                      markBookingComplete(booking)
+                                    }}
+                                  >
+                                    <CheckSquare className="w-4 h-4 mr-2" />
+                                    Mark Complete
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                          </DropdownMenuPortal>
+                            </DropdownMenu>
                           </td>
                         </tr>
                       ))}
@@ -848,13 +1107,31 @@ export default function AdminBookingsPage() {
                             {appointments.slice(0, 2).map((booking) => (
                               <div
                                 key={booking.id}
-                                onClick={(e) => {
+                                onClick={(e: React.MouseEvent) => {
                                   e.stopPropagation()
                                   openBookingDetails(booking)
                                 }}
                                 className={`text-xs p-1 rounded truncate cursor-pointer ${getCustomerTypeColorForCalendar(booking.customer_type_at_booking)}`}
                               >
-                                {formatTime(booking.booking_time)} - {booking.customers.name}
+                                <div className="flex items-center justify-between">
+                                  <span>
+                                    {formatTime(booking.booking_time)} - {booking.customers.name}
+                                  </span>
+                                  {booking.payment_status !== 'paid' && (
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      className="h-4 w-4 p-0 hover:bg-white/20"
+                                      onClick={(e: React.MouseEvent) => {
+                                        e.stopPropagation()
+                                        generatePaymentLink(booking)
+                                      }}
+                                      title="Generate payment link"
+                                    >
+                                      <CreditCard className="w-3 h-3" />
+                                    </Button>
+                                  )}
+                                </div>
                               </div>
                             ))}
                             {appointments.length > 2 && (
@@ -928,16 +1205,15 @@ export default function AdminBookingsPage() {
                         </span>
                       </div>
                       
-                      <div className="overflow-x-auto">
+                      <div className="overflow-x-auto overflow-y-visible">
                         <table className="w-full">
                           <thead className="bg-gray-50 border-b border-gray-200">
                             <tr>
                               <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
                               <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
                               <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                               <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                               <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
                           </thead>
@@ -953,62 +1229,103 @@ export default function AdminBookingsPage() {
                                 <td className="px-3 py-2 whitespace-nowrap">
                                   <div>
                                     <div className="text-sm font-medium text-gray-900">{booking.customers.name}</div>
-                                    {renderPhoneNumber(booking.customers.phone, booking.id, "text-blue-500 hover:text-blue-700 underline cursor-pointer text-sm")}
+                                    <Badge className={`${getCustomerTypeColor(booking.customer_type_at_booking)} text-xs px-2 py-1 mt-1`}>
+                                      {booking.customer_type_at_booking}
+                                    </Badge>
                                   </div>
                                 </td>
                                 <td className="px-3 py-2 whitespace-nowrap">
-                                  <div className="text-sm text-gray-900">{booking.services?.name || 'Service not found'}</div>
-                                </td>
-                                <td className="px-3 py-2 whitespace-nowrap">
-                                  <div className="text-sm text-gray-900">{formatTime(booking.booking_time)}</div>
-                                </td>
-                                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                                  {booking.duration_minutes} min
-                                </td>
-                                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                                  {formatPrice(booking.price_charged)}
-                                </td>
-                                <td className="px-3 py-2 whitespace-nowrap">
-                                  <Badge className={`${getCustomerTypeColor(booking.customer_type_at_booking)} text-xs px-2 py-1`}>
-                                    {booking.customer_type_at_booking}
-                                  </Badge>
-                                </td>
-                                <td className="px-3 py-2 whitespace-nowrap text-sm">
-                                  <div className="flex gap-1">
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm"
-                                      className="h-7 px-2 text-xs"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        window.open(`tel:${booking.customers.phone}`, '_self')
-                                      }}
-                                      title={`Call ${booking.customers.name}`}
-                                    >
-                                      <Phone className="w-3 h-3" />
-                                    </Button>
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm"
-                                      className="h-7 px-2 text-xs"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        window.open(`sms:${booking.customers.phone}`, '_self')
-                                      }}
-                                      title={`Text ${booking.customers.name}`}
-                                    >
-                                      <MessageSquare className="w-3 h-3" />
-                                    </Button>
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm"
-                                      className="h-7 px-2 text-xs"
-                                      onClick={(e) => openRescheduleModal(booking, e)}
-                                    >
-                                      <RotateCcw className="w-3 h-3 mr-1" />
-                                      Reschedule
-                                    </Button>
+                                  <div>
+                                    <div className="text-sm text-gray-900">{booking.services?.name || 'Service not found'}</div>
+                                    <div className="text-xs text-gray-500">{booking.duration_minutes} min</div>
                                   </div>
+                                </td>
+                                <td className="px-3 py-2 whitespace-nowrap">
+                                  {formatDateTime(booking.booking_date, booking.booking_time)}
+                                </td>
+                                <td className="px-3 py-2 whitespace-nowrap">
+                                  <div>
+                                    <div className="text-sm text-gray-900 cursor-pointer hover:text-blue-700" onClick={(e) => {
+                                      e.stopPropagation()
+                                      window.open(`tel:${booking.customers.phone}`, '_self')
+                                    }}>
+                                      {renderPhoneNumber(booking.customers.phone, booking.id, "text-blue-500 hover:text-blue-700 underline cursor-pointer")}
+                                    </div>
+                                    <div className="text-xs text-gray-500">{booking.customers.email}</div>
+                                  </div>
+                                </td>
+                                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <span>{formatPrice(booking.price_charged)}</span>
+                                      {booking.payment_status !== 'paid' && (
+                                        <Button 
+                                          variant="outline" 
+                                          size="sm"
+                                          className="h-6 px-2 text-xs"
+                                          onClick={(e: React.MouseEvent) => {
+                                            e.stopPropagation()
+                                            generatePaymentLink(booking)
+                                          }}
+                                          title="Generate payment link"
+                                        >
+                                          <CreditCard className="w-3 h-3" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                    <Badge className={`${getPaymentStatusColor(booking.payment_status)} text-xs px-2 py-1 mt-1`}>
+                                      {booking.payment_status}
+                                    </Badge>
+                                  </div>
+                                </td>
+                                <td className="px-3 py-2 whitespace-nowrap text-sm relative">
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button 
+                                        variant="outline" 
+                                        size="sm"
+                                        className="h-7 px-2 text-xs"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <MoreVertical className="w-3 h-3" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuPortal>
+                                      <DropdownMenuContent align="end" className="z-[9999]" side="bottom" alignOffset={0} sideOffset={8}>
+                                        <DropdownMenuItem 
+                                          onClick={(e: React.MouseEvent) => {
+                                            e.stopPropagation()
+                                            openRescheduleModal(booking, e)
+                                          }}
+                                          disabled={booking.status === 'completed'}
+                                        >
+                                          <RotateCcw className="w-4 h-4 mr-2" />
+                                          Reschedule
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem 
+                                          onClick={(e: React.MouseEvent) => {
+                                            e.stopPropagation()
+                                            generatePaymentLink(booking)
+                                          }}
+                                          disabled={booking.payment_status === 'paid'}
+                                        >
+                                          <CreditCard className="w-4 h-4 mr-2" />
+                                          Pay with Square
+                                        </DropdownMenuItem>
+                                        {booking.status !== 'completed' && (
+                                          <DropdownMenuItem 
+                                            onClick={(e: React.MouseEvent) => {
+                                              e.stopPropagation()
+                                              markBookingComplete(booking)
+                                            }}
+                                          >
+                                            <CheckSquare className="w-4 h-4 mr-2" />
+                                            Mark Complete
+                                          </DropdownMenuItem>
+                                        )}
+                                      </DropdownMenuContent>
+                                    </DropdownMenuPortal>
+                                  </DropdownMenu>
                                 </td>
                               </tr>
                             ))}
@@ -1040,7 +1357,7 @@ export default function AdminBookingsPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={(e) => {
+                    onClick={(e: React.MouseEvent) => {
                       e.stopPropagation()
                       e.preventDefault()
                       window.location.href = `tel:${selectedBooking.customers.phone}`
@@ -1053,7 +1370,7 @@ export default function AdminBookingsPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={(e) => {
+                    onClick={(e: React.MouseEvent) => {
                       e.stopPropagation()
                       e.preventDefault()
                       window.location.href = `sms:${selectedBooking.customers.phone}`
@@ -1088,7 +1405,7 @@ export default function AdminBookingsPage() {
                       <a 
                         href={`mailto:${selectedBooking.customers.email}`}
                         className="text-blue-500 hover:text-blue-700 underline cursor-pointer"
-                        onClick={(e) => {
+                        onClick={(e: React.MouseEvent) => {
                           e.stopPropagation()
                           window.location.href = `mailto:${selectedBooking.customers.email}`
                         }}
@@ -1103,8 +1420,6 @@ export default function AdminBookingsPage() {
                   </div>
                   <div>
                     <p><strong>Type:</strong> {selectedBooking.customer_type_at_booking}</p>
-                    <p><strong>Price Charged:</strong> {formatPrice(selectedBooking.price_charged)}</p>
-                    <p><strong>Payment Status:</strong> {selectedBooking.payment_status}</p>
                   </div>
                 </div>
               </div>
@@ -1121,6 +1436,22 @@ export default function AdminBookingsPage() {
                   <div>
                     <p><strong>Status:</strong> {selectedBooking.status}</p>
                     <p><strong>Created:</strong> {new Date(selectedBooking.created_at).toLocaleDateString()}</p>
+                    <div className="flex items-center gap-2">
+                      <p><strong>Price:</strong> {formatPrice(selectedBooking.price_charged)}</p>
+                      {selectedBooking.payment_status !== 'paid' && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => generatePaymentLink(selectedBooking)}
+                          title="Generate and copy payment link"
+                        >
+                          <CreditCard className="w-3 h-3 mr-1" />
+                          Pay Link
+                        </Button>
+                      )}
+                    </div>
+                    <p><strong>Payment Status:</strong> {selectedBooking.payment_status}</p>
                   </div>
                 </div>
               </div>
@@ -1130,7 +1461,8 @@ export default function AdminBookingsPage() {
                 <Button
                   variant="destructive"
                   size="sm"
-                  className="bg-red-600 hover:bg-red-700 text-xs sm:text-sm sm:size-lg"
+                  className="bg-red-600 hover:bg-red-700 text-xs sm:text-sm sm:size-lg disabled:bg-gray-700 disabled:cursor-not-allowed"
+                  disabled={selectedBooking.payment_status === 'paid'}
                   onClick={() => {
                     setBookingToDelete(selectedBooking.id)
                     setShowDeleteConfirm(true)
@@ -1139,6 +1471,11 @@ export default function AdminBookingsPage() {
                 >
                   🗑️ DELETE BOOKING
                 </Button>
+                {selectedBooking.payment_status === 'paid' && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Cannot delete paid bookings to maintain financial integrity
+                  </p>
+                )}
               </div>
             </div>
           )}
