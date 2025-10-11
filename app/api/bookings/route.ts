@@ -10,7 +10,12 @@ export async function POST(request: NextRequest) {
     const supabase = await createServerSupabaseClient()
     
     const body = await request.json()
-    const { serviceId, date, time, customerInfo, isLoggedIn } = body
+    const { serviceId, date, time, customerInfo, isLoggedIn, waitlistId } = body
+
+    // Debug logging for waitlist tracking
+    if (waitlistId) {
+      console.log('🎯 [WAITLIST TRACKING] Booking API received waitlistId:', waitlistId)
+    }
 
     // Validate required fields
     if (!serviceId || !date || !time || !customerInfo) {
@@ -18,8 +23,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate that the appointment is in the future using timezone-aware check
-    if (!(await isFutureAppointment(date, time))) {
-      return NextResponse.json({ error: 'Appointment must be scheduled for a future date and time' }, { status: 400 })
+    try {
+      const isFuture = await isFutureAppointment(date, time)
+      if (!isFuture) {
+        return NextResponse.json({ error: 'Appointment must be scheduled for a future date and time' }, { status: 400 })
+      }
+    } catch (error) {
+      console.error('Error validating future appointment:', error)
+      return NextResponse.json({ error: 'Error validating appointment time' }, { status: 400 })
     }
 
     // Get service details
@@ -85,7 +96,18 @@ export async function POST(request: NextRequest) {
 
         if (createError) {
           console.error('Error creating customer:', createError)
-          return NextResponse.json({ error: 'Failed to create customer' }, { status: 500 })
+          console.error('Customer data that failed:', {
+            email: user.email,
+            auth_user_id: user.id,
+            name: `${customerInfo.firstName || ''} ${customerInfo.lastName || ''}`.trim() || user.email,
+            phone: customerInfo.phone || '',
+            is_existing_customer: false
+          })
+          return NextResponse.json({ 
+            error: 'Failed to create customer',
+            details: createError.message,
+            code: createError.code
+          }, { status: 500 })
         }
 
         customerId = newCustomer.id
@@ -116,7 +138,18 @@ export async function POST(request: NextRequest) {
           .single()
 
         if (createError) {
-          return NextResponse.json({ error: 'Failed to create customer' }, { status: 500 })
+          console.error('Error creating customer (non-logged in):', createError)
+          console.error('Customer data that failed:', {
+            email: customerInfo.email,
+            name: `${customerInfo.firstName} ${customerInfo.lastName}`.trim(),
+            phone: customerInfo.phone,
+            is_existing_customer: false
+          })
+          return NextResponse.json({ 
+            error: 'Failed to create customer',
+            details: createError.message,
+            code: createError.code
+          }, { status: 500 })
         }
 
         customerId = newCustomer.id
@@ -177,6 +210,31 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
+    // Handle waitlist conversion if this booking came from a waitlist notification
+    if (waitlistId && booking) {
+      try {
+        console.log('🎯 [WAITLIST CONVERSION] Processing waitlist conversion for ID:', waitlistId)
+        
+        const { error: waitlistError } = await supabase
+          .from('waitlist_requests')
+          .update({
+            status: 'converted',
+            converted_at: new Date().toISOString(),
+            converted_booking_id: booking.id
+          })
+          .eq('id', waitlistId)
+        
+        if (waitlistError) {
+          console.error('❌ [WAITLIST CONVERSION] Error updating waitlist entry:', waitlistError)
+        } else {
+          console.log('✅ [WAITLIST CONVERSION] Successfully marked waitlist as converted')
+        }
+      } catch (error) {
+        console.error('❌ [WAITLIST CONVERSION] Exception during waitlist conversion:', error)
+        // Don't fail the booking if waitlist conversion fails
+      }
+    }
+
     // Create Google Calendar event if connected
     try {
       const googleCalendar = new GoogleCalendarService()
@@ -223,7 +281,15 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Booking API error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      body: body
+    })
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
 }
 

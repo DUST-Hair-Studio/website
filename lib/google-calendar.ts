@@ -352,7 +352,7 @@ Booking ID: ${booking.id}`
     try {
       const accessToken = await this.getAccessToken()
       if (!accessToken) {
-        console.log('No Google Calendar access token available')
+        console.log('🔴 No Google Calendar access token available')
         return []
       }
 
@@ -364,13 +364,28 @@ Booking ID: ${booking.id}`
 
       const calendarId = calendarData?.value
       if (!calendarId) {
-        console.log('No Google Calendar ID configured')
+        console.log('🔴 No Google Calendar ID configured')
         return []
       }
 
+      // Get business timezone
+      const businessTimezone = await getBusinessTimezone()
+      
+      // Create proper ISO strings for the API call with timezone
+      const timeMin = `${startDate}T00:00:00`
+      const timeMax = `${endDate}T23:59:59`
+      
+      console.log('🔍 Fetching Google Calendar events:', { 
+        calendarId, 
+        timeMin, 
+        timeMax,
+        timezone: businessTimezone
+      })
+
       const response = await fetch(
-        `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?` +
-        `timeMin=${startDate}T00:00:00-08:00&timeMax=${endDate}T23:59:59-08:00&` +
+        `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?` +
+        `timeMin=${timeMin}Z&timeMax=${timeMax}Z&` +
+        `timeZone=${businessTimezone}&` +
         `singleEvents=true&orderBy=startTime`,
         {
           headers: {
@@ -380,11 +395,16 @@ Booking ID: ${booking.id}`
       )
 
       if (!response.ok) {
-        console.error('Google Calendar API error:', response.status, await response.text())
+        const errorText = await response.text()
+        console.error('🔴 Google Calendar API error:', response.status, errorText)
         return []
       }
 
       const data = await response.json()
+      console.log('✅ Google Calendar API response:', {
+        totalEvents: data.items?.length || 0
+      })
+      
       const blockedSlots: Array<{ date: string; start_time: string; end_time: string }> = []
 
       // Filter out events that are not from our booking system
@@ -394,36 +414,164 @@ Booking ID: ${booking.id}`
         return isExternal
       }) || []
 
+      console.log('🔍 External events found (excluding our bookings):', externalEvents.length)
+
       for (const event of externalEvents) {
-        const startDateTime = new Date(event.start.dateTime || event.start.date)
-        const endDateTime = new Date(event.end.dateTime || event.end.date)
+        console.log('🔍 Processing event:', {
+          summary: event.summary,
+          start: event.start,
+          end: event.end
+        })
         
-        // Convert to Pacific timezone for consistency
-        const pacificStart = new Date(startDateTime.toLocaleString("en-US", {timeZone: "America/Los_Angeles"}))
-        const pacificEnd = new Date(endDateTime.toLocaleString("en-US", {timeZone: "America/Los_Angeles"}))
-        
-        // Format date as YYYY-MM-DD in Pacific timezone
-        const year = pacificStart.getFullYear()
-        const month = String(pacificStart.getMonth() + 1).padStart(2, '0')
-        const day = String(pacificStart.getDate()).padStart(2, '0')
-        const dateStr = `${year}-${month}-${day}`
-        
-        // Format time as HH:MM in Pacific timezone
-        const startTime = pacificStart.toTimeString().slice(0, 5)
-        const endTime = pacificEnd.toTimeString().slice(0, 5)
-        
-        const blockedSlot = {
-          date: dateStr,
-          start_time: startTime,
-          end_time: endTime
+        // Handle all-day events differently
+        if (event.start.date && !event.start.dateTime) {
+          // All-day event - block the entire business day
+          const startDate = event.start.date // Already in YYYY-MM-DD format
+          const endDate = event.end?.date // End date is exclusive in Google Calendar
+          
+          console.log('📅 All-day event detected:', {
+            start: startDate,
+            end: endDate,
+            summary: event.summary
+          })
+          
+          // Handle multi-day all-day events
+          if (endDate && endDate !== startDate) {
+            // Multi-day event - block all days from start to end (end is exclusive)
+            const currentDate = new Date(startDate + 'T00:00:00')
+            const lastDate = new Date(endDate + 'T00:00:00')
+            
+            console.log('📅 Multi-day all-day event - blocking range:', {
+              from: startDate,
+              to: endDate,
+              summary: event.summary
+            })
+            
+            while (currentDate < lastDate) {
+              const dateStr = currentDate.toISOString().split('T')[0]
+              blockedSlots.push({
+                date: dateStr,
+                start_time: '00:00',
+                end_time: '23:59'
+              })
+              currentDate.setDate(currentDate.getDate() + 1)
+            }
+          } else {
+            // Single day all-day event
+            blockedSlots.push({
+              date: startDate,
+              start_time: '00:00',
+              end_time: '23:59'
+            })
+          }
+        } else {
+          // Regular timed event
+          const startDateTime = new Date(event.start.dateTime)
+          const endDateTime = new Date(event.end.dateTime)
+          
+          console.log('🔍 Raw Google Calendar event times (UTC):', {
+            start: startDateTime.toISOString(),
+            end: endDateTime.toISOString()
+          })
+          
+          // Use Intl.DateTimeFormat to properly convert timezone
+          // This is the CORRECT way to handle timezones
+          const formatter = new Intl.DateTimeFormat('en-CA', {
+            timeZone: businessTimezone,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+          })
+          
+          const startParts = formatter.formatToParts(startDateTime)
+          const endParts = formatter.formatToParts(endDateTime)
+          
+          const getPartValue = (parts: Intl.DateTimeFormatPart[], type: string) => 
+            parts.find(p => p.type === type)?.value || '00'
+          
+          // Extract date components for start time
+          const startYear = getPartValue(startParts, 'year')
+          const startMonth = getPartValue(startParts, 'month')
+          const startDay = getPartValue(startParts, 'day')
+          const startHour = getPartValue(startParts, 'hour')
+          const startMinute = getPartValue(startParts, 'minute')
+          
+          // Extract date components for end time (might be different day if spans midnight)
+          const endYear = getPartValue(endParts, 'year')
+          const endMonth = getPartValue(endParts, 'month')
+          const endDay = getPartValue(endParts, 'day')
+          const endHour = getPartValue(endParts, 'hour')
+          const endMinute = getPartValue(endParts, 'minute')
+          
+          const startDateStr = `${startYear}-${startMonth}-${startDay}`
+          const endDateStr = `${endYear}-${endMonth}-${endDay}`
+          const startTime = `${startHour}:${startMinute}`
+          const endTime = `${endHour}:${endMinute}`
+          
+          console.log('⏰ Timed event converted to', businessTimezone + ':', {
+            startDate: startDateStr,
+            endDate: endDateStr,
+            startTime,
+            endTime,
+            originalStartUTC: startDateTime.toISOString(),
+            originalEndUTC: endDateTime.toISOString()
+          })
+          
+          // Check if event spans midnight
+          if (startDateStr !== endDateStr) {
+            // Event spans multiple days - split into separate blocked slots
+            console.log('🌙 Event spans midnight - splitting into multiple slots')
+            
+            // Block from start time to end of start day
+            blockedSlots.push({
+              date: startDateStr,
+              start_time: startTime,
+              end_time: '23:59'
+            })
+            
+            // If there are full days in between, block them entirely
+            const startDateObj = new Date(`${startDateStr}T00:00:00`)
+            const endDateObj = new Date(`${endDateStr}T00:00:00`)
+            const daysDiff = Math.floor((endDateObj.getTime() - startDateObj.getTime()) / (1000 * 60 * 60 * 24))
+            
+            for (let i = 1; i < daysDiff; i++) {
+              const middleDate = new Date(startDateObj)
+              middleDate.setDate(middleDate.getDate() + i)
+              const middleDateStr = middleDate.toISOString().split('T')[0]
+              blockedSlots.push({
+                date: middleDateStr,
+                start_time: '00:00',
+                end_time: '23:59'
+              })
+            }
+            
+            // Block from start of end day to end time
+            blockedSlots.push({
+              date: endDateStr,
+              start_time: '00:00',
+              end_time: endTime
+            })
+            
+            console.log(`✅ Created ${1 + (daysDiff - 1) + 1} blocked slots for multi-day event`)
+          } else {
+            // Same day event
+            blockedSlots.push({
+              date: startDateStr,
+              start_time: startTime,
+              end_time: endTime
+            })
+          }
         }
-        
-        blockedSlots.push(blockedSlot)
       }
 
+      console.log('✅ Total blocked slots created:', blockedSlots.length, blockedSlots)
       return blockedSlots
     } catch (error) {
-      console.error('Error getting blocked time:', error)
+      console.error('🔴 Error getting blocked time:', error)
       return []
     }
   }

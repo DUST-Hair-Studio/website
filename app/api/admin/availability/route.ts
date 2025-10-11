@@ -89,11 +89,17 @@ export async function GET(request: NextRequest) {
       const googleCalendar = new GoogleCalendarService()
       const isConnected = await googleCalendar.isConnected()
       
+      console.log('🔍 Google Calendar connection status:', isConnected)
+      
       if (isConnected) {
+        console.log('🔄 Fetching blocked time from Google Calendar...', { startDate, endDate })
         blockedTimeSlots = await googleCalendar.getBlockedTime(startDate, endDate)
+        console.log('✅ Google Calendar blocked slots received:', blockedTimeSlots.length, blockedTimeSlots)
+      } else {
+        console.log('⚠️ Google Calendar not connected - no blocked time will be applied')
       }
     } catch (error) {
-      console.error('Error getting Google Calendar blocked time:', error)
+      console.error('🔴 Error getting Google Calendar blocked time:', error)
       // Continue without blocked time if calendar sync fails
     }
 

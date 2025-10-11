@@ -7,7 +7,7 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 export interface EmailTemplate {
   id: string
   name: string
-  type: 'confirmation' | 'reminder' | 'followup' | 'cancellation' | 'reschedule' | 'custom'
+  type: 'confirmation' | 'reminder' | 'followup' | 'cancellation' | 'reschedule' | 'waitlist' | 'custom'
   subject: string
   message: string
   hours_before: number
@@ -36,6 +36,18 @@ export interface BusinessSettings {
   business_email: string
   business_address: string
   timezone: string
+}
+
+export interface WaitlistConfirmationData {
+  customer: {
+    name: string
+    email: string
+  }
+  service: {
+    name: string
+  }
+  start_date: string
+  end_date: string
 }
 
 export class EmailService {
@@ -105,7 +117,7 @@ export class EmailService {
   }
 
   // Get active email template by type
-  private async getEmailTemplate(type: 'confirmation' | 'reminder' | 'followup' | 'cancellation' | 'reschedule'): Promise<EmailTemplate | null> {
+  private async getEmailTemplate(type: 'confirmation' | 'reminder' | 'followup' | 'cancellation' | 'reschedule' | 'waitlist'): Promise<EmailTemplate | null> {
     const { data: template, error } = await this.supabase
       .from('reminder_templates')
       .select('*')
@@ -454,6 +466,125 @@ export class EmailService {
     } catch (error) {
       console.error('❌ [RESCHEDULE EMAIL] Exception in sendRescheduleEmail:', error)
       await this.logEmailSend(booking.id, '', 'Reschedule', 'failed', undefined, error instanceof Error ? error.message : 'Unknown error')
+      return false
+    }
+  }
+
+  // Send waitlist confirmation email when customer joins waitlist
+  async sendWaitlistConfirmationEmail(data: WaitlistConfirmationData): Promise<boolean> {
+    try {
+      console.log('📧 [WAITLIST CONFIRMATION] Starting to send confirmation email')
+
+      // Check if Resend is configured
+      if (!resend) {
+        console.log('❌ [WAITLIST CONFIRMATION] Resend API key not configured')
+        return false
+      }
+
+      const businessSettings = await this.getBusinessSettings()
+
+      // Check if email is enabled
+      const { data: emailEnabled } = await this.supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'email_enabled')
+        .single()
+
+      if (emailEnabled?.value === false) {
+        console.log('❌ [WAITLIST CONFIRMATION] Email notifications are disabled')
+        return false
+      }
+
+      // Format dates for display - avoid timezone conversion by parsing manually
+      const formatDateForEmail = (dateString: string, timezone: string) => {
+        // Parse YYYY-MM-DD format directly without timezone conversion
+        const [year, month, day] = dateString.split('-').map(Number)
+        const date = new Date(year, month - 1, day) // month is 0-indexed
+        
+        return date.toLocaleDateString('en-US', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          timeZone: timezone
+        })
+      }
+
+      const startDateFormatted = formatDateForEmail(data.start_date, businessSettings.timezone)
+      const endDateFormatted = formatDateForEmail(data.end_date, businessSettings.timezone)
+
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+      const appointmentsUrl = `${baseUrl}/appointments`
+
+      const subject = `You're on the Waitlist - ${data.service.name}`
+      const message = `Hi ${data.customer.name},
+
+You've been successfully added to the waitlist for ${data.service.name}!
+
+Date Range: ${startDateFormatted} to ${endDateFormatted}
+
+What happens next?
+• We'll automatically check for available appointments in this date range
+• You'll receive an email notification if a spot opens up
+• Available slots are first-come, first-served
+• You'll have 48 hours to book after receiving a notification
+
+You can view your waitlist requests anytime in your account.
+
+Best regards,
+${businessSettings.business_name}
+${businessSettings.business_phone}`
+
+      const htmlMessage = message.replace(/\n/g, '<br>')
+
+      const { data: emailData, error } = await resend.emails.send({
+        from: businessSettings.business_email,
+        to: [data.customer.email],
+        subject,
+        text: message,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #333;">${subject}</h2>
+            <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3b82f6;">
+              <p style="margin: 0; color: #1e3a8a; font-size: 16px; font-weight: 600;">
+                ✅ You're on the waitlist!
+              </p>
+            </div>
+            <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <p style="margin: 0 0 10px 0;"><strong>Service:</strong> ${data.service.name}</p>
+              <p style="margin: 0 0 10px 0;"><strong>Date Range:</strong> ${startDateFormatted} to ${endDateFormatted}</p>
+              <br>
+              <p style="margin: 0 0 10px 0;"><strong>What happens next?</strong></p>
+              <ul style="margin: 10px 0; padding-left: 20px;">
+                <li>We'll automatically check for available appointments daily</li>
+                <li>You'll receive an email if a spot opens up in your date range</li>
+                <li>Available slots are first-come, first-served</li>
+                <li>You'll have 48 hours to book after receiving a notification</li>
+              </ul>
+            </div>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${appointmentsUrl}" style="display: inline-block; background-color: #1C1C1D; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">
+                View My Appointments
+              </a>
+            </div>
+            <div style="border-top: 1px solid #eee; padding-top: 20px; font-size: 12px; color: #666;">
+              <p>📧 We'll only email you when a slot becomes available</p>
+              <p>If you have any questions, please contact us at ${businessSettings.business_phone}</p>
+            </div>
+          </div>
+        `
+      })
+
+      if (error) {
+        console.error('❌ [WAITLIST CONFIRMATION] Error sending email:', error)
+        return false
+      }
+
+      console.log('✅ [WAITLIST CONFIRMATION] Email sent successfully!', { emailId: emailData?.id, to: data.customer.email })
+      return true
+
+    } catch (error) {
+      console.error('❌ [WAITLIST CONFIRMATION] Exception in sendWaitlistConfirmationEmail:', error)
       return false
     }
   }

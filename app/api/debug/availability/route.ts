@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminSupabaseClient } from '@/lib/supabase-server'
+import { GoogleCalendarService } from '@/lib/google-calendar'
 
 // Debug endpoint to check availability issues
 export async function GET(request: NextRequest) {
@@ -58,6 +59,24 @@ export async function GET(request: NextRequest) {
       .lte('booking_date', endDate)
       .in('status', ['pending', 'confirmed'])
 
+    // Get Google Calendar blocked time
+    let googleCalendarStatus = {
+      isConnected: false,
+      blockedSlots: [] as Array<{ date: string; start_time: string; end_time: string }>,
+      error: null as string | null
+    }
+    
+    try {
+      const googleCalendar = new GoogleCalendarService()
+      googleCalendarStatus.isConnected = await googleCalendar.isConnected()
+      
+      if (googleCalendarStatus.isConnected) {
+        googleCalendarStatus.blockedSlots = await googleCalendar.getBlockedTime(startDate, endDate)
+      }
+    } catch (error) {
+      googleCalendarStatus.error = error instanceof Error ? error.message : 'Unknown error'
+    }
+
     return NextResponse.json({
       debug: {
         startDate,
@@ -67,7 +86,8 @@ export async function GET(request: NextRequest) {
         businessHours,
         openDays: businessHours.filter(h => h.is_open),
         bookings: bookings || [],
-        bookingsError: bookingsError
+        bookingsError: bookingsError,
+        googleCalendar: googleCalendarStatus
       }
     })
   } catch (error) {

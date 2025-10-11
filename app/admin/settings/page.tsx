@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
-import { Loader2, Calendar, Clock, Link, Unlink, CheckCircle, XCircle, CreditCard, Building } from 'lucide-react'
+import { Loader2, Calendar, Clock, Link, Unlink, CheckCircle, XCircle, CreditCard, Building, ListChecks } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface BusinessHours {
@@ -48,6 +48,10 @@ interface PaymentSettings {
 
 interface ScheduleSettings {
   buffer_time_minutes: number
+}
+
+interface WaitlistSettings {
+  enabled: boolean
 }
 
 const DAYS = [
@@ -119,6 +123,11 @@ function AdminSettingsContent() {
   const [scheduleSettings, setScheduleSettings] = useState<ScheduleSettings>({
     buffer_time_minutes: 0
   })
+  
+  // Waitlist Settings State
+  const [waitlistSettings, setWaitlistSettings] = useState<WaitlistSettings>({
+    enabled: true
+  })
 
   // Initialize business hours with default values
   useEffect(() => {
@@ -161,6 +170,7 @@ function AdminSettingsContent() {
         setBusinessSettings(prev => ({ ...prev, ...settingsData.business }))
         setPaymentSettings(prev => ({ ...prev, ...settingsData.payments }))
         setScheduleSettings(prev => ({ ...prev, ...settingsData.schedule }))
+        setWaitlistSettings(prev => ({ ...prev, ...settingsData.waitlist }))
       }
     } catch (error) {
       console.error('Error fetching settings:', error)
@@ -207,6 +217,19 @@ function AdminSettingsContent() {
 
       if (!settingsResponse.ok) {
         throw new Error('Failed to save schedule settings')
+      }
+      
+      // Save waitlist settings
+      const waitlistResponse = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          waitlist: waitlistSettings 
+        })
+      })
+
+      if (!waitlistResponse.ok) {
+        throw new Error('Failed to save waitlist settings')
       }
 
       toast.success('Schedule settings saved successfully')
@@ -537,6 +560,40 @@ function AdminSettingsContent() {
               <Button onClick={saveBusinessHours} disabled={saving}>
                 {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Save Buffer Time
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Waitlist Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ListChecks className="h-5 w-5" />
+                Waitlist Settings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 p-4 sm:p-6">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="waitlist_enabled">Enable Waitlist</Label>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Allow customers to join a waitlist when no appointments are available
+                    </p>
+                  </div>
+                  <Switch
+                    id="waitlist_enabled"
+                    checked={waitlistSettings.enabled}
+                    onCheckedChange={(checked) => 
+                      setWaitlistSettings(prev => ({ ...prev, enabled: checked }))
+                    }
+                  />
+                </div>
+              </div>
+              
+              <Button onClick={saveBusinessHours} disabled={saving}>
+                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Save Waitlist Settings
               </Button>
             </CardContent>
           </Card>

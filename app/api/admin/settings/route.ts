@@ -47,11 +47,16 @@ export async function GET() {
       buffer_time_minutes: settingsMap.buffer_time_minutes || 0
     }
 
+    const waitlist = {
+      enabled: settingsMap.waitlist_enabled !== false // Default to true if not set
+    }
+
     return NextResponse.json({
       business,
       notifications,
       payments,
-      schedule
+      schedule,
+      waitlist
     })
   } catch (error) {
     console.error('Admin settings API error:', error)
@@ -66,9 +71,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     
     // Handle both old format { type, settings } and new format { business, schedule, etc. }
-    const { type, settings, business, schedule, payments, notifications } = body
+    const { type, settings, business, schedule, payments, notifications, waitlist } = body
 
-    if (!type && !business && !schedule && !payments && !notifications) {
+    if (!type && !business && !schedule && !payments && !notifications && !waitlist) {
       return NextResponse.json({ error: 'Settings data is required' }, { status: 400 })
     }
 
@@ -118,6 +123,11 @@ export async function POST(request: NextRequest) {
       const scheduleData = schedule || settings
       if (scheduleData.buffer_time_minutes !== undefined) {
         updates.push({ key: 'buffer_time_minutes', value: scheduleData.buffer_time_minutes, updated_at: now })
+      }
+    } else if (type === 'waitlist' || waitlist) {
+      const waitlistData = waitlist || settings
+      if (waitlistData.enabled !== undefined) {
+        updates.push({ key: 'waitlist_enabled', value: waitlistData.enabled, updated_at: now })
       }
     } else {
       return NextResponse.json({ error: 'Invalid settings type' }, { status: 400 })

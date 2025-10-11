@@ -24,7 +24,17 @@
   }
   
   body {
-    background-color: #FAFAFA;
+    background-color: #FAFAFA !important;
+    color: #000000 !important;
+  }
+  
+  /* Force light mode on everything */
+  * {
+    color-scheme: light !important;
+  }
+  
+  html {
+    color-scheme: light !important;
   }
 }
 

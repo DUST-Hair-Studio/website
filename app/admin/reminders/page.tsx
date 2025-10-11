@@ -17,7 +17,7 @@ import { toast } from 'sonner'
 interface ReminderTemplate {
   id: string
   name: string
-  type: 'confirmation' | 'reminder' | 'followup' | 'cancellation' | 'reschedule' | 'custom'
+  type: 'confirmation' | 'reminder' | 'followup' | 'cancellation' | 'reschedule' | 'waitlist' | 'custom'
   subject: string
   message: string
   hours_before: number
@@ -46,6 +46,7 @@ const REMINDER_TYPES = [
   { value: 'followup', label: 'Follow-up', description: 'Sent after appointment' },
   { value: 'cancellation', label: 'Cancellation', description: 'Sent when booking is cancelled' },
   { value: 'reschedule', label: 'Reschedule', description: 'Sent when booking is rescheduled' },
+  { value: 'waitlist', label: 'Waitlist', description: 'Sent when appointment becomes available' },
   { value: 'custom', label: 'Custom', description: 'Custom reminder template' }
 ]
 
@@ -93,7 +94,7 @@ function AdminRemindersContent() {
   // Form state
   const [templateForm, setTemplateForm] = useState({
     name: '',
-    type: 'reminder' as 'confirmation' | 'reminder' | 'followup' | 'cancellation' | 'reschedule' | 'custom',
+    type: 'reminder' as 'confirmation' | 'reminder' | 'followup' | 'cancellation' | 'reschedule' | 'waitlist' | 'custom',
     subject: '',
     message: '',
     hours_before: 24,
@@ -351,7 +352,7 @@ function AdminRemindersContent() {
                     <Label htmlFor="template_type">Template Type</Label>
                     <Select
                       value={templateForm.type}
-                      onValueChange={(value: string) => setTemplateForm(prev => ({ ...prev, type: value as 'confirmation' | 'reminder' | 'followup' | 'cancellation' | 'reschedule' | 'custom' }))}
+                      onValueChange={(value: string) => setTemplateForm(prev => ({ ...prev, type: value as 'confirmation' | 'reminder' | 'followup' | 'cancellation' | 'reschedule' | 'waitlist' | 'custom' }))}
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue />
@@ -468,7 +469,7 @@ function AdminRemindersContent() {
           {/* Templates List */}
           <div className="space-y-4">
             {templates.map((template) => (
-              <Card key={template.id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
+              <Card key={template.id} className="shadow-sm hover:shadow-md transition-shadow">
                 <CardContent className="p-4 sm:p-6">
                   {/* Mobile Layout */}
                   <div className="block sm:hidden">
@@ -625,7 +626,7 @@ function AdminRemindersContent() {
           ) : (
             <div className="space-y-4">
               {reminderHistory.map((reminder) => (
-                <Card key={reminder.id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
+                <Card key={reminder.id} className="shadow-sm hover:shadow-md transition-shadow">
                   <CardContent className="p-4 sm:p-6">
                     {/* Mobile Layout */}
                     <div className="block sm:hidden">

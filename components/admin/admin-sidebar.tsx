@@ -15,7 +15,8 @@ import {
   Menu,
   X,
   LogOut,
-  Home
+  Home,
+  ListChecks
 } from 'lucide-react'
 
 export function AdminSidebar() {
@@ -23,15 +24,65 @@ export function AdminSidebar() {
   const { user, signOut } = useAuth()
   const [isCollapsed, setIsCollapsed] = useState(true) // Start collapsed on mobile
   const [isMobile, setIsMobile] = useState(false)
+  const [waitlistEnabled, setWaitlistEnabled] = useState(true)
+  const [unreadWaitlistCount, setUnreadWaitlistCount] = useState(0)
 
-  const navItems = [
+  // Fetch waitlist setting and unread count
+  useEffect(() => {
+    const fetchWaitlistSetting = async () => {
+      try {
+        const response = await fetch('/api/admin/settings')
+        if (response.ok) {
+          const data = await response.json()
+          setWaitlistEnabled(data.waitlist?.enabled !== false) // Default to true if not set
+        }
+      } catch (error) {
+        console.error('Error fetching waitlist setting:', error)
+        // Default to enabled if there's an error
+        setWaitlistEnabled(true)
+      }
+    }
+    
+    const fetchUnreadCount = async () => {
+      try {
+        const response = await fetch('/api/admin/waitlist/unread-count')
+        if (response.ok) {
+          const data = await response.json()
+          console.log('🔔 [WAITLIST BADGE] Fetched unread count:', data)
+          setUnreadWaitlistCount(data.unreadCount || 0)
+        } else {
+          console.error('🔔 [WAITLIST BADGE] Failed to fetch unread count:', response.status)
+        }
+      } catch (error) {
+        console.error('🔔 [WAITLIST BADGE] Error fetching unread waitlist count:', error)
+      }
+    }
+    
+    fetchWaitlistSetting()
+    fetchUnreadCount()
+    
+    // Refresh unread count every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const baseNavItems = [
     { href: '/admin/bookings', label: 'Bookings', icon: Calendar },
     { href: '/admin/customers', label: 'Customers', icon: Users },
     { href: '/admin/services', label: 'Services', icon: Scissors },
     { href: '/admin/schedule', label: 'Schedule', icon: Clock },
+    { href: '/admin/waitlist', label: 'Waitlist', icon: ListChecks },
     { href: '/admin/reminders', label: 'Reminders', icon: Bell },
     { href: '/admin/settings', label: 'Settings', icon: Settings },
   ]
+
+  // Filter nav items based on waitlist setting
+  const navItems = baseNavItems.filter(item => {
+    if (item.href === '/admin/waitlist') {
+      return waitlistEnabled
+    }
+    return true
+  })
 
   const isActive = (href: string) => pathname === href
 
@@ -129,7 +180,7 @@ export function AdminSidebar() {
                 href={item.href}
                 onClick={handleNavClick}
                 className={`
-                  flex items-center px-3 py-3 rounded-lg text-sm font-medium transition-colors
+                  flex items-center px-3 py-3 rounded-lg text-sm font-medium transition-colors relative
                   ${isActive(item.href)
                     ? 'bg-gray-900 text-white'
                     : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
@@ -137,8 +188,35 @@ export function AdminSidebar() {
                   ${isCollapsed ? 'justify-center' : ''} ${touchTargetSize}
                 `}
               >
-                <Icon className={`${iconSize} ${isCollapsed ? '' : 'mr-3'}`} strokeWidth={iconStrokeWidth} />
-                {!isCollapsed && item.label}
+                {/* Icon with notification badge container (only for collapsed state) */}
+                {isCollapsed ? (
+                  <div className="relative">
+                    <Icon className="h-5 w-5" strokeWidth={1.5} />
+                    
+                    {/* Notification Badge for Waitlist - Collapsed State */}
+                    {item.href === '/admin/waitlist' && unreadWaitlistCount > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center bg-red-500 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] px-1">
+                        {unreadWaitlistCount > 99 ? '99+' : unreadWaitlistCount}
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  /* Expanded State - Icon without badge */
+                  <Icon className="h-5 w-5 mr-3" strokeWidth={1.5} />
+                )}
+                
+                {/* Text and Badge for Expanded State */}
+                {!isCollapsed && (
+                  <>
+                    {item.label}
+                    {/* Notification Badge for Waitlist - Expanded State */}
+                    {item.href === '/admin/waitlist' && unreadWaitlistCount > 0 && (
+                      <span className="ml-auto flex items-center justify-center bg-red-500 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] px-1">
+                        {unreadWaitlistCount > 99 ? '99+' : unreadWaitlistCount}
+                      </span>
+                    )}
+                  </>
+                )}
               </Link>
             )
           })}

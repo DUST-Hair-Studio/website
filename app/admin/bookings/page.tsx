@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { Booking } from '@/types'
 import { Button } from '@/components/ui/button'
 import { formatBusinessDateTime } from '@/lib/timezone-utils-client'
@@ -10,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Calendar as CalendarComponent } from '@/components/ui/calendar'
-import { CheckCircle, Calendar, DollarSign, CalendarDays, RotateCcw, Search, Filter, Table, Grid3X3, Phone, MessageSquare, Mail } from 'lucide-react'
+import { CheckCircle, Calendar, DollarSign, CalendarDays, RotateCcw, Search, Filter, Table, Grid3X3, Phone, MessageSquare, Mail, ListChecks } from 'lucide-react'
 import RescheduleModal from '@/components/admin/reschedule-modal'
 
 interface BookingWithDetails extends Booking {
@@ -45,6 +46,7 @@ export default function AdminBookingsPage() {
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | undefined>(undefined)
   const [showCalendarAppointments, setShowCalendarAppointments] = useState(false)
   const [activePhoneMenu, setActivePhoneMenu] = useState<string | null>(null)
+  const [waitlistCount, setWaitlistCount] = useState(0)
 
   // Close phone menu when clicking outside
   useEffect(() => {
@@ -57,6 +59,17 @@ export default function AdminBookingsPage() {
       return () => document.removeEventListener('click', handleClickOutside)
     }
   }, [activePhoneMenu])
+
+  // Fetch waitlist count
+  const fetchWaitlistCount = async () => {
+    try {
+      const response = await fetch('/api/admin/waitlist')
+      const data = await response.json()
+      setWaitlistCount(data.waitlist?.length || 0)
+    } catch (error) {
+      console.error('Error fetching waitlist count:', error)
+    }
+  }
 
   // Fetch all bookings
   useEffect(() => {
@@ -73,6 +86,7 @@ export default function AdminBookingsPage() {
     }
 
     fetchBookings()
+    fetchWaitlistCount()
   }, [])
 
   // Helper function to check if a date is upcoming
@@ -421,19 +435,21 @@ export default function AdminBookingsPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
-          <CardContent className="p-4 md:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-2xl md:text-3xl font-bold text-gray-900">{bookings.filter(b => b.status === 'completed').length}</div>
-                <div className="text-xs md:text-sm text-gray-600 mt-1">Completed</div>
+        <Link href="/admin/waitlist" className="block">
+          <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50 hover:shadow-md transition-shadow cursor-pointer">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-2xl md:text-3xl font-bold text-gray-900">{waitlistCount}</div>
+                  <div className="text-xs md:text-sm text-gray-600 mt-1">Waitlist</div>
+                </div>
+                <div className="h-6 w-6 md:h-8 md:w-8 bg-purple-50 rounded-lg flex items-center justify-center border border-purple-200">
+                  <ListChecks className="h-3 w-3 md:h-4 md:w-4 text-purple-600" strokeWidth={1.5} />
+                </div>
               </div>
-              <div className="h-6 w-6 md:h-8 md:w-8 bg-green-50 rounded-lg flex items-center justify-center border border-green-200">
-                <Calendar className="h-3 w-3 md:h-4 md:w-4 text-green-600" strokeWidth={1.5} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </Link>
         <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
           <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">

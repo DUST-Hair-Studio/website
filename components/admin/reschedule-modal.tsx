@@ -9,6 +9,7 @@ import { Calendar } from '@/components/ui/calendar'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Calendar as CalendarIcon, Clock, RefreshCw, AlertCircle, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import WaitlistForm from '@/components/customer/waitlist-form'
 
 interface BookingWithDetails extends Booking {
   services: {
@@ -423,11 +424,36 @@ export default function RescheduleModal({
                       )
                     })
                   ) : (
-                    <p className="text-gray-500 text-center py-4">No available times for this date</p>
+                    <div>
+                      <p className="text-gray-500 text-center py-4">No available times for this date</p>
+                      {/* Show waitlist option when no times available */}
+                      {booking?.services && (
+                        <WaitlistForm
+                          serviceId={booking.service_id}
+                          serviceName={booking.services.name}
+                          compact={true}
+                          onSuccess={() => {
+                            toast.success('You\'ll be notified if a spot opens up!')
+                          }}
+                        />
+                      )}
+                    </div>
                   )}
                 </div>
               ) : (
                 <p className="text-gray-500">Please select a date first</p>
+              )}
+              
+              {/* Also show waitlist option at bottom even when times are available */}
+              {selectedDate && availableTimes.length > 0 && booking?.services && (
+                <WaitlistForm
+                  serviceId={booking.service_id}
+                  serviceName={booking.services.name}
+                  compact={true}
+                  onSuccess={() => {
+                    toast.success('You\'ll be notified if a spot opens up!')
+                  }}
+                />
               )}
             </CardContent>
           </Card>

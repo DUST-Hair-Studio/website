@@ -10,12 +10,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Calendar } from '@/components/ui/calendar'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import WaitlistForm from '@/components/customer/waitlist-form'
+import { toast } from 'sonner'
 
 function BookPageContent() {
   const { user, loading } = useAuth()
   const searchParams = useSearchParams()
   const router = useRouter()
   const serviceId = searchParams.get('serviceId')
+  const waitlistId = searchParams.get('waitlist_id')
+  
+  // Debug logging for waitlist tracking
+  useEffect(() => {
+    if (waitlistId) {
+      console.log('🎯 [WAITLIST TRACKING] Waitlist ID detected in URL:', waitlistId)
+    }
+  }, [waitlistId])
   
   const [selectedService, setSelectedService] = useState<Service | null>(null)
   const [services, setServices] = useState<Service[]>([])
@@ -33,6 +43,7 @@ function BookPageContent() {
   const [loadingTimes, setLoadingTimes] = useState(false)
   const [loadingCalendar, setLoadingCalendar] = useState(false)
   const [businessHours, setBusinessHours] = useState<{day_of_week: number; is_open: boolean; open_time: string; close_time: string; timezone: string}[]>([])
+  const [waitlistEnabled, setWaitlistEnabled] = useState(true)
   
   const [step, setStep] = useState(1) // 1: Service, 2: Date/Time, 3: Details, 4: Confirmation
 
@@ -67,6 +78,25 @@ function BookPageContent() {
 
     fetchServices()
   }, [serviceId])
+
+  // Fetch waitlist setting
+  useEffect(() => {
+    const fetchWaitlistSetting = async () => {
+      try {
+        const response = await fetch('/api/admin/settings')
+        if (response.ok) {
+          const data = await response.json()
+          setWaitlistEnabled(data.waitlist?.enabled !== false) // Default to true if not set
+        }
+      } catch (error) {
+        console.error('Error fetching waitlist setting:', error)
+        // Default to enabled if there's an error
+        setWaitlistEnabled(true)
+      }
+    }
+
+    fetchWaitlistSetting()
+  }, [])
 
   // Fetch customer info if logged in
   useEffect(() => {
@@ -455,7 +485,8 @@ function BookPageContent() {
         date: dateStr,
         time: selectedTime,
         customerInfo,
-        isLoggedIn: !!user
+        isLoggedIn: !!user,
+        waitlistId: waitlistId || null
       }
 
       const response = await fetch('/api/bookings', {
@@ -472,6 +503,9 @@ function BookPageContent() {
         console.error('Booking failed:', result.error)
         console.error('Error details:', result.details)
         console.error('Error code:', result.code)
+        
+        // Show user-friendly error message
+        toast.error(result.details || result.error || 'Booking failed. Please try again.')
       }
     } catch (error) {
       console.error('Error creating booking:', error)
@@ -554,7 +588,7 @@ function BookPageContent() {
                   <div
                     key={service.id}
                     onClick={() => handleServiceSelect(service)}
-                    className="p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                    className="p-4 border-2 border-black rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
                   >
                     <div className="flex justify-between items-start">
                       <div>
@@ -692,11 +726,30 @@ function BookPageContent() {
                         </Button>
                       ))
                     ) : (
-                      <p className="text-gray-500 text-center py-4">No available times for this date</p>
+                      <div>
+                        <p className="text-gray-500 text-center py-4">No available times for this date</p>
+                        {/* Show waitlist option when no times available */}
+                        {waitlistEnabled && (
+                          <WaitlistForm
+                            serviceId={selectedService.id}
+                            serviceName={selectedService.name}
+                            compact={true}
+                          />
+                        )}
+                      </div>
                     )}
                   </div>
                 ) : (
                   <p className="text-gray-500">Please select a date first</p>
+                )}
+                
+                {/* Also show waitlist option at bottom even when times are available */}
+                {selectedDate && availableTimes.length > 0 && waitlistEnabled && (
+                  <WaitlistForm
+                    serviceId={selectedService.id}
+                    serviceName={selectedService.name}
+                    compact={true}
+                  />
                 )}
               </CardContent>
             </Card>

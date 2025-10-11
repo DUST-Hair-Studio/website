@@ -188,9 +188,37 @@ export async function calculateEndTime(
  * @returns Promise<boolean> - true if the appointment is in the future
  */
 export async function isFutureAppointment(dateString: string, timeString: string, timezone?: string): Promise<boolean> {
-  const appointmentTime = await createBusinessDateTime(dateString, timeString, timezone)
-  const now = await getCurrentBusinessTime()
-  return appointmentTime > now
+  try {
+    // Ensure time string has seconds if not provided
+    const fullTimeString = timeString.includes(':') && timeString.split(':').length === 2 
+      ? `${timeString}:00` 
+      : timeString
+    
+    // Create appointment date in local timezone (business timezone)
+    const appointmentDateTime = new Date(`${dateString}T${fullTimeString}`)
+    const now = new Date()
+    
+    // Add a buffer to account for timezone differences and processing time
+    const bufferMinutes = 10 // Increased buffer
+    const bufferTime = new Date(now.getTime() - bufferMinutes * 60000) // Subtract buffer instead of adding
+    
+    // Debug logging
+    console.log('🔍 Timezone validation:', {
+      dateString,
+      timeString,
+      fullTimeString,
+      appointmentDateTime: appointmentDateTime.toISOString(),
+      now: now.toISOString(),
+      bufferTime: bufferTime.toISOString(),
+      isFuture: appointmentDateTime > bufferTime
+    })
+    
+    return appointmentDateTime > bufferTime
+  } catch (error) {
+    console.error('Error in isFutureAppointment:', error)
+    // If there's an error, default to allowing the appointment
+    return true
+  }
 }
 
 /**

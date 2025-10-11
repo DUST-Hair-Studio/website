@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { GoogleCalendarService } from '@/lib/google-calendar'
 import { EmailService } from '@/lib/email-service'
+import { waitlistService } from '@/lib/waitlist-service'
 import { createBusinessDateTime, calculateEndTime } from '@/lib/timezone-utils'
 
 export async function PUT(
@@ -181,6 +182,18 @@ export async function PUT(
       // Continue with the response even if email fails
     }
 
+    // Notify waitlist users about the freed up slot
+    try {
+      await waitlistService.notifyWaitlist({
+        booking_date: oldDate,
+        booking_time: oldTime,
+        service_id: currentBooking.service_id
+      })
+    } catch (error) {
+      console.error('Error notifying waitlist:', error)
+      // Continue even if waitlist notification fails
+    }
+
     return NextResponse.json({ booking: updatedBooking })
 
   } catch (error) {
@@ -258,6 +271,18 @@ export async function PATCH(
         console.error('Error sending cancellation email:', error)
         // Continue with the response even if email fails
       }
+
+      // Notify waitlist users about the freed up slot
+      try {
+        await waitlistService.notifyWaitlist({
+          booking_date: booking.booking_date,
+          booking_time: booking.booking_time,
+          service_id: booking.service_id
+        })
+      } catch (error) {
+        console.error('Error notifying waitlist:', error)
+        // Continue even if waitlist notification fails
+      }
     }
 
     return NextResponse.json({ booking })
@@ -276,10 +301,11 @@ export async function DELETE(
     const supabase = await createServerSupabaseClient()
     const { id } = await params
 
-    // First, get the booking to check if it has a Google Calendar event
+    // First, get the booking with full details to check if it has a Google Calendar event
+    // and to notify waitlist
     const { data: booking, error: fetchError } = await supabase
       .from('bookings')
-      .select('google_calendar_event_id')
+      .select('google_calendar_event_id, booking_date, booking_time, service_id')
       .eq('id', id)
       .single()
 
@@ -312,6 +338,18 @@ export async function DELETE(
     if (error) {
       console.error('Error deleting booking:', error)
       return NextResponse.json({ error: 'Failed to delete booking' }, { status: 500 })
+    }
+
+    // Notify waitlist users about the freed up slot
+    try {
+      await waitlistService.notifyWaitlist({
+        booking_date: booking.booking_date,
+        booking_time: booking.booking_time,
+        service_id: booking.service_id
+      })
+    } catch (error) {
+      console.error('Error notifying waitlist:', error)
+      // Continue even if waitlist notification fails
     }
 
     return NextResponse.json({ success: true })

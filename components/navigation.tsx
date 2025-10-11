@@ -103,11 +103,18 @@ export function Navigation() {
             {isLoggedIn ? (
               <>
                 {!isAdmin && (
-                  <Link href="/appointments">
-                    <Button variant="outline" className="border-black text-black hover:bg-gray-100">
-                      Manage Bookings
-                    </Button>
-                  </Link>
+                  <>
+                    <Link href="/appointments">
+                      <Button variant="outline" className="border-black text-black hover:bg-gray-100">
+                        Manage Bookings
+                      </Button>
+                    </Link>
+                    <Link href="/waitlist">
+                      <Button variant="ghost" className="text-black hover:bg-gray-100">
+                        Waitlist
+                      </Button>
+                    </Link>
+                  </>
                 )}
                 {isAdmin && (
                   <Link href="/admin">
@@ -197,13 +204,22 @@ export function Navigation() {
               {isLoggedIn ? (
                 <>
                   {!isAdmin && (
-                    <Link 
-                      href="/appointments" 
-                      className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      Manage Bookings
-                    </Link>
+                    <>
+                      <Link 
+                        href="/appointments" 
+                        className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        Manage Bookings
+                      </Link>
+                      <Link 
+                        href="/waitlist" 
+                        className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        Waitlist
+                      </Link>
+                    </>
                   )}
                   {isAdmin && (
                     <Link 

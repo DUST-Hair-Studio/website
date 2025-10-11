@@ -88,3 +88,31 @@ export interface Setting {
   updated_at: string;
   updated_by?: string;
 }
+
+export interface WaitlistRequest {
+  id: string;
+  customer_id: string;
+  service_id: string;
+  start_date: string; // YYYY-MM-DD format
+  end_date: string; // YYYY-MM-DD format
+  status: 'pending' | 'notified' | 'converted' | 'expired' | 'cancelled';
+  notified_at?: string;
+  expires_at?: string;
+  converted_at?: string;
+  converted_booking_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WaitlistRequestWithDetails extends WaitlistRequest {
+  services: {
+    name: string;
+    description?: string;
+    duration_minutes: number;
+  };
+  customers: {
+    name: string;
+    email: string;
+    phone: string;
+  };
+}
