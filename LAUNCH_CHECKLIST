@@ -14,21 +14,20 @@ Add these variables:
 2. Resend Email Variables:
    - RESEND_API_KEY (your production Resend API key)
 
-3. Square Payment Variables (Optional - for future POS integration):
+3. Square Payment Variables (Optional - Fallback Only):
    - SQUARE_ACCESS_TOKEN (your PRODUCTION Square Access Token)
    - SQUARE_ENVIRONMENT (set to "production")
    - SQUARE_LOCATION_ID (your Square location ID)
    
-   Note: Square is used for in-person payments via Square POS after appointments.
-   The booking system does NOT require pre-payment - customers book first, pay after service.
+   ⚠️  IMPORTANT: Square credentials are now managed through the Admin Settings page!
+   Environment variables are kept as fallback only. Configure Square in:
+   Admin Panel → Settings → Payments Tab
    
-   Square POS Workflow:
-   1. Customer books appointment online (no payment required)
-   2. Customer completes service at salon
-   3. Stylist takes payment using Square POS
-   4. Stylist adds booking ID to transaction note/reference
-   5. Admin can manually mark booking as "paid" in dashboard
-   6. (Future) Sync Square transactions to auto-update payment status
+   Square Payment Configuration:
+   - Enable Square Payment Processing toggle
+   - Set Environment: Sandbox (for soft launch) or Production (for live)
+   - Add Square Application ID, Access Token, and Location ID
+   - All settings are stored in database and can be changed without redeploying
 
 4. Google Calendar Variables (if using):
    - GOOGLE_CLIENT_ID
@@ -43,6 +42,30 @@ Run this SQL in Supabase SQL Editor:
 
 For Square payment tracking fields:
 See: database-migrations/square-payment-fields.sql
+
+Square Payment Settings Configuration
+
+1. Access Admin Settings:
+   - Go to your site: https://website-sigma-steel-43.vercel.app/admin
+   - Navigate to Settings → Payments Tab
+
+2. Configure Square Settings:
+   - ✅ Enable "Square Payment Processing" toggle
+   - 🔧 Set Environment: "Sandbox (Testing)" for soft launch
+   - 📝 Add Square Application ID (starts with sq0idp-...)
+   - 🔑 Add Square Access Token (starts with EAAA...)
+   - 📍 Add Square Location ID
+   - 💾 Click "Save Payment Settings"
+
+3. For Soft Launch (Recommended):
+   - Use Sandbox environment
+   - Test with Square's test card numbers
+   - Verify payment links are generated correctly
+
+4. For Production Launch:
+   - Switch Environment to "Production (Live)"
+   - Update credentials with production values
+   - Test with real (small) transactions first
 Email Templates Verification
 Check if templates exist:
 If missing, create them:
@@ -63,6 +86,16 @@ Reschedule the booking → Should send reschedule email
 Cancel the booking → Should send cancellation email
 Check email delivery in Resend dashboard
 Verify appointment links work correctly
+
+Square Payment Testing (if enabled):
+✅ Test payment link generation in admin panel
+✅ Verify Square credentials are working (check browser console for errors)
+✅ Test with Square's test card numbers:
+   - Visa: 4111 1111 1111 1111
+   - Mastercard: 5555 5555 5555 4444
+   - Expiry: Any future date, CVV: Any 3 digits
+✅ Confirm payment webhooks are received
+✅ Verify booking status updates to "paid" after successful payment
 MX Records (Separate Chat)
 Email deliverability configuration
 SPF/DKIM records for Resend
@@ -70,6 +103,8 @@ Domain authentication
 🎯 Priority Order:
 Environment Variables (Vercel)
 Database Migration (Supabase)
+Square Payment Settings Configuration (Admin Panel)
 Test Email Functionality
+Test Square Payment Integration (if enabled)
 MX Records (separate chat)
 Would you like me to help you with any specific step from this checklist?

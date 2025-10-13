@@ -477,7 +477,7 @@ export default function AdminServicesPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Duration</p>
                   <p className="text-lg">{formatDuration(service.duration_minutes)}</p>

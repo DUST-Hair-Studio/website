@@ -90,13 +90,29 @@ function BookingConfirmationContent() {
   }
 
   const formatDateTime = (date: string, time: string) => {
-    const appointmentDate = new Date(date)
-    return appointmentDate.toLocaleDateString('en-US', {
+    // Create the actual date-time and format it properly with timezone
+    const dateTime = new Date(`${date}T${time}`)
+    
+    // Format date part with timezone
+    const dateOptions: Intl.DateTimeFormatOptions = {
+      timeZone: 'America/Los_Angeles',
       weekday: 'long',
       year: 'numeric',
       month: 'long',
       day: 'numeric'
-    }) + ` at ${time}`
+    }
+    const formattedDate = dateTime.toLocaleDateString('en-US', dateOptions)
+    
+    // Format time to 12-hour format with AM/PM
+    const timeOptions: Intl.DateTimeFormatOptions = {
+      timeZone: 'America/Los_Angeles',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    }
+    const formattedTime = dateTime.toLocaleTimeString('en-US', timeOptions)
+    
+    return `${formattedDate} at ${formattedTime}`
   }
 
   return (

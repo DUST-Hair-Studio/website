@@ -1,5 +1,6 @@
 // Square payment link generation for admin use
 import { getSquareClient } from './square';
+import { createAdminSupabaseClient } from './supabase-server';
 import { randomUUID } from 'crypto';
 
 export async function createPaymentLink(booking: {
@@ -13,10 +14,32 @@ export async function createPaymentLink(booking: {
   try {
     const squareClient = await getSquareClient();
     
+    // Get location ID - prefer environment variable for local development
+    let locationId = process.env.SQUARE_LOCATION_ID;
+    
+    // For local development, use environment variable
+    if (process.env.NODE_ENV === 'development' && locationId) {
+      console.log('🔧 Using environment variable for location ID in local development');
+    } else if (!locationId) {
+      // Fallback to database settings
+      const supabase = createAdminSupabaseClient();
+      const { data: locationSetting } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'square_location_id')
+        .single();
+      
+      locationId = locationSetting?.value as string;
+    }
+    
+    if (!locationId) {
+      throw new Error('Square location ID is not configured');
+    }
+    
     const response = await squareClient.checkout.paymentLinks.create({
       idempotencyKey: randomUUID(),
       order: {
-        locationId: process.env.SQUARE_LOCATION_ID!,
+        locationId: locationId,
         lineItems: [
           {
             name: booking.serviceName,

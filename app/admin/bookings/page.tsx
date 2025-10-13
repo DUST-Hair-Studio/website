@@ -268,15 +268,6 @@ export default function AdminBookingsPage() {
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800'
-      case 'confirmed': return 'bg-blue-100 text-blue-800'
-      case 'completed': return 'bg-green-100 text-green-800'
-      case 'cancelled': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
-    }
-  }
 
   const getCustomerTypeColor = (customerType: string) => {
     switch (customerType) {
@@ -412,19 +403,6 @@ export default function AdminBookingsPage() {
     )
   }
 
-  const formatDate = (date: string) => {
-    // Format date without time
-    const dateObj = new Date(`${date}T00:00:00`)
-    const dateOptions: Intl.DateTimeFormatOptions = {
-      timeZone: 'America/Los_Angeles',
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric'
-    }
-    
-    return dateObj.toLocaleDateString('en-US', dateOptions)
-  }
 
   // Calendar helper functions
   const getBookingsForDate = (date: Date) => {
@@ -440,14 +418,6 @@ export default function AdminBookingsPage() {
     setSelectedCalendarDate(date)
   }
 
-  const getCalendarDayModifiers = (date: Date) => {
-    const appointmentCount = getAppointmentCountForDate(date)
-    return {
-      hasAppointments: appointmentCount > 0,
-      hasManyAppointments: appointmentCount >= 3,
-      isToday: date.toDateString() === new Date().toDateString()
-    }
-  }
 
   const generateCalendarDays = () => {
     const today = new Date()
@@ -1123,7 +1093,7 @@ export default function AdminBookingsPage() {
                                   <span>
                                     {formatTime(booking.booking_time)} - {booking.customers.name}
                                   </span>
-                                  {booking.payment_status !== 'paid' && (
+                                  {booking.payment_status !== 'paid' && booking.price_charged && booking.price_charged > 0 && (
                                     <Button 
                                       variant="ghost" 
                                       size="sm"
@@ -1264,7 +1234,7 @@ export default function AdminBookingsPage() {
                                   <div>
                                     <div className="flex items-center gap-2">
                                       <span>{formatPrice(booking.price_charged)}</span>
-                                      {booking.payment_status !== 'paid' && (
+                                      {booking.payment_status !== 'paid' && booking.price_charged && booking.price_charged > 0 && (
                                         <Button 
                                           variant="outline" 
                                           size="sm"

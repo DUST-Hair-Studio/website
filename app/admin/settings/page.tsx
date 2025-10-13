@@ -43,7 +43,8 @@ interface PaymentSettings {
   square_enabled: boolean
   square_application_id: string
   square_access_token: string
-  payment_required: boolean
+  square_environment: string
+  square_location_id: string
 }
 
 interface ScheduleSettings {
@@ -82,7 +83,7 @@ function AdminSettingsContent() {
   const [saving, setSaving] = useState(false)
   const [disconnectDialog, setDisconnectDialog] = useState<{
     open: boolean
-    type: 'google-calendar' | 'payments' | null
+    type: 'google-calendar' | 'square-payments' | null
     title: string
     description: string
   }>({
@@ -116,7 +117,8 @@ function AdminSettingsContent() {
     square_enabled: false,
     square_application_id: '',
     square_access_token: '',
-    payment_required: false
+    square_environment: 'production',
+    square_location_id: ''
   })
   
   // Schedule Settings State
@@ -310,6 +312,21 @@ function AdminSettingsContent() {
     })
   }
 
+  const handleSquarePaymentToggle = (checked: boolean) => {
+    if (!checked && paymentSettings.square_enabled) {
+      // Show confirmation dialog when disabling Square payments
+      setDisconnectDialog({
+        open: true,
+        type: 'square-payments',
+        title: 'Disable Square Payments',
+        description: 'Are you sure you want to disable Square payment processing? This will prevent customers from making payments through Square. All existing payment links will stop working. You can re-enable it at any time.'
+      })
+    } else {
+      // Directly enable or if it's already disabled
+      setPaymentSettings(prev => ({ ...prev, square_enabled: checked }))
+    }
+  }
+
   const confirmDisconnect = async () => {
     try {
       if (disconnectDialog.type === 'google-calendar') {
@@ -323,6 +340,10 @@ function AdminSettingsContent() {
         } else {
           throw new Error('Failed to disconnect Google Calendar')
         }
+      } else if (disconnectDialog.type === 'square-payments') {
+        // Disable Square payments
+        setPaymentSettings(prev => ({ ...prev, square_enabled: false }))
+        toast.success('Square payments disabled successfully')
       }
       
       // Close dialog
@@ -619,22 +640,29 @@ function AdminSettingsContent() {
                   <Switch
                     id="square_enabled"
                     checked={paymentSettings.square_enabled}
-                    onCheckedChange={(checked) => setPaymentSettings(prev => ({ ...prev, square_enabled: checked }))}
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="payment_required">Payment Required</Label>
-                    <p className="text-sm text-gray-600">Require payment at time of booking</p>
-                  </div>
-                  <Switch
-                    id="payment_required"
-                    checked={paymentSettings.payment_required}
-                    onCheckedChange={(checked) => setPaymentSettings(prev => ({ ...prev, payment_required: checked }))}
+                    onCheckedChange={handleSquarePaymentToggle}
                   />
                 </div>
                 {paymentSettings.square_enabled && (
                   <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
+                    <div className="space-y-2">
+                      <Label htmlFor="square_environment">Square Environment</Label>
+                      <Select
+                        value={paymentSettings.square_environment}
+                        onValueChange={(value) => setPaymentSettings(prev => ({ ...prev, square_environment: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="sandbox">Sandbox (Testing)</SelectItem>
+                          <SelectItem value="production">Production (Live)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-sm text-gray-600">
+                        Use Sandbox for testing, Production for live payments
+                      </p>
+                    </div>
                     <div className="space-y-2">
                       <Label htmlFor="square_application_id">Square Application ID</Label>
                       <Input
@@ -654,6 +682,18 @@ function AdminSettingsContent() {
                         onChange={(e) => setPaymentSettings(prev => ({ ...prev, square_access_token: e.target.value }))}
                         placeholder="EAAA..."
                       />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="square_location_id">Square Location ID</Label>
+                      <Input
+                        id="square_location_id"
+                        value={paymentSettings.square_location_id}
+                        onChange={(e) => setPaymentSettings(prev => ({ ...prev, square_location_id: e.target.value }))}
+                        placeholder="Your Square location ID"
+                      />
+                      <p className="text-sm text-gray-600">
+                        Found in your Square Dashboard → Locations → Location Details
+                      </p>
                     </div>
                   </div>
                 )}

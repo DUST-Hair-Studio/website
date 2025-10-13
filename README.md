@@ -519,6 +519,83 @@ const hasNoAvailability = (date: Date) => {
 
 ## Troubleshooting
 
+### Timezone and Date Formatting Issues
+
+#### Military Time Display Problem
+**Problem**: Appointment times showing as "13:00:00" instead of "1:00 PM"
+**Root Cause**: Inconsistent timezone handling between different pages
+**Solution**: Always use timezone-aware formatting with proper locale settings
+
+**Correct Implementation Pattern**:
+```typescript
+const formatDateTime = (date: string, time: string) => {
+  // Create the actual date-time and format it properly with timezone
+  const dateTime = new Date(`${date}T${time}`)
+  
+  // Format date part with timezone
+  const dateOptions: Intl.DateTimeFormatOptions = {
+    timeZone: 'America/Los_Angeles',
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  }
+  const formattedDate = dateTime.toLocaleDateString('en-US', dateOptions)
+  
+  // Format time to 12-hour format with AM/PM
+  const timeOptions: Intl.DateTimeFormatOptions = {
+    timeZone: 'America/Los_Angeles',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  }
+  const formattedTime = dateTime.toLocaleTimeString('en-US', timeOptions)
+  
+  return `${formattedDate} at ${formattedTime}`
+}
+```
+
+**Common Mistakes to Avoid**:
+```typescript
+// ❌ WRONG - Shows military time
+const appointmentDate = new Date(date)
+return appointmentDate.toLocaleDateString('en-US', {...}) + ` at ${time}`
+
+// ❌ WRONG - No timezone handling
+const dateTime = new Date(2025, 0, 1, hours, minutes, seconds || 0)
+const formattedTime = dateTime.toLocaleTimeString('en-US', {
+  hour: 'numeric',
+  minute: '2-digit',
+  hour12: true
+})
+
+// ✅ CORRECT - Timezone-aware with proper date-time creation
+const dateTime = new Date(`${date}T${time}`)
+const formattedTime = dateTime.toLocaleTimeString('en-US', {
+  timeZone: 'America/Los_Angeles',
+  hour: 'numeric',
+  minute: '2-digit',
+  hour12: true
+})
+```
+
+#### Date Inconsistency Problem
+**Problem**: Different pages showing different dates for the same appointment (e.g., Oct 17th vs Oct 18th)
+**Root Cause**: Inconsistent timezone handling causing date shifts
+**Solution**: Always use the same timezone-aware formatting pattern across all pages
+
+**Files That Need Consistent Timezone Handling**:
+- `app/(customer)/booking/confirmation/page.tsx` - Payment confirmation page
+- `app/admin/bookings/page.tsx` - Admin bookings dashboard
+- `app/(customer)/appointments/page.tsx` - Customer appointments page
+- `app/(customer)/appointments/[id]/reschedule/page.tsx` - Reschedule page
+
+**Prevention Guidelines**:
+1. **Always use `timeZone: 'America/Los_Angeles'`** in Intl.DateTimeFormatOptions
+2. **Create date-time objects with `${date}T${time}` format** for consistency
+3. **Use `hour12: true`** for time formatting to show AM/PM
+4. **Test on multiple pages** to ensure date/time consistency across the app
+
 ### Calendar Availability Issues
 
 #### Calendar Dates Not Disabling Properly

@@ -40,7 +40,8 @@ export async function GET() {
       square_enabled: settingsMap.square_enabled || false,
       square_application_id: settingsMap.square_application_id || '',
       square_access_token: settingsMap.square_access_token || '',
-      payment_required: settingsMap.payment_required || false
+      square_environment: settingsMap.square_environment || 'production',
+      square_location_id: settingsMap.square_location_id || ''
     }
 
     const schedule = {
@@ -116,8 +117,11 @@ export async function POST(request: NextRequest) {
       if (settings.square_access_token !== undefined) {
         updates.push({ key: 'square_access_token', value: settings.square_access_token, updated_at: now })
       }
-      if (settings.payment_required !== undefined) {
-        updates.push({ key: 'payment_required', value: settings.payment_required, updated_at: now })
+      if (settings.square_environment !== undefined) {
+        updates.push({ key: 'square_environment', value: settings.square_environment, updated_at: now })
+      }
+      if (settings.square_location_id !== undefined) {
+        updates.push({ key: 'square_location_id', value: settings.square_location_id, updated_at: now })
       }
     } else if (type === 'schedule' || schedule) {
       const scheduleData = schedule || settings
