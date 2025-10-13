@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuPortal } from '@/components/ui/dropdown-menu'
-import { CheckCircle, Calendar, DollarSign, CalendarDays, RotateCcw, Search, Filter, Table, Phone, MessageSquare, Mail, ListChecks, CreditCard, MoreVertical, CheckSquare, Loader2 } from 'lucide-react'
+import { CheckCircle, Calendar, DollarSign, CalendarDays, RotateCcw, Search, Filter, Table, Phone, MessageSquare, Mail, ListChecks, CreditCard, MoreVertical, CheckSquare, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
 import RescheduleModal from '@/components/admin/reschedule-modal'
 
@@ -43,6 +43,8 @@ export default function AdminBookingsPage() {
   const [showRescheduleModal, setShowRescheduleModal] = useState(false)
   const [bookingToReschedule, setBookingToReschedule] = useState<BookingWithDetails | null>(null)
   const [viewMode, setViewMode] = useState<'table' | 'calendar'>('table')
+  const [calendarView, setCalendarView] = useState<'3day' | 'week' | 'month'>('month')
+  const [calendarStartDate, setCalendarStartDate] = useState<Date>(new Date())
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | undefined>(undefined)
   const [activePhoneMenu, setActivePhoneMenu] = useState<string | null>(null)
   const [processingPayment, setProcessingPayment] = useState<Set<string>>(new Set())
@@ -416,6 +418,39 @@ export default function AdminBookingsPage() {
   }
 
 
+  // Navigate calendar forward/backward
+  const navigateCalendar = (direction: 'prev' | 'next') => {
+    const newDate = new Date(calendarStartDate)
+    
+    switch (calendarView) {
+      case '3day':
+        newDate.setDate(newDate.getDate() + (direction === 'next' ? 3 : -3))
+        break
+      case 'week':
+        newDate.setDate(newDate.getDate() + (direction === 'next' ? 7 : -7))
+        break
+      case 'month':
+        newDate.setMonth(newDate.getMonth() + (direction === 'next' ? 1 : -1))
+        break
+    }
+    
+    setCalendarStartDate(newDate)
+  }
+
+  // Generate days for 3-day or weekly views
+  const generateColumnDays = () => {
+    const days = []
+    const numDays = calendarView === '3day' ? 3 : 7
+    
+    for (let i = 0; i < numDays; i++) {
+      const date = new Date(calendarStartDate)
+      date.setDate(date.getDate() + i)
+      days.push(date)
+    }
+    
+    return days
+  }
+
   const generateCalendarDays = () => {
     const today = new Date()
     const currentMonth = today.getMonth()
@@ -463,6 +498,29 @@ export default function AdminBookingsPage() {
     }
     
     return days
+  }
+
+  // Get calendar header text based on view
+  const getCalendarHeaderText = () => {
+    if (calendarView === 'month') {
+      return new Date().toLocaleDateString('en-US', { 
+        month: 'long', 
+        year: 'numeric'
+      })
+    } else {
+      const endDate = new Date(calendarStartDate)
+      const numDays = calendarView === '3day' ? 3 : 7
+      endDate.setDate(endDate.getDate() + numDays - 1)
+      
+      return `${calendarStartDate.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric' 
+      })} - ${endDate.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric',
+        year: 'numeric'
+      })}`
+    }
   }
 
   if (loading) {
@@ -605,7 +663,8 @@ export default function AdminBookingsPage() {
       </div>
 
       {/* View Toggle */}
-      <div className="flex justify-center sm:justify-start">
+      <div className="flex flex-col sm:flex-row gap-3 justify-center sm:justify-start">
+        {/* Table vs Calendar Toggle */}
         <div className="flex items-center gap-1 sm:gap-2 bg-gray-100 p-1 rounded-lg">
           <Button
             variant={viewMode === 'table' ? 'default' : 'ghost'}
@@ -614,7 +673,7 @@ export default function AdminBookingsPage() {
             className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
           >
             <Table className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span className="hidden sm:inline">Table View</span>
+            <span className="hidden sm:inline">Table</span>
             <span className="sm:hidden">Table</span>
           </Button>
           <Button
@@ -624,10 +683,40 @@ export default function AdminBookingsPage() {
             className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
           >
             <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span className="hidden sm:inline">Calendar View</span>
+            <span className="hidden sm:inline">Calendar</span>
             <span className="sm:hidden">Calendar</span>
           </Button>
         </div>
+        
+        {/* Calendar View Options - Only show when calendar view is active */}
+        {viewMode === 'calendar' && (
+          <div className="flex items-center gap-1 sm:gap-2 bg-gray-100 p-1 rounded-lg">
+            <Button
+              variant={calendarView === '3day' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setCalendarView('3day')}
+              className="text-xs sm:text-sm px-2 sm:px-3"
+            >
+              3 Days
+            </Button>
+            <Button
+              variant={calendarView === 'week' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setCalendarView('week')}
+              className="text-xs sm:text-sm px-2 sm:px-3"
+            >
+              Week
+            </Button>
+            <Button
+              variant={calendarView === 'month' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setCalendarView('month')}
+              className="text-xs sm:text-sm px-2 sm:px-3"
+            >
+              Month
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Bookings Display */}
@@ -1102,17 +1191,40 @@ export default function AdminBookingsPage() {
               <div>
                 {/* Calendar Header */}
                 <div className="border-b border-gray-200 p-3 sm:p-4">
-                  <div className="flex justify-between items-center">
-                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
-                      {new Date().toLocaleDateString('en-US', { 
-                        month: 'long', 
-                        year: 'numeric'
-                      })}
-                    </h2>
+                  <div className="flex justify-between items-center mb-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigateCalendar('prev')}
+                      className="h-8"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
+                        {getCalendarHeaderText()}
+                      </h2>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCalendarStartDate(new Date())}
+                        className="h-8 text-xs"
+                      >
+                        Today
+                      </Button>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigateCalendar('next')}
+                      className="h-8"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
                   </div>
                   
                   {/* Legend */}
-                  <div className="flex flex-wrap gap-3 mt-3 text-xs sm:text-sm">
+                  <div className="flex flex-wrap gap-3 text-xs sm:text-sm">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 bg-purple-400 rounded-full"></div>
                       <span className="text-gray-600">New Customer</span>
@@ -1126,108 +1238,196 @@ export default function AdminBookingsPage() {
 
                 {/* Calendar Grid */}
                 <div className="p-3 sm:p-4">
-                  {/* Days of Week Header */}
-                  <div className="grid grid-cols-7 gap-px mb-2">
-                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-                      <div key={day} className="p-2 sm:p-3 md:p-4 text-center text-xs sm:text-sm font-medium text-gray-500 bg-gray-50">
-                        {day}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Calendar Days */}
-                  <div className="grid grid-cols-7 gap-px bg-gray-200 border border-gray-200 rounded-lg overflow-hidden">
-                    {generateCalendarDays().map((day, index) => {
-                      const appointments = getBookingsForDate(day.date)
-                      const isToday = day.date.toDateString() === new Date().toDateString()
-                      const isCurrentMonth = day.isCurrentMonth
-                      
-                      return (
-                        <div
-                          key={index}
-                          className={`min-h-[80px] sm:min-h-[100px] md:min-h-[120px] bg-white p-1 sm:p-2 cursor-pointer hover:bg-gray-50 transition-colors ${
-                            !isCurrentMonth ? 'bg-gray-50 text-gray-400' : ''
-                          } ${isToday ? 'bg-blue-50 border-l-2 sm:border-l-3 md:border-l-4 border-blue-500' : ''}`}
-                          onClick={() => handleCalendarDateSelect(day.date)}
-                        >
-                          <div className="flex justify-between items-start mb-1">
-                            <span className={`text-xs sm:text-sm font-medium ${
-                              isToday ? 'text-blue-600' : 
-                              isCurrentMonth ? 'text-gray-900' : 'text-gray-400'
-                            }`}>
-                              {day.date.getDate()}
-                            </span>
-                            {appointments.length > 0 && (
-                              <span className="text-xs bg-blue-100 text-blue-800 px-1 sm:px-2 py-0.5 sm:py-1 rounded-full">
-                                {appointments.length}
-                              </span>
-                            )}
+                  {calendarView === 'month' ? (
+                    <>
+                      {/* Days of Week Header */}
+                      <div className="grid grid-cols-7 gap-px mb-2">
+                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                          <div key={day} className="p-2 sm:p-3 md:p-4 text-center text-xs sm:text-sm font-medium text-gray-500 bg-gray-50">
+                            {day}
                           </div>
+                        ))}
+                      </div>
+
+                      {/* Monthly Calendar Days */}
+                      <div className="grid grid-cols-7 gap-px bg-gray-200 border border-gray-200 rounded-lg overflow-hidden">
+                        {generateCalendarDays().map((day, index) => {
+                          const appointments = getBookingsForDate(day.date)
+                          const isToday = day.date.toDateString() === new Date().toDateString()
+                          const isCurrentMonth = day.isCurrentMonth
                           
-                          {/* Appointment List - Show on tablet and up */}
-                          <div className="space-y-0.5 sm:space-y-1 hidden sm:block">
-                            {appointments.slice(0, 2).map((booking) => (
-                              <div
-                                key={booking.id}
-                                onClick={(e: React.MouseEvent) => {
-                                  e.stopPropagation()
-                                  openBookingDetails(booking)
-                                }}
-                                className={`text-xs p-1 rounded truncate cursor-pointer ${getCustomerTypeColorForCalendar(booking.customer_type_at_booking)}`}
-                              >
-                                <div className="flex items-center justify-between">
-                                  <span>
-                                    {formatTime(booking.booking_time)} - {booking.customers.name}
+                          return (
+                            <div
+                              key={index}
+                              className={`min-h-[80px] sm:min-h-[100px] md:min-h-[120px] bg-white p-1 sm:p-2 cursor-pointer hover:bg-gray-50 transition-colors ${
+                                !isCurrentMonth ? 'bg-gray-50 text-gray-400' : ''
+                              } ${isToday ? 'bg-blue-50 border-l-2 sm:border-l-3 md:border-l-4 border-blue-500' : ''}`}
+                              onClick={() => handleCalendarDateSelect(day.date)}
+                            >
+                              <div className="flex justify-between items-start mb-1">
+                                <span className={`text-xs sm:text-sm font-medium ${
+                                  isToday ? 'text-blue-600' : 
+                                  isCurrentMonth ? 'text-gray-900' : 'text-gray-400'
+                                }`}>
+                                  {day.date.getDate()}
+                                </span>
+                                {appointments.length > 0 && (
+                                  <span className="text-xs bg-blue-100 text-blue-800 px-1 sm:px-2 py-0.5 sm:py-1 rounded-full">
+                                    {appointments.length}
                                   </span>
-                                  {booking.payment_status !== 'paid' && booking.price_charged && booking.price_charged > 0 && (
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm"
-                                      className="h-4 w-4 p-0 hover:bg-white/20"
-                                      onClick={(e: React.MouseEvent) => {
-                                        e.stopPropagation()
-                                        generatePaymentLink(booking)
-                                      }}
-                                      disabled={processingPayment.has(booking.id)}
-                                      title="Generate payment link"
-                                    >
-                                      {processingPayment.has(booking.id) ? (
-                                        <Loader2 className="w-3 h-3 animate-spin" />
-                                      ) : (
-                                        <CreditCard className="w-3 h-3" />
+                                )}
+                              </div>
+                              
+                              {/* Appointment List - Show on tablet and up */}
+                              <div className="space-y-0.5 sm:space-y-1 hidden sm:block">
+                                {appointments.slice(0, 2).map((booking) => (
+                                  <div
+                                    key={booking.id}
+                                    onClick={(e: React.MouseEvent) => {
+                                      e.stopPropagation()
+                                      openBookingDetails(booking)
+                                    }}
+                                    className={`text-xs p-1 rounded truncate cursor-pointer ${getCustomerTypeColorForCalendar(booking.customer_type_at_booking)}`}
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <span>
+                                        {formatTime(booking.booking_time)} - {booking.customers.name}
+                                      </span>
+                                      {booking.payment_status !== 'paid' && booking.price_charged && booking.price_charged > 0 && (
+                                        <Button 
+                                          variant="ghost" 
+                                          size="sm"
+                                          className="h-4 w-4 p-0 hover:bg-white/20"
+                                          onClick={(e: React.MouseEvent) => {
+                                            e.stopPropagation()
+                                            generatePaymentLink(booking)
+                                          }}
+                                          disabled={processingPayment.has(booking.id)}
+                                          title="Generate payment link"
+                                        >
+                                          {processingPayment.has(booking.id) ? (
+                                            <Loader2 className="w-3 h-3 animate-spin" />
+                                          ) : (
+                                            <CreditCard className="w-3 h-3" />
+                                          )}
+                                        </Button>
                                       )}
-                                    </Button>
+                                    </div>
+                                  </div>
+                                ))}
+                                {appointments.length > 2 && (
+                                  <div className="text-xs text-gray-500 p-1">
+                                    +{appointments.length - 2} more
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {/* Mobile: Show only dots for appointments */}
+                              <div className="sm:hidden">
+                                {appointments.length > 0 && (
+                                  <div className="flex flex-wrap gap-0.5 mt-1">
+                                    {appointments.slice(0, 4).map((booking, i) => (
+                                      <div 
+                                        key={i} 
+                                        className={`w-1.5 h-1.5 rounded-full ${getCustomerTypeDotColor(booking.customer_type_at_booking)}`}
+                                      ></div>
+                                    ))}
+                                    {appointments.length > 4 && (
+                                      <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* Column-based views (3-day, week) */}
+                      <div className="overflow-x-auto">
+                        <div className={`grid gap-2 ${
+                          calendarView === '3day' ? 'grid-cols-3' : 'grid-cols-7'
+                        } min-w-max`}>
+                          {generateColumnDays().map((day, index) => {
+                            const appointments = getBookingsForDate(day)
+                            const isToday = day.toDateString() === new Date().toDateString()
+                            const dayName = day.toLocaleDateString('en-US', { weekday: 'short' })
+                            const dateNum = day.getDate()
+                            
+                            return (
+                              <div
+                                key={index}
+                                className={`border border-gray-200 rounded-lg p-2 min-w-[150px] ${
+                                  isToday ? 'bg-blue-50 border-blue-500 border-2' : 'bg-white'
+                                }`}
+                              >
+                                {/* Day header */}
+                                <div className="text-center mb-2 pb-2 border-b border-gray-200">
+                                  <div className={`text-xs font-medium ${isToday ? 'text-blue-600' : 'text-gray-500'}`}>
+                                    {dayName}
+                                  </div>
+                                  <div className={`text-lg font-bold ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
+                                    {dateNum}
+                                  </div>
+                                </div>
+                                
+                                {/* Appointments list */}
+                                <div className="space-y-1 min-h-[200px]">
+                                  {appointments.length === 0 ? (
+                                    <div className="text-center py-4">
+                                      <p className="text-xs text-gray-400">No appointments</p>
+                                    </div>
+                                  ) : (
+                                    appointments
+                                      .sort((a, b) => a.booking_time.localeCompare(b.booking_time))
+                                      .map((booking) => (
+                                        <div
+                                          key={booking.id}
+                                          onClick={() => openBookingDetails(booking)}
+                                          className={`text-xs p-2 rounded cursor-pointer ${getCustomerTypeColorForCalendar(booking.customer_type_at_booking)}`}
+                                        >
+                                          <div className="font-medium mb-1">
+                                            {formatTime(booking.booking_time)}
+                                          </div>
+                                          <div className="truncate">{booking.customers.name}</div>
+                                          <div className="text-xs opacity-75 truncate">
+                                            {booking.services?.name}
+                                          </div>
+                                          {booking.payment_status !== 'paid' && booking.price_charged && booking.price_charged > 0 && (
+                                            <Button 
+                                              variant="ghost" 
+                                              size="sm"
+                                              className="h-5 w-full mt-1 hover:bg-white/20 text-xs"
+                                              onClick={(e: React.MouseEvent) => {
+                                                e.stopPropagation()
+                                                generatePaymentLink(booking)
+                                              }}
+                                              disabled={processingPayment.has(booking.id)}
+                                              title="Generate payment link"
+                                            >
+                                              {processingPayment.has(booking.id) ? (
+                                                <Loader2 className="w-3 h-3 animate-spin" />
+                                              ) : (
+                                                <>
+                                                  <CreditCard className="w-3 h-3 mr-1" />
+                                                  Pay
+                                                </>
+                                              )}
+                                            </Button>
+                                          )}
+                                        </div>
+                                      ))
                                   )}
                                 </div>
                               </div>
-                            ))}
-                            {appointments.length > 2 && (
-                              <div className="text-xs text-gray-500 p-1">
-                                +{appointments.length - 2} more
-                              </div>
-                            )}
-                          </div>
-                          
-                          {/* Mobile: Show only dots for appointments */}
-                          <div className="sm:hidden">
-                            {appointments.length > 0 && (
-                              <div className="flex flex-wrap gap-0.5 mt-1">
-                                {appointments.slice(0, 4).map((booking, i) => (
-                                  <div 
-                                    key={i} 
-                                    className={`w-1.5 h-1.5 rounded-full ${getCustomerTypeDotColor(booking.customer_type_at_booking)}`}
-                                  ></div>
-                                ))}
-                                {appointments.length > 4 && (
-                                  <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
-                                )}
-                              </div>
-                            )}
-                          </div>
+                            )
+                          })}
                         </div>
-                      )
-                    })}
-                  </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </CardContent>
