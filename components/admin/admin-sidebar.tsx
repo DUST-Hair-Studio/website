@@ -154,7 +154,10 @@ export function AdminSidebar() {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           {!isCollapsed && (
-            <h1 className="text-lg font-semibold" style={{ color: '#1C1C1D' }}>DUST</h1>
+            <h1 className="text-2xl font-bold" style={{ color: '#1C1C1D' }}>
+              <span className="font-extrabold">DUST</span>
+              <span className="font-normal text-gray-400 text-lg ml-1">Office</span>
+            </h1>
           )}
           <Button
             variant="ghost"
