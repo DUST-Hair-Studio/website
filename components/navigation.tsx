@@ -101,7 +101,6 @@ export function Navigation() {
             <Link href="/" className="dust-heading text-xl font-bold tracking-narrow" style={{ color: '#1C1C1D' }}>
               DUST
             </Link>
-            <span className="ml-2 text-sm text-gray-500 hidden sm:inline">Studio</span>
           </div>
           
           {/* Desktop Navigation */}

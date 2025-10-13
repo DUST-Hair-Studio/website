@@ -156,7 +156,7 @@ export function AdminSidebar() {
           {!isCollapsed && (
             <h1 className="text-2xl font-bold" style={{ color: '#1C1C1D' }}>
               <span className="font-extrabold">DUST</span>
-              <span className="font-normal text-gray-400 text-lg ml-1">Office</span>
+              <span className="font-normal text-gray-400 text-lg ml-1">Studio</span>
             </h1>
           )}
           <Button
