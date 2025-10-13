@@ -101,7 +101,10 @@ export default function WaitlistPage() {
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    // Parse the date string as local time to avoid timezone issues
+    const [year, month, day] = dateString.split('-').map(Number)
+    const localDate = new Date(year, month - 1, day) // month is 0-indexed
+    return localDate.toLocaleDateString('en-US', {
       weekday: 'short',
       year: 'numeric',
       month: 'short',

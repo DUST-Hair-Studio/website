@@ -168,7 +168,7 @@ export function AdminSidebar() {
             {isCollapsed ? (
               <Menu className="h-10 w-10" strokeWidth={2.5} />
             ) : (
-              <X className="h-5 w-5" strokeWidth={1.5} />
+  <X className="h-5 w-5" strokeWidth={1.5} />
             )}
           </Button>
         </div>
