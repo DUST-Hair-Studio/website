@@ -82,20 +82,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate date range
-    const startDateObj = new Date(start_date)
-    const endDateObj = new Date(end_date)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-
-    if (startDateObj < today) {
+    // Validate date range - compare date strings directly to avoid timezone issues
+    const todayString = new Date().toISOString().split('T')[0] // Get today in YYYY-MM-DD format
+    
+    // Compare date strings directly to avoid timezone issues
+    if (start_date < todayString) {
       return NextResponse.json(
         { error: 'Start date cannot be in the past' },
         { status: 400 }
       )
     }
 
-    if (endDateObj < startDateObj) {
+    if (end_date < start_date) {
       return NextResponse.json(
         { error: 'End date must be after or equal to start date' },
         { status: 400 }

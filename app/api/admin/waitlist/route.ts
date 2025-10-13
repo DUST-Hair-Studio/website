@@ -83,3 +83,90 @@ export async function GET(request: NextRequest) {
   }
 }
 
+export async function PATCH(request: NextRequest) {
+  try {
+    const supabase = await createServerSupabaseClient()
+    
+    // Check authentication and admin access
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    // Verify admin status
+    const { data: adminUser, error: adminError } = await supabase
+      .from('admin_users')
+      .select('*')
+      .eq('email', user.email)
+      .eq('is_active', true)
+      .single()
+
+    if (adminError || !adminUser) {
+      return NextResponse.json(
+        { error: 'Forbidden - Admin access required' },
+        { status: 403 }
+      )
+    }
+
+    const body = await request.json()
+    const { id, action } = body
+
+    if (!id || !action) {
+      return NextResponse.json(
+        { error: 'Missing required fields: id and action' },
+        { status: 400 }
+      )
+    }
+
+    const adminSupabase = createAdminSupabaseClient()
+
+    if (action === 'cancel') {
+      // Update waitlist request status to cancelled
+      const { data, error } = await adminSupabase
+        .from('waitlist_requests')
+        .update({ 
+          status: 'cancelled',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+
+      if (error) {
+        console.error('Error cancelling waitlist request:', error)
+        return NextResponse.json(
+          { error: 'Failed to cancel waitlist request' },
+          { status: 500 }
+        )
+      }
+
+      if (!data || data.length === 0) {
+        return NextResponse.json(
+          { error: 'Waitlist request not found' },
+          { status: 404 }
+        )
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: 'Waitlist request cancelled successfully'
+      })
+    }
+
+    return NextResponse.json(
+      { error: 'Invalid action' },
+      { status: 400 }
+    )
+
+  } catch (error) {
+    console.error('Error in PATCH /api/admin/waitlist:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+

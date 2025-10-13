@@ -113,18 +113,11 @@ export function Navigation() {
                 ) : (
                   <>
                     {!isAdmin && (
-                      <>
-                        <Link href="/appointments">
-                          <Button variant="outline" className="border-black text-black hover:bg-gray-100">
-                            Manage Bookings
-                          </Button>
-                        </Link>
-                        <Link href="/waitlist">
-                          <Button variant="ghost" className="text-black hover:bg-gray-100">
-                            Waitlist
-                          </Button>
-                        </Link>
-                      </>
+                      <Link href="/appointments">
+                        <Button variant="outline" className="border-black text-black hover:bg-gray-100">
+                          My Appointments
+                        </Button>
+                      </Link>
                     )}
                     {isAdmin && (
                       <Link href="/admin">
@@ -154,6 +147,18 @@ export function Navigation() {
                         <div className="font-medium text-gray-900">{user?.email}</div>
                         <div className="text-xs text-gray-500 mt-1">Account</div>
                       </div>
+                      {!isAdmin && (
+                        <Link 
+                          href="/appointments"
+                          onClick={() => setIsProfileDropdownOpen(false)}
+                          className="px-6 py-4 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150 flex items-center space-x-3"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          <span>My Appointments</span>
+                        </Link>
+                      )}
                       <button
                         onClick={async () => {
                           if (isSigningOut) return
@@ -222,22 +227,13 @@ export function Navigation() {
                   ) : (
                     <>
                       {!isAdmin && (
-                        <>
-                          <Link 
-                            href="/appointments" 
-                            className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md"
-                            onClick={() => setIsMobileMenuOpen(false)}
-                          >
-                            Manage Bookings
-                          </Link>
-                          <Link 
-                            href="/waitlist" 
-                            className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md"
-                            onClick={() => setIsMobileMenuOpen(false)}
-                          >
-                            Waitlist
-                          </Link>
-                        </>
+                        <Link 
+                          href="/appointments" 
+                          className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-md"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                          My Appointments
+                        </Link>
                       )}
                       {isAdmin && (
                         <Link 

@@ -20,7 +20,8 @@ import {
   ListChecks,
   Filter,
   Phone,
-  MessageSquare
+  MessageSquare,
+  Trash2
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { WaitlistRequestWithDetails } from '@/types'
@@ -32,6 +33,9 @@ export default function AdminWaitlistPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [waitlistEnabled, setWaitlistEnabled] = useState(true)
   const [checkingAvailability, setCheckingAvailability] = useState(false)
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
+  const [waitlistToCancel, setWaitlistToCancel] = useState<WaitlistRequestWithDetails | null>(null)
+  const [cancelling, setCancelling] = useState(false)
 
   // Fetch waitlist requests
   const fetchWaitlistRequests = async () => {
@@ -84,6 +88,52 @@ export default function AdminWaitlistPage() {
       toast.error(errorMessage)
     } finally {
       setCheckingAvailability(false)
+    }
+  }
+
+  // Cancel waitlist request
+  const handleCancelWaitlist = async (request: WaitlistRequestWithDetails) => {
+    setWaitlistToCancel(request)
+    setShowCancelConfirm(true)
+  }
+
+  const confirmCancelWaitlist = async () => {
+    if (!waitlistToCancel) return
+
+    try {
+      setCancelling(true)
+      
+      const response = await fetch('/api/admin/waitlist', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: waitlistToCancel.id,
+          action: 'cancel'
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to cancel waitlist request')
+      }
+
+      toast.success('Waitlist request cancelled successfully')
+      
+      // Refresh the list to show updated status
+      await fetchWaitlistRequests()
+      
+      // Close confirmation dialog
+      setShowCancelConfirm(false)
+      setWaitlistToCancel(null)
+      
+    } catch (error) {
+      console.error('Error cancelling waitlist request:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to cancel waitlist request'
+      toast.error(errorMessage)
+    } finally {
+      setCancelling(false)
     }
   }
 
@@ -479,6 +529,25 @@ export default function AdminWaitlistPage() {
                         Email
                       </a>
                     </div>
+
+                    {/* Cancel Button - Only show for pending and notified statuses */}
+                    {(request.status === 'pending' || request.status === 'notified') && (
+                      <div className="pt-2 border-t">
+                        <Button 
+                          variant="destructive" 
+                          size="sm"
+                          className="w-full h-8 text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleCancelWaitlist(request)
+                          }}
+                          title={`Cancel waitlist request for ${request.customers.name}`}
+                        >
+                          <Trash2 className="w-3 h-3 mr-1.5" />
+                          Cancel Request
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -570,6 +639,21 @@ export default function AdminWaitlistPage() {
                             >
                               <Mail className="w-3 h-3" />
                             </a>
+                            {/* Cancel Button - Only show for pending and notified statuses */}
+                            {(request.status === 'pending' || request.status === 'notified') && (
+                              <Button 
+                                variant="destructive" 
+                                size="sm"
+                                className="h-7 px-2 text-xs"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleCancelWaitlist(request)
+                                }}
+                                title={`Cancel waitlist request for ${request.customers.name}`}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -599,6 +683,64 @@ export default function AdminWaitlistPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Cancel Confirmation Dialog */}
+      {showCancelConfirm && waitlistToCancel && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-10 w-10 bg-red-100 rounded-full flex items-center justify-center">
+                <AlertCircle className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Cancel Waitlist Request</h3>
+                <p className="text-sm text-gray-500">This action cannot be undone</p>
+              </div>
+            </div>
+            
+            <div className="mb-6">
+              <p className="text-sm text-gray-700 mb-2">
+                Are you sure you want to cancel the waitlist request for:
+              </p>
+              <div className="bg-gray-50 rounded-lg p-3">
+                <p className="font-medium text-gray-900">{waitlistToCancel.customers.name}</p>
+                <p className="text-sm text-gray-600">{waitlistToCancel.customers.email}</p>
+                <p className="text-sm text-gray-600">{waitlistToCancel.services.name}</p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowCancelConfirm(false)
+                  setWaitlistToCancel(null)
+                }}
+                disabled={cancelling}
+              >
+                Keep Request
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={confirmCancelWaitlist}
+                disabled={cancelling}
+              >
+                {cancelling ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Cancelling...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Cancel Request
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
