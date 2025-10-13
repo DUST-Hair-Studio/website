@@ -23,9 +23,12 @@
     --dust-black: #28282A;
   }
   
-  body {
+  html, body {
     background-color: #FAFAFA !important;
     color: #000000 !important;
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
   }
   
   /* Force light mode on everything */

@@ -57,7 +57,7 @@ export async function createPaymentLink(booking: {
         },
       },
       checkoutOptions: {
-        redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/booking/confirmation?id=${booking.id}`,
+        redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/booking/confirmation?id=${booking.id}`,
         askForShippingAddress: false,
       },
     });

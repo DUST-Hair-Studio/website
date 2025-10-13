@@ -109,10 +109,10 @@ export default function WaitlistForm({
         <Button
           variant="outline"
           onClick={() => setIsOpen(true)}
-          className="w-full"
+          className="w-full text-wrap whitespace-normal h-auto py-3"
         >
-          <Bell className="w-4 h-4 mr-2" />
-          Join Waitlist - Get notified if a spot opens up
+          <Bell className="w-4 h-4 mr-2 flex-shrink-0" />
+          <span className="text-center">Join Waitlist</span>
         </Button>
 
         {/* Modal for compact mode */}
@@ -225,10 +225,10 @@ export default function WaitlistForm({
       <Button
         variant="outline"
         onClick={() => setIsOpen(true)}
-        className="w-full"
+        className="w-full text-wrap whitespace-normal h-auto py-3"
       >
-        <Bell className="w-4 h-4 mr-2" />
-        Join Waitlist - Get notified if a spot opens up
+        <Bell className="w-4 h-4 mr-2 flex-shrink-0" />
+        <span className="text-center">Join Waitlist</span>
       </Button>
 
       {/* Modal for standalone mode */}

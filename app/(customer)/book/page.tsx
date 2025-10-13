@@ -562,10 +562,10 @@ function BookPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
       <Navigation />
       
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-8 w-full">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Book Your Appointment</h1>
           <p className="text-gray-600">Choose your service and preferred time</p>
@@ -574,12 +574,12 @@ function BookPageContent() {
 
         {/* Step 1: Service Selection */}
         {step === 1 && (
-          <Card className="max-w-2xl mx-auto">
+          <Card className="max-w-2xl mx-auto overflow-hidden">
             <CardHeader>
               <CardTitle>Select a Service</CardTitle>
               <CardDescription>Choose the service you&apos;d like to book</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 overflow-x-hidden">
               {services.map((service) => {
                 // Calculate correct price for each service based on customer type
                 const servicePrice = customer?.is_existing_customer ? service.existing_customer_price : service.new_customer_price;
@@ -612,14 +612,14 @@ function BookPageContent() {
 
         {/* Step 2: Date & Time Selection */}
         {step === 2 && selectedService && (
-          <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto w-full">
             {/* Service Information Panel */}
-            <Card>
+            <Card className="overflow-hidden">
               <CardHeader>
                 <CardTitle>Selected Service</CardTitle>
                 <CardDescription>Your booking details</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 overflow-x-hidden">
                 <div>
                   <h3 className="font-medium text-lg">{selectedService.name}</h3>
                   <p className="text-gray-600 text-sm mt-1">{selectedService.description}</p>
@@ -645,13 +645,13 @@ function BookPageContent() {
             </Card>
 
             {/* Date Selection */}
-            <Card>
+            <Card className="overflow-hidden">
               <CardHeader>
                 <CardTitle>Select Date</CardTitle>
                 <CardDescription>Choose your preferred date</CardDescription>
               </CardHeader>
-              <CardContent className="p-0 relative">
-                <div className="w-full pb-12 px-4 sm:pb-8">
+              <CardContent className="p-0 relative overflow-x-hidden">
+                <div className="w-full pb-12 px-4 sm:pb-8 overflow-hidden">
                   <Calendar
                     mode="single"
                     selected={selectedDate}
@@ -704,14 +704,14 @@ function BookPageContent() {
             </Card>
 
             {/* Time Selection */}
-            <Card>
+            <Card className="overflow-hidden">
               <CardHeader>
                 <CardTitle>Select Time</CardTitle>
                 <CardDescription>Available times for {selectedDate?.toLocaleDateString()}</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="overflow-x-hidden">
                 {selectedDate ? (
-                  <div className="grid grid-cols-1 gap-2">
+                  <div className="grid grid-cols-1 gap-2 w-full">
                     {loadingTimes ? (
                       <p className="text-gray-500 text-center py-4">Loading available times...</p>
                     ) : availableTimes.length > 0 ? (
@@ -758,12 +758,12 @@ function BookPageContent() {
 
         {/* Step 3: Customer Information */}
         {step === 3 && (
-          <Card className="max-w-2xl mx-auto">
+          <Card className="max-w-2xl mx-auto overflow-hidden">
             <CardHeader>
               <CardTitle>Your Information</CardTitle>
               <CardDescription>Please provide your contact details</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 overflow-x-hidden">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="firstName">First Name</Label>
@@ -835,12 +835,12 @@ function BookPageContent() {
 
         {/* Step 4: Confirmation */}
         {step === 4 && (
-          <Card className="max-w-2xl mx-auto text-center">
+          <Card className="max-w-2xl mx-auto text-center overflow-hidden">
             <CardHeader>
               <CardTitle className="text-green-600">Booking Confirmed!</CardTitle>
               <CardDescription>Your appointment has been scheduled</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 overflow-x-hidden">
               <p className="text-gray-600">
                 We&apos;ve sent you a confirmation email with all the details. 
                 You&apos;ll receive an email reminder 24 hours before your appointment.

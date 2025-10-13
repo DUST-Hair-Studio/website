@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
         client_secret: process.env.GOOGLE_CLIENT_SECRET!,
         code,
         grant_type: 'authorization_code',
-        redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/admin/schedule`
+        redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/admin/schedule`
       })
     })
 
@@ -141,7 +141,7 @@ export async function DELETE() {
 function generateGoogleAuthUrl(): string {
   const params = new URLSearchParams({
     client_id: process.env.GOOGLE_CLIENT_ID!,
-    redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/admin/schedule`,
+    redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/admin/schedule`,
     response_type: 'code',
     scope: 'https://www.googleapis.com/auth/calendar',
     access_type: 'offline',

@@ -478,7 +478,7 @@ export default function AdminWaitlistPage() {
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-3 text-xs pt-2">
+                    <div className="grid grid-cols-2 gap-3 text-xs">
                       <div>
                         <div className="text-gray-500">Created</div>
                         <div className="text-gray-900">{formatDate(request.created_at)}</div>
@@ -492,7 +492,7 @@ export default function AdminWaitlistPage() {
                     </div>
 
                     {/* Contact Buttons */}
-                    <div className="flex gap-2 pt-2">
+                    <div className="flex gap-2">
                       <Button 
                         variant="outline" 
                         size="sm"
@@ -532,11 +532,11 @@ export default function AdminWaitlistPage() {
 
                     {/* Cancel Button - Only show for pending and notified statuses */}
                     {(request.status === 'pending' || request.status === 'notified') && (
-                      <div className="pt-2 border-t">
+                      <div>
                         <Button 
                           variant="destructive" 
                           size="sm"
-                          className="w-full h-8 text-xs"
+                          className="w-full h-8 text-xs bg-red-600 hover:bg-red-700 text-white"
                           onClick={(e) => {
                             e.stopPropagation()
                             handleCancelWaitlist(request)
@@ -644,7 +644,7 @@ export default function AdminWaitlistPage() {
                               <Button 
                                 variant="destructive" 
                                 size="sm"
-                                className="h-7 px-2 text-xs"
+                                className="h-7 px-2 text-xs bg-red-600 hover:bg-red-700 text-white"
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   handleCancelWaitlist(request)
@@ -724,6 +724,7 @@ export default function AdminWaitlistPage() {
                 variant="destructive"
                 onClick={confirmCancelWaitlist}
                 disabled={cancelling}
+                className="bg-red-600 hover:bg-red-700 text-white"
               >
                 {cancelling ? (
                   <>
