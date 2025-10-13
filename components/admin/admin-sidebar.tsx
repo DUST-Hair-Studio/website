@@ -68,10 +68,10 @@ export function AdminSidebar() {
 
   const baseNavItems = [
     { href: '/admin/bookings', label: 'Bookings', icon: Calendar },
+    { href: '/admin/waitlist', label: 'Waitlist', icon: ListChecks },
     { href: '/admin/customers', label: 'Customers', icon: Users },
     { href: '/admin/services', label: 'Services', icon: Scissors },
     { href: '/admin/schedule', label: 'Schedule', icon: Clock },
-    { href: '/admin/waitlist', label: 'Waitlist', icon: ListChecks },
     { href: '/admin/reminders', label: 'Reminders', icon: Bell },
     { href: '/admin/settings', label: 'Settings', icon: Settings },
   ]

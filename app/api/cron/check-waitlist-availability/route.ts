@@ -62,6 +62,7 @@ export async function GET(request: NextRequest) {
     if (!waitlistRequests || waitlistRequests.length === 0) {
       console.log('✅ [WAITLIST CRON] No pending waitlist requests')
       return NextResponse.json({ 
+        success: true,
         message: 'No pending waitlist requests',
         processed: 0,
         notified: 0

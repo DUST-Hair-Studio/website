@@ -649,11 +649,12 @@ export default function AdminBookingsPage() {
                       className="p-4 border-b border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors"
                     >
                       <div className="mb-3">
-                        <div className="font-medium text-gray-900">{booking.customers.name}</div>
-                        <div className="text-sm text-gray-500">{booking.customers.email}</div>
-                        <Badge className={`${getCustomerTypeColor(booking.customer_type_at_booking)} text-xs px-2 py-1 mt-1`}>
-                          {booking.customer_type_at_booking}
-                        </Badge>
+                        <div className="flex justify-between items-start">
+                          <div className="font-medium text-gray-900">{booking.customers.name}</div>
+                          <Badge className={`${getCustomerTypeColor(booking.customer_type_at_booking)} text-xs px-2 py-1`}>
+                            {booking.customer_type_at_booking}
+                          </Badge>
+                        </div>
                       </div>
                       
                       <div className="space-y-2 mb-3">
@@ -666,7 +667,9 @@ export default function AdminBookingsPage() {
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-500">Date & Time:</span>
-                          {formatDateTime(booking.booking_date, booking.booking_time)}
+                          <div className="text-right">
+                            {formatDateTime(booking.booking_date, booking.booking_time)}
+                          </div>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-500">Price:</span>
@@ -702,43 +705,45 @@ export default function AdminBookingsPage() {
                         </div>
                       </div>
                       
-                      <div className="flex gap-1">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="h-8 px-2 text-xs"
-                          onClick={(e: React.MouseEvent) => {
-                            e.stopPropagation()
-                            window.open(`tel:${booking.customers.phone}`, '_self')
-                          }}
-                          title={`Call ${booking.customers.name}`}
-                        >
-                          <Phone className="w-3 h-3" />
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="h-8 px-2 text-xs"
-                          onClick={(e: React.MouseEvent) => {
-                            e.stopPropagation()
-                            window.open(`sms:${booking.customers.phone}`, '_self')
-                          }}
-                          title={`Text ${booking.customers.name}`}
-                        >
-                          <MessageSquare className="w-3 h-3" />
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="h-8 px-2 text-xs"
-                          onClick={(e: React.MouseEvent) => {
-                            e.stopPropagation()
-                            window.open(`mailto:${booking.customers.email}`, '_self')
-                          }}
-                          title={`Email ${booking.customers.name}`}
-                        >
-                          <Mail className="w-3 h-3" />
-                        </Button>
+                      <div className="flex justify-between items-center">
+                        <div className="flex gap-1">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="h-8 px-2 text-xs"
+                            onClick={(e: React.MouseEvent) => {
+                              e.stopPropagation()
+                              window.open(`tel:${booking.customers.phone}`, '_self')
+                            }}
+                            title={`Call ${booking.customers.name}`}
+                          >
+                            <Phone className="w-3 h-3" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="h-8 px-2 text-xs"
+                            onClick={(e: React.MouseEvent) => {
+                              e.stopPropagation()
+                              window.open(`sms:${booking.customers.phone}`, '_self')
+                            }}
+                            title={`Text ${booking.customers.name}`}
+                          >
+                            <MessageSquare className="w-3 h-3" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="h-8 px-2 text-xs"
+                            onClick={(e: React.MouseEvent) => {
+                              e.stopPropagation()
+                              window.open(`mailto:${booking.customers.email}`, '_self')
+                            }}
+                            title={`Email ${booking.customers.name}`}
+                          >
+                            <Mail className="w-3 h-3" />
+                          </Button>
+                        </div>
                         
                         {/* Kebab Menu */}
                         <DropdownMenu>
@@ -1267,7 +1272,172 @@ export default function AdminBookingsPage() {
                         </span>
                       </div>
                       
-                      <div className="overflow-x-auto overflow-y-visible">
+                      {/* Mobile Card Layout */}
+                      <div className="block md:hidden">
+                        {getBookingsForDate(selectedCalendarDate)
+                          .sort((a, b) => a.booking_time.localeCompare(b.booking_time))
+                          .map((booking) => (
+                            <div 
+                              key={booking.id}
+                              onClick={() => openBookingDetails(booking)}
+                              className="p-4 border border-gray-200 rounded-lg mb-2 hover:bg-gray-50 cursor-pointer transition-colors"
+                            >
+                              <div className="mb-3">
+                                <div className="flex justify-between items-start">
+                                  <div className="font-medium text-gray-900">{booking.customers.name}</div>
+                                  <Badge className={`${getCustomerTypeColor(booking.customer_type_at_booking)} text-xs px-2 py-1`}>
+                                    {booking.customer_type_at_booking}
+                                  </Badge>
+                                </div>
+                              </div>
+                              
+                              <div className="space-y-2 mb-3">
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-gray-500">Service:</span>
+                                  <div className="text-right">
+                                    <div className="text-gray-900">{booking.services?.name || 'Service not found'}</div>
+                                    <div className="text-xs text-gray-500">{booking.duration_minutes} min</div>
+                                  </div>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-gray-500">Time:</span>
+                                  <div className="text-right text-gray-900">{formatTime(booking.booking_time)}</div>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-gray-500">Price:</span>
+                                  <div className="text-right">
+                                    <div className="text-gray-900">{formatPrice(booking.price_charged)}</div>
+                                    {booking.price_charged === 0 ? (
+                                      <span className="text-xs text-gray-500 mt-1">Free</span>
+                                    ) : booking.payment_status === 'pending' ? (
+                                      <Button 
+                                        variant="outline" 
+                                        size="sm"
+                                        className="h-6 px-2 text-xs mt-1"
+                                        onClick={(e: React.MouseEvent) => {
+                                          e.stopPropagation()
+                                          generatePaymentLink(booking)
+                                        }}
+                                        disabled={processingPayment.has(booking.id)}
+                                        title="Generate payment link"
+                                      >
+                                        {processingPayment.has(booking.id) ? (
+                                          <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                        ) : (
+                                          <CreditCard className="w-3 h-3 mr-1" />
+                                        )}
+                                        {processingPayment.has(booking.id) ? 'Processing...' : 'Pay Now'}
+                                      </Button>
+                                    ) : (
+                                      <Badge className={`${getPaymentStatusColor(booking.payment_status)} text-xs px-2 py-1 mt-1`}>
+                                        {booking.payment_status}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div className="flex justify-between items-center">
+                                <div className="flex gap-1">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    className="h-8 px-2 text-xs"
+                                    onClick={(e: React.MouseEvent) => {
+                                      e.stopPropagation()
+                                      window.open(`tel:${booking.customers.phone}`, '_self')
+                                    }}
+                                    title={`Call ${booking.customers.name}`}
+                                  >
+                                    <Phone className="w-3 h-3" />
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    className="h-8 px-2 text-xs"
+                                    onClick={(e: React.MouseEvent) => {
+                                      e.stopPropagation()
+                                      window.open(`sms:${booking.customers.phone}`, '_self')
+                                    }}
+                                    title={`Text ${booking.customers.name}`}
+                                  >
+                                    <MessageSquare className="w-3 h-3" />
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    className="h-8 px-2 text-xs"
+                                    onClick={(e: React.MouseEvent) => {
+                                      e.stopPropagation()
+                                      window.open(`mailto:${booking.customers.email}`, '_self')
+                                    }}
+                                    title={`Email ${booking.customers.name}`}
+                                  >
+                                    <Mail className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                                
+                                {/* Kebab Menu */}
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      className="h-8 px-2 text-xs"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <MoreVertical className="w-3 h-3" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuPortal>
+                                    <DropdownMenuContent align="end" className="z-[9999]" side="bottom" alignOffset={0} sideOffset={8}>
+                                    <DropdownMenuItem 
+                                      onClick={(e: React.MouseEvent) => {
+                                        e.stopPropagation()
+                                        openRescheduleModal(booking, e)
+                                      }}
+                                      disabled={booking.status === 'completed'}
+                                    >
+                                      <RotateCcw className="w-4 h-4 mr-2" />
+                                      Reschedule
+                                    </DropdownMenuItem>
+                                    {booking.price_charged && booking.price_charged > 0 && (
+                                      <DropdownMenuItem 
+                                        onClick={(e: React.MouseEvent) => {
+                                          e.stopPropagation()
+                                          generatePaymentLink(booking)
+                                        }}
+                                        disabled={booking.payment_status === 'paid' || processingPayment.has(booking.id)}
+                                      >
+                                        {processingPayment.has(booking.id) ? (
+                                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        ) : (
+                                          <CreditCard className="w-4 h-4 mr-2" />
+                                        )}
+                                        {processingPayment.has(booking.id) ? 'Processing...' : 'Pay with Square'}
+                                      </DropdownMenuItem>
+                                    )}
+                                    {booking.status !== 'completed' && (
+                                      <DropdownMenuItem 
+                                        onClick={(e: React.MouseEvent) => {
+                                          e.stopPropagation()
+                                          markBookingComplete(booking)
+                                        }}
+                                      >
+                                        <CheckSquare className="w-4 h-4 mr-2" />
+                                        Mark Complete
+                                      </DropdownMenuItem>
+                                    )}
+                                  </DropdownMenuContent>
+                                  </DropdownMenuPortal>
+                                </DropdownMenu>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+
+                      {/* Desktop Table Layout */}
+                      <div className="hidden md:block overflow-x-auto overflow-y-visible">
                         <table className="w-full">
                           <thead className="bg-gray-50 border-b border-gray-200">
                             <tr>

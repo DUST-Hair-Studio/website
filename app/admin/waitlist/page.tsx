@@ -62,7 +62,8 @@ export default function AdminWaitlistPage() {
       const response = await fetch('/api/cron/check-waitlist-availability')
       
       if (!response.ok) {
-        throw new Error('Failed to check availability')
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to check availability')
       }
       
       const data = await response.json()
@@ -75,11 +76,12 @@ export default function AdminWaitlistPage() {
         // Refresh the list to show updated statuses
         await fetchWaitlistRequests()
       } else {
-        throw new Error('Availability check failed')
+        throw new Error(data.error || 'Availability check failed')
       }
     } catch (error) {
       console.error('Error checking availability:', error)
-      toast.error('Failed to check availability')
+      const errorMessage = error instanceof Error ? error.message : 'Failed to check availability'
+      toast.error(errorMessage)
     } finally {
       setCheckingAvailability(false)
     }
@@ -257,7 +259,7 @@ export default function AdminWaitlistPage() {
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
         {/* Total Requests */}
         <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
           <CardContent className="p-4 md:p-6">
