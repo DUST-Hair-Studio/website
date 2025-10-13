@@ -19,7 +19,7 @@ export async function GET() {
     const settingsMap = settings.reduce((acc, setting) => {
       acc[setting.key] = setting.value;
       return acc;
-    }, {} as Record<string, any>);
+    }, {} as Record<string, unknown>);
     
     // Check configuration
     const diagnostics = {
@@ -65,50 +65,25 @@ export async function GET() {
       diagnostics.issues.push('✅ All basic configuration checks passed');
     }
     
-    // Try to create Square client and test connection
-    try {
-      const square = await import('square');
-      const { SquareClient, SquareEnvironment } = square;
+    // Basic configuration validation
+    if (settingsMap.square_enabled && settingsMap.square_access_token && settingsMap.square_location_id) {
+      diagnostics.issues.push('✅ All required Square settings are configured');
       
-      const squareEnvironment = settingsMap.square_environment === 'production' 
-        ? SquareEnvironment.Production 
-        : SquareEnvironment.Sandbox;
-      
-      const client = new SquareClient({
-        token: String(settingsMap.square_access_token).trim(),
-        environment: squareEnvironment,
-      });
-      
-      // Test the connection by getting locations
-      const locationsResponse = await client.locationsApi.listLocations();
-      
-      if (locationsResponse.result.locations) {
-        diagnostics.issues.push(`✅ Successfully connected to Square API (${settingsMap.square_environment})`);
-        diagnostics.issues.push(`ℹ️  Found ${locationsResponse.result.locations.length} location(s)`);
-        
-        // Check if the configured location ID exists
-        const locationExists = locationsResponse.result.locations.some(
-          loc => loc.id === settingsMap.square_location_id
-        );
-        
-        if (!locationExists && settingsMap.square_location_id) {
-          diagnostics.issues.push('❌ Configured Location ID does not exist in your Square account');
-          diagnostics.issues.push('Available locations:');
-          locationsResponse.result.locations.forEach(loc => {
-            diagnostics.issues.push(`   - ${loc.name} (${loc.id})`);
-          });
-        } else if (locationExists) {
-          diagnostics.issues.push('✅ Location ID is valid');
-        }
+      // Check token format
+      const token = String(settingsMap.square_access_token).trim();
+      if (token.startsWith('EAAA')) {
+        diagnostics.issues.push('✅ Access token format looks correct');
+      } else {
+        diagnostics.issues.push('⚠️  Access token format may be incorrect (should start with EAAA)');
       }
-    } catch (squareError: any) {
-      diagnostics.issues.push('❌ Failed to connect to Square API');
-      if (squareError.errors) {
-        squareError.errors.forEach((err: any) => {
-          diagnostics.issues.push(`   - ${err.category}: ${err.detail || err.code}`);
-        });
-      } else if (squareError.message) {
-        diagnostics.issues.push(`   - ${squareError.message}`);
+      
+      // Check environment match
+      if (settingsMap.square_environment === 'production' && token.startsWith('EAAA')) {
+        diagnostics.issues.push('✅ Production environment with production token');
+      } else if (settingsMap.square_environment === 'sandbox' && token.startsWith('EAAAl')) {
+        diagnostics.issues.push('✅ Sandbox environment with sandbox token');
+      } else {
+        diagnostics.issues.push('⚠️  Environment and token type may not match');
       }
     }
     

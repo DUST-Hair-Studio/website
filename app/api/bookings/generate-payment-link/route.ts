@@ -53,12 +53,12 @@ export async function POST(request: NextRequest) {
     // Extract more detailed error information
     let errorMessage = 'Failed to generate payment link';
     if (error && typeof error === 'object') {
-      const err = error as any;
+      const err = error as { message?: string; errors?: Array<{ detail?: string; code?: string }> };
       if (err.message) {
         errorMessage = err.message;
       }
       if (err.errors && Array.isArray(err.errors) && err.errors.length > 0) {
-        errorMessage = err.errors.map((e: any) => e.detail || e.code).join(', ');
+        errorMessage = err.errors.map((e) => e.detail || e.code).join(', ');
       }
     }
     

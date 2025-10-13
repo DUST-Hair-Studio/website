@@ -87,7 +87,7 @@ export async function createPaymentLink(booking: {
     
     // Extract more detailed error information from Square SDK
     if (error && typeof error === 'object') {
-      const squareError = error as any;
+      const squareError = error as { errors?: unknown[]; statusCode?: number; body?: unknown };
       if (squareError.errors) {
         console.error('Square API errors:', JSON.stringify(squareError.errors, null, 2));
       }
