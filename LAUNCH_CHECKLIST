@@ -33,6 +33,20 @@ Add these variables:
    - GOOGLE_CLIENT_ID
    - GOOGLE_CLIENT_SECRET
 
+5. App URL Variable:
+   - NEXT_PUBLIC_APP_URL
+   
+   ⚠️  CRITICAL FOR PAYMENT LINKS!
+   
+   For Soft Launch (Current):
+   - Value: https://website-sigma-steel-43.vercel.app
+   
+   For Production Launch:
+   - ⚠️  MUST UPDATE to: https://www.dusthairstudio.com
+   - This is required for Square payment redirect URLs
+   - After updating, MUST redeploy the project
+   - Also update Square Developer Dashboard redirect URLs to match
+
 Set Environment: Select "Production" for all variables
 Redeploy: Trigger a new deployment after adding variables
 
@@ -66,6 +80,45 @@ Square Payment Settings Configuration
    - Switch Environment to "Production (Live)"
    - Update credentials with production values
    - Test with real (small) transactions first
+
+Production Domain Switch (When Moving from Soft Launch to Full Launch)
+
+When ready to launch on https://www.dusthairstudio.com:
+
+1. Update Vercel Environment Variable:
+   - Go to Vercel Dashboard → Settings → Environment Variables
+   - Find NEXT_PUBLIC_APP_URL
+   - Change value from: https://website-sigma-steel-43.vercel.app
+   - To: https://www.dusthairstudio.com
+   - Save changes
+
+2. Update Square Developer Dashboard:
+   - Go to: https://developer.squareup.com/apps
+   - Select your application
+   - Go to OAuth settings
+   - Update redirect URL from: https://website-sigma-steel-43.vercel.app/booking/confirmation
+   - To: https://www.dusthairstudio.com/booking/confirmation
+   - Save changes
+
+3. Configure Custom Domain in Vercel:
+   - Go to Vercel Dashboard → Settings → Domains
+   - Add domain: www.dusthairstudio.com
+   - Add domain: dusthairstudio.com (redirect to www)
+   - Follow Vercel's DNS configuration instructions
+   - Wait for DNS propagation (can take up to 48 hours)
+
+4. Redeploy Project:
+   - Go to Deployments tab
+   - Click "Redeploy" on latest deployment
+   - Wait for deployment to complete
+
+5. Test Everything on New Domain:
+   - Visit https://www.dusthairstudio.com
+   - Test customer booking flow
+   - Test payment link generation
+   - Verify emails have correct links
+   - Test admin portal access
+
 Email Templates Verification
 Check if templates exist:
 If missing, create them:
@@ -101,10 +154,20 @@ Email deliverability configuration
 SPF/DKIM records for Resend
 Domain authentication
 🎯 Priority Order:
-Environment Variables (Vercel)
-Database Migration (Supabase)
-Square Payment Settings Configuration (Admin Panel)
-Test Email Functionality
-Test Square Payment Integration (if enabled)
-MX Records (separate chat)
-Would you like me to help you with any specific step from this checklist?
+
+SOFT LAUNCH (Current - website-sigma-steel-43.vercel.app):
+1. Environment Variables (Vercel) - Add NEXT_PUBLIC_APP_URL with soft launch URL
+2. Database Migration (Supabase)
+3. Square Payment Settings Configuration (Admin Panel)
+4. Test Email Functionality
+5. Test Square Payment Integration (if enabled)
+
+PRODUCTION LAUNCH (dusthairstudio.com):
+1. Configure Custom Domain in Vercel
+2. Update NEXT_PUBLIC_APP_URL to https://www.dusthairstudio.com
+3. Update Square redirect URLs in Developer Dashboard
+4. Redeploy Project
+5. Test Everything on Production Domain
+6. MX Records & Domain Authentication (separate chat)
+
+⚠️ IMPORTANT: Do not update NEXT_PUBLIC_APP_URL until custom domain is fully configured in Vercel and DNS has propagated!

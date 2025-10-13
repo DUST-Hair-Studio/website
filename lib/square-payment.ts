@@ -12,6 +12,7 @@ export async function createPaymentLink(booking: {
   customerName: string;
 }) {
   try {
+    console.log('🔍 Creating payment link for booking:', booking.id);
     const squareClient = await getSquareClient();
     
     // Get location ID - prefer environment variable for local development
@@ -32,9 +33,20 @@ export async function createPaymentLink(booking: {
       locationId = locationSetting?.value as string;
     }
     
+    console.log('🔍 Using Square Location ID:', locationId ? `${locationId.substring(0, 8)}...` : 'NOT SET');
+    
     if (!locationId) {
       throw new Error('Square location ID is not configured');
     }
+    
+    const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/booking/confirmation?id=${booking.id}`;
+    console.log('🔍 Redirect URL:', redirectUrl);
+    console.log('🔍 Creating payment link with:', {
+      locationId: `${locationId.substring(0, 8)}...`,
+      serviceName: booking.serviceName,
+      price: booking.price,
+      currency: 'USD'
+    });
     
     const response = await squareClient.checkout.paymentLinks.create({
       idempotencyKey: randomUUID(),
@@ -57,12 +69,12 @@ export async function createPaymentLink(booking: {
         },
       },
       checkoutOptions: {
-        redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/booking/confirmation?id=${booking.id}`,
+        redirectUrl: redirectUrl,
         askForShippingAddress: false,
       },
     });
 
-    // Payment link created successfully
+    console.log('✅ Payment link created successfully:', response.paymentLink?.url);
 
     return {
       paymentUrl: response.paymentLink?.url,
@@ -70,7 +82,23 @@ export async function createPaymentLink(booking: {
       paymentLinkId: response.paymentLink?.id,
     };
   } catch (error) {
-    console.error('Square payment link creation failed:', error);
+    console.error('❌ Square payment link creation failed:', error);
+    console.error('Error details:', JSON.stringify(error, null, 2));
+    
+    // Extract more detailed error information from Square SDK
+    if (error && typeof error === 'object') {
+      const squareError = error as any;
+      if (squareError.errors) {
+        console.error('Square API errors:', JSON.stringify(squareError.errors, null, 2));
+      }
+      if (squareError.statusCode) {
+        console.error('Square status code:', squareError.statusCode);
+      }
+      if (squareError.body) {
+        console.error('Square error body:', squareError.body);
+      }
+    }
+    
     throw error;
   }
 }

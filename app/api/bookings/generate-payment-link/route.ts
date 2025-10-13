@@ -49,8 +49,24 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error generating payment link:', error);
+    
+    // Extract more detailed error information
+    let errorMessage = 'Failed to generate payment link';
+    if (error && typeof error === 'object') {
+      const err = error as any;
+      if (err.message) {
+        errorMessage = err.message;
+      }
+      if (err.errors && Array.isArray(err.errors) && err.errors.length > 0) {
+        errorMessage = err.errors.map((e: any) => e.detail || e.code).join(', ');
+      }
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to generate payment link' },
+      { 
+        error: errorMessage,
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }
