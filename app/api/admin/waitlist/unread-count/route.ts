@@ -1,19 +1,42 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase-server'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    console.log('🔔 [UNREAD COUNT API] Starting request...')
+    
+    // Check if service role key is configured
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('🔔 [UNREAD COUNT API] SUPABASE_SERVICE_ROLE_KEY is not configured')
+      return NextResponse.json(
+        { error: 'Server configuration error', unreadCount: 0 },
+        { status: 200 }
+      )
+    }
+    
     const supabase = await createServerSupabaseClient()
+    console.log('🔔 [UNREAD COUNT API] Created server client')
     
     // Check authentication and admin access
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    if (authError || !user) {
+    if (authError) {
+      console.error('🔔 [UNREAD COUNT API] Auth error:', authError)
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized', unreadCount: 0 },
         { status: 401 }
       )
     }
+    
+    if (!user) {
+      console.log('🔔 [UNREAD COUNT API] No user found')
+      return NextResponse.json(
+        { error: 'Unauthorized', unreadCount: 0 },
+        { status: 401 }
+      )
+    }
+    
+    console.log('🔔 [UNREAD COUNT API] User authenticated:', user.email)
 
     // Verify admin status
     const { data: adminUser, error: adminError } = await supabase
@@ -23,19 +46,34 @@ export async function GET() {
       .eq('is_active', true)
       .single()
 
-    if (adminError || !adminUser) {
+    if (adminError) {
+      console.error('🔔 [UNREAD COUNT API] Admin check error:', adminError)
       return NextResponse.json(
-        { error: 'Forbidden - Admin access required' },
+        { error: 'Forbidden - Admin access required', unreadCount: 0 },
         { status: 403 }
       )
     }
+    
+    if (!adminUser) {
+      console.log('🔔 [UNREAD COUNT API] User is not an admin:', user.email)
+      return NextResponse.json(
+        { error: 'Forbidden - Admin access required', unreadCount: 0 },
+        { status: 403 }
+      )
+    }
+    
+    console.log('🔔 [UNREAD COUNT API] Admin verified')
 
     // Get last viewed timestamp from settings
-    const { data: lastViewedData } = await supabase
+    const { data: lastViewedData, error: settingsError } = await supabase
       .from('settings')
       .select('value')
       .eq('key', 'waitlist_last_viewed_at')
       .single()
+    
+    if (settingsError && settingsError.code !== 'PGRST116') { // PGRST116 is "not found" error
+      console.error('🔔 [UNREAD COUNT API] Settings query error:', settingsError)
+    }
 
     let lastViewedAt = lastViewedData?.value
     // If it's a JSON string, parse it
@@ -51,6 +89,7 @@ export async function GET() {
 
     // Use admin client to count unread waitlist requests
     const adminSupabase = createAdminSupabaseClient()
+    console.log('🔔 [UNREAD COUNT API] Created admin client')
 
     let query = adminSupabase
       .from('waitlist_requests')
@@ -66,8 +105,8 @@ export async function GET() {
     if (countError) {
       console.error('🔔 [UNREAD COUNT API] Error counting unread waitlist requests:', countError)
       return NextResponse.json(
-        { error: 'Failed to count unread waitlist requests' },
-        { status: 500 }
+        { error: 'Failed to count unread waitlist requests', unreadCount: 0 },
+        { status: 200 }
       )
     }
 
@@ -79,9 +118,16 @@ export async function GET() {
     })
 
   } catch (error) {
-    console.error('Error in GET /api/admin/waitlist/unread-count:', error)
+    console.error('🔔 [UNREAD COUNT API] Unexpected error:', error)
+    console.error('🔔 [UNREAD COUNT API] Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+    console.error('🔔 [UNREAD COUNT API] Error name:', error instanceof Error ? error.name : 'Unknown')
+    console.error('🔔 [UNREAD COUNT API] Error message:', error instanceof Error ? error.message : String(error))
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: error instanceof Error ? error.message : 'Internal server error', 
+        unreadCount: 0,
+        stack: error instanceof Error ? error.stack : undefined
+      },
       { status: 500 }
     )
   }

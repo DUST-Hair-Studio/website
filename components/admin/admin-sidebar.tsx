@@ -51,10 +51,22 @@ export function AdminSidebar() {
           console.log('🔔 [WAITLIST BADGE] Fetched unread count:', data)
           setUnreadWaitlistCount(data.unreadCount || 0)
         } else {
-          console.error('🔔 [WAITLIST BADGE] Failed to fetch unread count:', response.status)
+          // Log full error details to help debug
+          const errorText = await response.text()
+          console.error('🔔 [WAITLIST BADGE] Failed to fetch unread count:', response.status, errorText)
+          try {
+            const errorData = JSON.parse(errorText)
+            console.error('🔔 [WAITLIST BADGE] Error details:', errorData)
+          } catch (e) {
+            // Couldn't parse as JSON, already logged as text
+          }
+          // Set count to 0 on error to prevent UI issues
+          setUnreadWaitlistCount(0)
         }
       } catch (error) {
         console.error('🔔 [WAITLIST BADGE] Error fetching unread waitlist count:', error)
+        // Set count to 0 on error to prevent UI issues
+        setUnreadWaitlistCount(0)
       }
     }
     
