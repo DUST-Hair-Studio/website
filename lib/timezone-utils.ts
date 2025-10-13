@@ -131,6 +131,84 @@ export async function formatBusinessDateTime(
 }
 
 /**
+ * Formats a date and time for email display with proper timezone handling
+ * @param dateString - Date in YYYY-MM-DD format
+ * @param timeString - Time in HH:MM:SS or HH:MM format
+ * @param timezone - Timezone to use (defaults to business timezone)
+ * @returns Promise<string> - Formatted date and time string
+ */
+export async function formatEmailDateTime(
+  dateString: string, 
+  timeString: string, 
+  timezone?: string
+): Promise<string> {
+  const businessTimezone = timezone || await getBusinessTimezone()
+  const dateTime = new Date(`${dateString}T${timeString}`)
+  
+  const options: Intl.DateTimeFormatOptions = {
+    timeZone: businessTimezone,
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  }
+  
+  return new Intl.DateTimeFormat('en-US', options).format(dateTime)
+}
+
+/**
+ * Formats a date for email display with proper timezone handling
+ * @param dateString - Date in YYYY-MM-DD format
+ * @param timezone - Timezone to use (defaults to business timezone)
+ * @returns Promise<string> - Formatted date string
+ */
+export async function formatEmailDate(
+  dateString: string, 
+  timezone?: string
+): Promise<string> {
+  const businessTimezone = timezone || await getBusinessTimezone()
+  const dateTime = new Date(`${dateString}T00:00:00`)
+  
+  const options: Intl.DateTimeFormatOptions = {
+    timeZone: businessTimezone,
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  }
+  
+  return new Intl.DateTimeFormat('en-US', options).format(dateTime)
+}
+
+/**
+ * Formats a time for email display with proper timezone handling
+ * @param dateString - Date in YYYY-MM-DD format
+ * @param timeString - Time in HH:MM:SS or HH:MM format
+ * @param timezone - Timezone to use (defaults to business timezone)
+ * @returns Promise<string> - Formatted time string with AM/PM
+ */
+export async function formatEmailTime(
+  dateString: string, 
+  timeString: string, 
+  timezone?: string
+): Promise<string> {
+  const businessTimezone = timezone || await getBusinessTimezone()
+  const dateTime = new Date(`${dateString}T${timeString}`)
+  
+  const options: Intl.DateTimeFormatOptions = {
+    timeZone: businessTimezone,
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  }
+  
+  return new Intl.DateTimeFormat('en-US', options).format(dateTime)
+}
+
+/**
  * Gets the current time in business timezone
  * @returns Promise<Date> - Date object in business timezone
  */

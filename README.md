@@ -595,6 +595,53 @@ const formattedTime = dateTime.toLocaleTimeString('en-US', {
 2. **Create date-time objects with `${date}T${time}` format** for consistency
 3. **Use `hour12: true`** for time formatting to show AM/PM
 4. **Test on multiple pages** to ensure date/time consistency across the app
+5. **Use centralized email formatting utilities** from `lib/timezone-utils.ts`
+
+#### Email Timezone Formatting Problem
+**Problem**: Automated emails showing military time (13:00:00) instead of 12-hour format (1:00 PM) or wrong dates
+**Root Cause**: Missing `hour12: true` in email time formatting functions
+**Solution**: Use the centralized email formatting utilities
+
+**Files That Need Email Timezone Fixes**:
+- `lib/email-service.ts` - Main email service with confirmation, reschedule emails
+- `lib/waitlist-service.ts` - Waitlist notification emails
+- `app/api/cron/check-waitlist-availability/route.ts` - Cron job waitlist emails
+
+**Use Centralized Email Utilities**:
+```typescript
+import { formatEmailDateTime, formatEmailDate, formatEmailTime } from '@/lib/timezone-utils'
+
+// For full date and time
+const appointmentDateTime = await formatEmailDateTime(booking.booking_date, booking.booking_time, businessSettings.timezone)
+
+// For date only
+const appointmentDate = await formatEmailDate(booking.booking_date, businessSettings.timezone)
+
+// For time only
+const appointmentTime = await formatEmailTime(booking.booking_date, booking.booking_time, businessSettings.timezone)
+```
+
+**Common Email Timezone Mistakes to Avoid**:
+```typescript
+// ❌ WRONG - Missing hour12: true
+const appointmentTime = new Date(`${date}T${time}`).toLocaleTimeString('en-US', {
+  hour: 'numeric',
+  minute: '2-digit',
+  timeZone: businessSettings.timezone
+})
+
+// ❌ WRONG - No timezone handling
+const appointmentDate = new Date(date).toLocaleDateString('en-US', {
+  weekday: 'long',
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric'
+})
+
+// ✅ CORRECT - Use centralized utilities
+const appointmentTime = await formatEmailTime(booking.booking_date, booking.booking_time, businessSettings.timezone)
+const appointmentDate = await formatEmailDate(booking.booking_date, businessSettings.timezone)
+```
 
 ### Calendar Availability Issues
 

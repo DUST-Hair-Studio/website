@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -8,9 +9,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Switch } from '@/components/ui/switch'
-import { Loader2, Search, Users, UserPlus, User, Calendar, DollarSign, Eye, Filter, CheckSquare, Square, Edit, UserX, UserCheck, Phone, MessageSquare, Mail, MoreVertical } from 'lucide-react'
+import { Loader2, Search, Users, UserPlus, User, Calendar, DollarSign, Filter, CheckSquare, Square, Edit, UserX, UserCheck, Phone, MessageSquare, Mail } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Customer } from '@/types'
 
@@ -19,9 +19,11 @@ interface CustomerWithStats extends Customer {
   last_booking_date?: string
   last_booking_price?: number
   total_spent: number
+  birthday?: string
 }
 
 export default function AdminCustomersPage() {
+  const searchParams = useSearchParams()
   const [customers, setCustomers] = useState<CustomerWithStats[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -36,6 +38,7 @@ export default function AdminCustomersPage() {
     name: '',
     email: '',
     phone: '',
+    birthday: '',
     is_existing_customer: false,
     notes: ''
   })
@@ -144,6 +147,7 @@ export default function AdminCustomersPage() {
       name: customer.name,
       email: customer.email,
       phone: customer.phone,
+      birthday: customer.birthday || '',
       is_existing_customer: customer.is_existing_customer,
       notes: customer.notes || ''
     })
@@ -253,12 +257,26 @@ export default function AdminCustomersPage() {
     return `$${Math.round(cents / 100)}`
   }
 
-  // Format date
+  // Format date - handle both YYYY-MM-DD and ISO timestamp formats
   const formatDate = (dateString: string) => {
-    // Parse date string without timezone conversion to avoid day shift
-    const [year, month, day] = dateString.split('-').map(Number)
-    const date = new Date(year, month - 1, day) // month is 0-indexed
-    return date.toLocaleDateString()
+    if (!dateString) return 'N/A'
+    
+    // If it's a YYYY-MM-DD format, parse manually to avoid timezone issues
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+      const [year, month, day] = dateString.split('-').map(Number)
+      const date = new Date(year, month - 1, day) // month is 0-indexed
+      return date.toLocaleDateString()
+    }
+    
+    // For ISO timestamps, use normal Date parsing
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) return 'Invalid Date'
+    
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    })
   }
 
   // Get customer stats
@@ -290,7 +308,7 @@ export default function AdminCustomersPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
         <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
           <CardContent className="p-4 sm:p-6">
             <div className="flex flex-col items-center text-center">
@@ -492,40 +510,19 @@ export default function AdminCustomersPage() {
                     </div>
                     
                     <div className="flex gap-2">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            className="h-8 px-2 text-xs"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <MoreVertical className="w-3 h-3" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem 
-                            onClick={(e: React.MouseEvent) => {
-                              e.stopPropagation()
-                              setSelectedCustomer(customer)
-                              setShowDetailsDialog(true)
-                            }}
-                          >
-                            <Eye className="w-4 h-4 mr-2" />
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={(e: React.MouseEvent) => {
-                              e.stopPropagation()
-                              openEditDialog(customer)
-                            }}
-                            disabled={isSubmitting}
-                          >
-                            <Edit className="w-4 h-4 mr-2" />
-                            Edit
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="h-8 px-2 text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          openEditDialog(customer)
+                        }}
+                        disabled={isSubmitting}
+                        title="Edit customer"
+                      >
+                        <Edit className="w-3 h-3" />
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -611,40 +608,19 @@ export default function AdminCustomersPage() {
                           </div>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                className="h-7 px-2 text-xs"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <MoreVertical className="w-3 h-3" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem 
-                                onClick={(e: React.MouseEvent) => {
-                                  e.stopPropagation()
-                                  setSelectedCustomer(customer)
-                                  setShowDetailsDialog(true)
-                                }}
-                              >
-                                <Eye className="w-4 h-4 mr-2" />
-                                View
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={(e: React.MouseEvent) => {
-                                  e.stopPropagation()
-                                  openEditDialog(customer)
-                                }}
-                                disabled={isSubmitting}
-                              >
-                                <Edit className="w-4 h-4 mr-2" />
-                                Edit
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="h-7 px-2 text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              openEditDialog(customer)
+                            }}
+                            disabled={isSubmitting}
+                            title="Edit customer"
+                          >
+                            <Edit className="w-3 h-3" />
+                          </Button>
                         </td>
                       </tr>
                     ))}
@@ -656,135 +632,184 @@ export default function AdminCustomersPage() {
         </CardContent>
       </Card>
 
-      {/* Customer Details Modal */}
-      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <div className="flex justify-between items-center">
-              <div>
-                <DialogTitle>Customer Details</DialogTitle>
-                <DialogDescription>
-                  {selectedCustomer?.name} - Customer Information
-                </DialogDescription>
+      {/* Customer Details Modal - Proper Slide-up Implementation */}
+      {showDetailsDialog && (
+        <div className="fixed inset-0 z-50">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/50 md:bg-black/20"
+            onClick={() => setShowDetailsDialog(false)}
+          />
+          
+          {/* Modal Content */}
+          <div className="fixed bottom-0 left-0 right-0 md:bottom-0 md:left-auto md:right-0 md:top-0 md:w-[500px] md:h-full bg-white rounded-t-3xl md:rounded-none md:rounded-l-xl shadow-xl md:shadow-2xl">
+            {/* Mobile Slide-up Container */}
+            <div className="h-full flex flex-col md:flex md:flex-col md:h-full">
+              {/* Drag Handle for Mobile */}
+              <div className="flex justify-center pt-3 pb-2 md:hidden">
+                <div className="w-12 h-1 bg-gray-300 rounded-full"></div>
               </div>
+              
+              {/* Header */}
+              <div className="px-6 pb-4 border-b border-gray-200 md:border-none md:px-6 md:pt-6">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <h2 className="text-xl font-semibold text-gray-900">
+                      {selectedCustomer?.name}
+                    </h2>
+                  </div>
+                  {selectedCustomer && (
+                    <div className="flex gap-2 ml-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(`tel:${selectedCustomer.phone}`, '_self')}
+                        className="h-10 w-10 p-0"
+                        title={`Call ${selectedCustomer.name}`}
+                      >
+                        <Phone className="w-5 h-5" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(`sms:${selectedCustomer.phone}`, '_self')}
+                        className="h-10 w-10 p-0"
+                        title={`Text ${selectedCustomer.name}`}
+                      >
+                        <MessageSquare className="w-5 h-5" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(`mailto:${selectedCustomer.email}`, '_self')}
+                        className="h-10 w-10 p-0"
+                        title={`Email ${selectedCustomer.name}`}
+                      >
+                        <Mail className="w-5 h-5" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+          
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto px-6 md:px-6 md:py-4 md:max-h-[calc(100vh-200px)]">
               {selectedCustomer && (
-                <div className="flex gap-2 mr-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.open(`tel:${selectedCustomer.phone}`, '_self')}
-                    className="h-8 w-8 p-0"
-                    title={`Call ${selectedCustomer.name}`}
-                  >
-                    <Phone className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.open(`sms:${selectedCustomer.phone}`, '_self')}
-                    className="h-8 w-8 p-0"
-                    title={`Text ${selectedCustomer.name}`}
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.open(`mailto:${selectedCustomer.email}`, '_self')}
-                    className="h-8 w-8 p-0"
-                    title={`Email ${selectedCustomer.name}`}
-                  >
-                    <Mail className="w-4 h-4" />
-                  </Button>
+                <div className="space-y-4 md:space-y-6 pb-4 md:pb-6">
+                  {/* Customer Info */}
+                  <div className="pb-6 md:pb-8 pt-4 md:border-t md:border-b md:border-gray-300">
+                    <h4 className="font-semibold text-gray-900 mb-3 md:mb-4 text-lg">Customer Information</h4>
+                    <div className="space-y-3 md:space-y-4">
+                          <div className="flex justify-between items-center py-2 md:py-2">
+                            <span className="text-gray-600">Customer</span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-gray-900">{selectedCustomer.name}</span>
+                              <Badge
+                                variant={selectedCustomer.is_existing_customer ? "default" : "secondary"}
+                                className={`${selectedCustomer.is_existing_customer ? "bg-indigo-100 text-indigo-800" : "bg-purple-100 text-purple-800"}`}
+                              >
+                                {selectedCustomer.is_existing_customer ? 'Existing' : 'New'}
+                              </Badge>
+                            </div>
+                          </div>
+                      <div className="flex justify-between items-center py-2 md:py-2">
+                        <span className="text-gray-600">Customer Since</span>
+                        <span className="font-medium text-gray-900">{formatDate(selectedCustomer.created_at)}</span>
+                      </div>
+                      {selectedCustomer.birthday && (
+                        <div className="flex justify-between items-center py-2 md:py-2">
+                          <span className="text-gray-600">Birthday</span>
+                          <span className="font-medium text-gray-900">{formatDate(selectedCustomer.birthday)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between items-start py-2 md:py-2">
+                        <span className="text-gray-600">Notes</span>
+                        <div className="flex items-start gap-3 flex-1 justify-end">
+                          <div className="flex-1 max-w-[70%]">
+                            {selectedCustomer.notes ? (
+                              <span className="font-medium text-gray-900 break-words">{selectedCustomer.notes}</span>
+                            ) : (
+                              <span className="text-gray-400 text-sm">No notes</span>
+                            )}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setShowDetailsDialog(false)
+                              if (selectedCustomer) {
+                                openEditDialog(selectedCustomer)
+                              }
+                            }}
+                            className="h-6 w-6 p-0 hover:bg-gray-100 flex-shrink-0"
+                            title="Edit notes"
+                          >
+                            <Edit className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Booking Stats */}
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-3 md:mb-4 text-lg">Booking Statistics</h4>
+                    <div className="space-y-2 md:space-y-4">
+                      <div className="flex justify-between items-center py-1 md:py-2">
+                        <span className="text-gray-600">Total Spent</span>
+                        <span className="font-medium text-gray-900">{formatPrice(selectedCustomer.total_spent)}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-1 md:py-2">
+                        <span className="text-gray-600">Last Booking</span>
+                        <div className="text-right">
+                          {selectedCustomer.last_booking_date ? (
+                            <div>
+                              <div className="font-medium text-gray-900">{formatDate(selectedCustomer.last_booking_date)}</div>
+                              {selectedCustomer.last_booking_price && (
+                                <div className="text-sm text-gray-600">{formatPrice(selectedCustomer.last_booking_price)}</div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-gray-500">Never</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
               )}
             </div>
-          </DialogHeader>
-          
-          {selectedCustomer && (
-            <div className="space-y-4">
-              {/* Customer Info */}
-              <div>
-                <h4 className="font-medium mb-2">Customer Information</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p><strong>Name:</strong> {selectedCustomer.name}</p>
-                    <p><strong>Email:</strong> 
-                      <a 
-                        href={`mailto:${selectedCustomer.email}`}
-                        className="text-blue-500 hover:text-blue-700 underline"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {selectedCustomer.email}
-                      </a>
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <p><strong>Phone:</strong></p>
-                      {renderPhoneNumber(selectedCustomer.phone, selectedCustomer.id, "text-blue-500 hover:text-blue-700 underline cursor-pointer")}
-                    </div>
-                  </div>
-                  <div>
-                    <p><strong>Type:</strong> 
-                      <Badge 
-                        variant={selectedCustomer.is_existing_customer ? "default" : "secondary"}
-                        className={`ml-2 ${selectedCustomer.is_existing_customer ? "bg-indigo-100 text-indigo-800" : "bg-purple-100 text-purple-800"}`}
-                      >
-                        {selectedCustomer.is_existing_customer ? 'Existing' : 'New'}
-                      </Badge>
-                    </p>
-                    <p><strong>Total Bookings:</strong> {selectedCustomer.total_bookings}</p>
-                    <p><strong>Total Spent:</strong> {formatPrice(selectedCustomer.total_spent)}</p>
-                  </div>
-                </div>
-              </div>
 
-              {/* Booking Stats */}
-              <div>
-                <h4 className="font-medium mb-2">Booking Statistics</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p><strong>Total Bookings:</strong> {selectedCustomer.total_bookings}</p>
-                    <p><strong>Total Spent:</strong> {formatPrice(selectedCustomer.total_spent)}</p>
-                  </div>
-                  <div>
-                    <p><strong>Last Booking:</strong> {selectedCustomer.last_booking_date ? formatDate(selectedCustomer.last_booking_date) : 'Never'}</p>
-                    <p><strong>Customer Since:</strong> {formatDate(selectedCustomer.created_at)}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Notes */}
-              {selectedCustomer.notes && (
-                <div>
-                  <h4 className="font-medium mb-2">Notes</h4>
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <p className="text-sm text-gray-700">{selectedCustomer.notes}</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Actions */}
-              <div className="flex justify-end space-x-2 pt-4 border-t">
+            {/* Bottom Actions */}
+            <div className="px-6 py-4 border-t border-gray-200 bg-white md:px-6 md:py-6 md:border-none">
+              <div className="flex gap-3">
                 <Button
                   variant="outline"
                   onClick={() => setShowDetailsDialog(false)}
+                  className="flex-1 h-12"
                 >
                   Close
                 </Button>
                 <Button
                   onClick={() => {
                     setShowDetailsDialog(false)
-                    openEditDialog(selectedCustomer)
+                    if (selectedCustomer) {
+                      openEditDialog(selectedCustomer)
+                    }
                   }}
+                  className="flex-1 h-12 text-black border border-black"
+                  style={{ backgroundColor: '#a7f3d0' }}
                 >
                   <Edit className="w-4 h-4 mr-2" />
                   Edit Customer
                 </Button>
               </div>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Edit Customer Modal */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
@@ -827,6 +852,17 @@ export default function AdminCustomersPage() {
             </div>
 
             <div>
+              <Label htmlFor="edit-birthday">Birthday</Label>
+              <Input
+                id="edit-birthday"
+                type="date"
+                value={editForm.birthday || ''}
+                onChange={(e) => setEditForm(prev => ({ ...prev, birthday: e.target.value }))}
+                placeholder="YYYY-MM-DD"
+              />
+            </div>
+
+            <div>
               <Label htmlFor="edit-notes">Notes</Label>
               <Textarea
                 id="edit-notes"
@@ -860,6 +896,8 @@ export default function AdminCustomersPage() {
             <Button
               onClick={saveCustomerEdit}
               disabled={isSubmitting}
+              className="text-black border border-black"
+              style={{ backgroundColor: '#a7f3d0' }}
             >
               {isSubmitting ? (
                 <>

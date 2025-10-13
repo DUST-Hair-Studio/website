@@ -91,6 +91,7 @@ export class EmailService {
     const appointmentTime = new Date(`${booking.booking_date}T${booking.booking_time}`).toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
+      hour12: true,
       timeZone: businessSettings.timezone
     })
 
@@ -101,6 +102,7 @@ export class EmailService {
       day: 'numeric',
       hour: 'numeric',
       minute: '2-digit',
+      hour12: true,
       timeZone: businessSettings.timezone
     })
 
@@ -406,6 +408,7 @@ export class EmailService {
         const oldAppointmentTime = new Date(`${oldDate}T${oldTime}`).toLocaleTimeString('en-US', {
           hour: 'numeric',
           minute: '2-digit',
+          hour12: true,
           timeZone: businessSettings.timezone
         })
 

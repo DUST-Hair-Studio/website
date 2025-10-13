@@ -198,48 +198,6 @@ function AdminScheduleContent() {
         </Card>
       </div>
 
-      {/* Quick Actions */}
-      <Card className="mt-6 sm:mt-8">
-        <CardHeader className="pb-3 sm:pb-6">
-          <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
-            <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span>Quick Actions</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-            <Link href="/admin/settings">
-              <Button variant="outline" className="w-full h-auto p-3 sm:p-4 flex flex-col items-center space-y-2">
-                <Settings className="w-5 h-5 sm:w-6 sm:h-6" />
-                <div className="text-center">
-                  <div className="font-medium text-sm sm:text-base">Business Settings</div>
-                  <div className="text-xs sm:text-sm text-gray-600 leading-tight">Configure business hours, contact info, and timezone</div>
-                </div>
-              </Button>
-            </Link>
-            
-            <Link href="/admin/settings?tab=integrations">
-              <Button variant="outline" className="w-full h-auto p-3 sm:p-4 flex flex-col items-center space-y-2">
-                <Calendar className="w-5 h-5 sm:w-6 sm:h-6" />
-                <div className="text-center">
-                  <div className="font-medium text-sm sm:text-base">Integrations</div>
-                  <div className="text-xs sm:text-sm text-gray-600 leading-tight">Manage Google Calendar and other integrations</div>
-                </div>
-              </Button>
-            </Link>
-            
-            <Link href="/admin/bookings">
-              <Button variant="outline" className="w-full h-auto p-3 sm:p-4 flex flex-col items-center space-y-2 sm:col-span-2 lg:col-span-1">
-                <Clock className="w-5 h-5 sm:w-6 sm:h-6" />
-                <div className="text-center">
-                  <div className="font-medium text-sm sm:text-base">View Bookings</div>
-                  <div className="text-xs sm:text-sm text-gray-600 leading-tight">See all current and upcoming appointments</div>
-                </div>
-              </Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }

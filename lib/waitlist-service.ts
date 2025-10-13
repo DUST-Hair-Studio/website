@@ -164,6 +164,7 @@ export class WaitlistService {
       const appointmentTime = new Date(`${availableDate}T${availableTime}`).toLocaleTimeString('en-US', {
         hour: 'numeric',
         minute: '2-digit',
+        hour12: true,
         timeZone: businessSettings.timezone
       })
 
