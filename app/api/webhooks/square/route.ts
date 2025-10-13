@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminSupabaseClient } from '@/lib/supabase-server';
-import crypto from 'crypto';
+// import crypto from 'crypto';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.text();
-    const signature = request.headers.get('x-square-signature');
+    // const signature = request.headers.get('x-square-signature');
     
     // Verify webhook signature (temporarily disabled - signature key mismatch)
     // if (process.env.SQUARE_WEBHOOK_SIGNATURE_KEY && signature) {

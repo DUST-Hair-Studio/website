@@ -11,7 +11,7 @@ export function Navigation() {
   const router = useRouter()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false)
-  const [customer, setCustomer] = useState<{ is_existing_customer: boolean; name?: string } | null>(null)
+  const [, setCustomer] = useState<{ is_existing_customer: boolean; name?: string } | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [isCheckingAdmin, setIsCheckingAdmin] = useState(false)
   const [isSigningOut, setIsSigningOut] = useState(false)

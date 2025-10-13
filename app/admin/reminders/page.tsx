@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Loader2, Bell, Plus, Edit, Trash2, Send, Clock, CheckCircle, XCircle, Mail, ChevronDown, ChevronRight } from 'lucide-react'
+import { Loader2, Plus, Edit, Trash2, Send, Clock, CheckCircle, XCircle, ChevronDown, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface ReminderTemplate {

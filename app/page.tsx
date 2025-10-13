@@ -3,7 +3,6 @@
 import { Navigation } from '@/components/navigation'
 import { useAuth } from '@/lib/auth-context'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import Image from 'next/image'
 import { useState, useEffect } from 'react'
 import { Service } from '@/types'

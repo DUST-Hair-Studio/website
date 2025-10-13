@@ -538,7 +538,7 @@ Best regards,
 ${businessSettings.business_name}
 ${businessSettings.business_phone}`
 
-      const htmlMessage = message.replace(/\n/g, '<br>')
+      // const htmlMessage = message.replace(/\n/g, '<br>')
 
       const { data: emailData, error } = await resend.emails.send({
         from: businessSettings.business_email,

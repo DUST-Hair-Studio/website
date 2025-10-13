@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     const adminSupabase = createAdminSupabaseClient()
 
     // Check if waitlist is enabled
-    const { data: settings, error: settingsError } = await adminSupabase
+    const { data: settings } = await adminSupabase
       .from('settings')
       .select('value')
       .eq('key', 'waitlist_enabled')

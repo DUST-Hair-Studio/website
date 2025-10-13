@@ -29,7 +29,7 @@ export function RegisterForm() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target
     const checked = 'checked' in e.target ? e.target.checked : false
-2    
+    
     // Format phone number as user types
     if (name === 'phone') {
       const formattedPhone = formatPhoneNumber(value)

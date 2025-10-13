@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/auth-context'
-import { Booking, Service } from '@/types'
+import { Booking } from '@/types'
 import { Button } from '@/components/ui/button'
 import { formatBusinessDateTime } from '@/lib/timezone-utils-client'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
-import { Calendar, Clock, DollarSign, MapPin, User, RefreshCw, Eye, ArrowLeft, X } from 'lucide-react'
+import { Calendar, Clock, DollarSign, RefreshCw, Eye, ArrowLeft, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import RescheduleModal from '@/components/admin/reschedule-modal'
 

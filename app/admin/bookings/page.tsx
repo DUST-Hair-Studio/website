@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuPortal } from '@/components/ui/dropdown-menu'
-import { CheckCircle, Calendar, DollarSign, CalendarDays, RotateCcw, Search, Filter, Table, Phone, MessageSquare, Mail, ListChecks, CreditCard, MoreVertical, CheckSquare } from 'lucide-react'
+import { CheckCircle, Calendar, DollarSign, CalendarDays, RotateCcw, Search, Filter, Table, Phone, MessageSquare, Mail, ListChecks, CreditCard, MoreVertical, CheckSquare, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import RescheduleModal from '@/components/admin/reschedule-modal'
 
@@ -45,6 +45,7 @@ export default function AdminBookingsPage() {
   const [viewMode, setViewMode] = useState<'table' | 'calendar'>('table')
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | undefined>(undefined)
   const [activePhoneMenu, setActivePhoneMenu] = useState<string | null>(null)
+  const [processingPayment, setProcessingPayment] = useState<Set<string>>(new Set())
   const [waitlistCount, setWaitlistCount] = useState(0)
 
   // Close phone menu when clicking outside
@@ -73,6 +74,9 @@ export default function AdminBookingsPage() {
   // Generate payment link for a booking
   const generatePaymentLink = async (booking: BookingWithDetails) => {
     try {
+      // Add booking to processing set
+      setProcessingPayment(prev => new Set(prev).add(booking.id))
+      
       const response = await fetch('/api/bookings/generate-payment-link', {
         method: 'POST',
         headers: {
@@ -105,6 +109,13 @@ export default function AdminBookingsPage() {
       console.error('Error generating payment link:', error)
       toast.error('Failed to generate payment link', {
         description: 'Please try again or check your Square configuration.'
+      })
+    } finally {
+      // Remove booking from processing set
+      setProcessingPayment(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(booking.id)
+        return newSet
       })
     }
   }
@@ -288,58 +299,58 @@ export default function AdminBookingsPage() {
     }
   }
 
-  const renderPhoneNumber = (phone: string, bookingId: string, className: string = "text-blue-500 hover:text-blue-700 underline cursor-pointer") => {
-    const isActive = activePhoneMenu === bookingId
-    
-    return (
-      <div className="relative inline-block">
-        <button
-          onClick={(e: React.MouseEvent) => {
-            e.stopPropagation()
-            e.preventDefault()
-            console.log('Phone button clicked, current active:', activePhoneMenu, 'bookingId:', bookingId)
-            setActivePhoneMenu(isActive ? null : bookingId)
-          }}
-          className={className}
-        >
-          {phone}
-        </button>
-        
-        {isActive && (
-          <div className="absolute bg-white border border-gray-200 rounded-md shadow-xl z-[9999] min-w-[120px] overflow-visible" 
-               style={{
-                 top: 'auto',
-                 bottom: '100%',
-                 left: '0',
-                 marginBottom: '4px'
-               }}>
-            <button
-              onClick={(e: React.MouseEvent) => {
-                e.stopPropagation()
-                window.location.href = `tel:${phone}`
-                setActivePhoneMenu(null)
-              }}
-              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-            >
-              <Phone className="w-3 h-3" />
-              Call
-            </button>
-            <button
-              onClick={(e: React.MouseEvent) => {
-                e.stopPropagation()
-                window.location.href = `sms:${phone}`
-                setActivePhoneMenu(null)
-              }}
-              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-            >
-              <MessageSquare className="w-3 h-3" />
-              Text
-            </button>
-          </div>
-        )}
-      </div>
-    )
-  }
+  // const renderPhoneNumber = (phone: string, bookingId: string, className: string = "text-blue-500 hover:text-blue-700 underline cursor-pointer") => {
+  //   const isActive = activePhoneMenu === bookingId
+  //   
+  //   return (
+  //     <div className="relative inline-block">
+  //       <button
+  //         onClick={(e: React.MouseEvent) => {
+  //           e.stopPropagation()
+  //           e.preventDefault()
+  //           console.log('Phone button clicked, current active:', activePhoneMenu, 'bookingId:', bookingId)
+  //           setActivePhoneMenu(isActive ? null : bookingId)
+  //         }}
+  //         className={className}
+  //       >
+  //         {phone}
+  //       </button>
+  //       
+  //       {isActive && (
+  //         <div className="absolute bg-white border border-gray-200 rounded-md shadow-xl z-[9999] min-w-[120px] overflow-visible" 
+  //              style={{
+  //                top: 'auto',
+  //                bottom: '100%',
+  //                left: '0',
+  //                marginBottom: '4px'
+  //              }}>
+  //           <button
+  //             onClick={(e: React.MouseEvent) => {
+  //               e.stopPropagation()
+  //               window.location.href = `tel:${phone}`
+  //               setActivePhoneMenu(null)
+  //             }}
+  //             className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+  //           >
+  //             <Phone className="w-3 h-3" />
+  //             Call
+  //           </button>
+  //           <button
+  //             onClick={(e: React.MouseEvent) => {
+  //               e.stopPropagation()
+  //               window.location.href = `sms:${phone}`
+  //               setActivePhoneMenu(null)
+  //             }}
+  //             className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+  //           >
+  //             <MessageSquare className="w-3 h-3" />
+  //             Text
+  //           </button>
+  //         </div>
+  //       )}
+  //     </div>
+  //   )
+  // }
 
   const formatPrice = (price: number) => {
     return price === 0 ? "Free" : `$${Math.round(price / 100)}`
@@ -396,9 +407,9 @@ export default function AdminBookingsPage() {
     return filteredBookings.filter(booking => booking.booking_date === dateStr)
   }
 
-  const getAppointmentCountForDate = (date: Date) => {
-    return getBookingsForDate(date).length
-  }
+  // const getAppointmentCountForDate = (date: Date) => {
+  //   return getBookingsForDate(date).length
+  // }
 
   const handleCalendarDateSelect = (date: Date | undefined) => {
     setSelectedCalendarDate(date)
@@ -658,21 +669,35 @@ export default function AdminBookingsPage() {
                           {formatDateTime(booking.booking_date, booking.booking_time)}
                         </div>
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">Phone:</span>
-                          <div className="text-gray-900 cursor-pointer hover:text-blue-700" onClick={(e) => {
-                            e.stopPropagation()
-                            window.open(`tel:${booking.customers.phone}`, '_self')
-                          }}>
-                            {renderPhoneNumber(booking.customers.phone, booking.id, "text-blue-500 hover:text-blue-700 underline cursor-pointer")}
-                          </div>
-                        </div>
-                        <div className="flex justify-between text-sm">
                           <span className="text-gray-500">Price:</span>
                           <div className="text-right">
                             <div className="text-gray-900">{formatPrice(booking.price_charged)}</div>
-                            <Badge className={`${getPaymentStatusColor(booking.payment_status)} text-xs px-2 py-1 mt-1`}>
-                              {booking.payment_status}
-                            </Badge>
+                            {booking.price_charged === 0 ? (
+                              <span className="text-xs text-gray-500 mt-1">Free</span>
+                            ) : booking.payment_status === 'pending' ? (
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="h-6 px-2 text-xs mt-1"
+                                onClick={(e: React.MouseEvent) => {
+                                  e.stopPropagation()
+                                  generatePaymentLink(booking)
+                                }}
+                                disabled={processingPayment.has(booking.id)}
+                                title="Generate payment link"
+                              >
+                                {processingPayment.has(booking.id) ? (
+                                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                ) : (
+                                  <CreditCard className="w-3 h-3 mr-1" />
+                                )}
+                                {processingPayment.has(booking.id) ? 'Processing...' : 'Pay Now'}
+                              </Button>
+                            ) : (
+                              <Badge className={`${getPaymentStatusColor(booking.payment_status)} text-xs px-2 py-1 mt-1`}>
+                                {booking.payment_status}
+                              </Badge>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -701,6 +726,18 @@ export default function AdminBookingsPage() {
                           title={`Text ${booking.customers.name}`}
                         >
                           <MessageSquare className="w-3 h-3" />
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="h-8 px-2 text-xs"
+                          onClick={(e: React.MouseEvent) => {
+                            e.stopPropagation()
+                            window.open(`mailto:${booking.customers.email}`, '_self')
+                          }}
+                          title={`Email ${booking.customers.name}`}
+                        >
+                          <Mail className="w-3 h-3" />
                         </Button>
                         
                         {/* Kebab Menu */}
@@ -733,10 +770,14 @@ export default function AdminBookingsPage() {
                                   e.stopPropagation()
                                   generatePaymentLink(booking)
                                 }}
-                                disabled={booking.payment_status === 'paid'}
+                                disabled={booking.payment_status === 'paid' || processingPayment.has(booking.id)}
                               >
-                                <CreditCard className="w-4 h-4 mr-2" />
-                                Pay with Square
+                                {processingPayment.has(booking.id) ? (
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                ) : (
+                                  <CreditCard className="w-4 h-4 mr-2" />
+                                )}
+                                {processingPayment.has(booking.id) ? 'Processing...' : 'Pay with Square'}
                               </DropdownMenuItem>
                             )}
                             {booking.status !== 'completed' && (
@@ -766,7 +807,6 @@ export default function AdminBookingsPage() {
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment</th>
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                       </tr>
@@ -795,17 +835,6 @@ export default function AdminBookingsPage() {
                           <td className="px-3 py-3 whitespace-nowrap">
                             {formatDateTime(booking.booking_date, booking.booking_time)}
                           </td>
-                          <td className="px-3 py-3 whitespace-nowrap">
-                            <div>
-                              <div className="text-sm text-gray-900 cursor-pointer hover:text-blue-700" onClick={(e) => {
-                                e.stopPropagation()
-                                window.open(`tel:${booking.customers.phone}`, '_self')
-                              }}>
-                                {renderPhoneNumber(booking.customers.phone, booking.id, "text-blue-500 hover:text-blue-700 underline cursor-pointer")}
-                              </div>
-                              <div className="text-xs text-gray-500">{booking.customers.email}</div>
-                            </div>
-                          </td>
                           <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-900">
                             <div>
                               <div>{formatPrice(booking.price_charged)}</div>
@@ -831,6 +860,33 @@ export default function AdminBookingsPage() {
                                 <DropdownMenuItem 
                                   onClick={(e: React.MouseEvent) => {
                                     e.stopPropagation()
+                                    window.open(`tel:${booking.customers.phone}`, '_self')
+                                  }}
+                                >
+                                  <Phone className="w-4 h-4 mr-2" />
+                                  Call {booking.customers.name}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={(e: React.MouseEvent) => {
+                                    e.stopPropagation()
+                                    window.open(`sms:${booking.customers.phone}`, '_self')
+                                  }}
+                                >
+                                  <MessageSquare className="w-4 h-4 mr-2" />
+                                  Text {booking.customers.name}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={(e: React.MouseEvent) => {
+                                    e.stopPropagation()
+                                    window.open(`mailto:${booking.customers.email}`, '_self')
+                                  }}
+                                >
+                                  <Mail className="w-4 h-4 mr-2" />
+                                  Email {booking.customers.name}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={(e: React.MouseEvent) => {
+                                    e.stopPropagation()
                                     openRescheduleModal(booking, e)
                                   }}
                                   disabled={booking.status === 'completed'}
@@ -844,10 +900,14 @@ export default function AdminBookingsPage() {
                                       e.stopPropagation()
                                       generatePaymentLink(booking)
                                     }}
-                                    disabled={booking.payment_status === 'paid'}
+                                    disabled={booking.payment_status === 'paid' || processingPayment.has(booking.id)}
                                   >
-                                    <CreditCard className="w-4 h-4 mr-2" />
-                                    Pay with Square
+                                    {processingPayment.has(booking.id) ? (
+                                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    ) : (
+                                      <CreditCard className="w-4 h-4 mr-2" />
+                                    )}
+                                    {processingPayment.has(booking.id) ? 'Processing...' : 'Pay with Square'}
                                   </DropdownMenuItem>
                                 )}
                                 {booking.status !== 'completed' && (
@@ -879,7 +939,6 @@ export default function AdminBookingsPage() {
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                       </tr>
@@ -908,23 +967,35 @@ export default function AdminBookingsPage() {
                           <td className="px-4 py-3 whitespace-nowrap">
                             <div className="text-sm text-gray-900">{formatDateTime(booking.booking_date, booking.booking_time)}</div>
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <div>
-                              <div className="text-sm text-gray-900 cursor-pointer hover:text-blue-700" onClick={(e) => {
-                                e.stopPropagation()
-                                window.open(`tel:${booking.customers.phone}`, '_self')
-                              }}>
-                                {renderPhoneNumber(booking.customers.phone, booking.id, "text-blue-500 hover:text-blue-700 underline cursor-pointer")}
-                              </div>
-                              <div className="text-xs text-gray-500">{booking.customers.email}</div>
-                            </div>
-                          </td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                             <div>
                               <div>{formatPrice(booking.price_charged)}</div>
-                              <Badge className={`${getPaymentStatusColor(booking.payment_status)} text-xs px-2 py-1 mt-1`}>
-                                {booking.payment_status}
-                              </Badge>
+                              {booking.price_charged === 0 ? (
+                                <span className="text-xs text-gray-500 mt-1">Free</span>
+                              ) : booking.payment_status === 'pending' ? (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  className="h-6 px-2 text-xs mt-1"
+                                  onClick={(e: React.MouseEvent) => {
+                                    e.stopPropagation()
+                                    generatePaymentLink(booking)
+                                  }}
+                                  disabled={processingPayment.has(booking.id)}
+                                  title="Generate payment link"
+                                >
+                                  {processingPayment.has(booking.id) ? (
+                                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                  ) : (
+                                    <CreditCard className="w-3 h-3 mr-1" />
+                                  )}
+                                  {processingPayment.has(booking.id) ? 'Processing...' : 'Pay Now'}
+                                </Button>
+                              ) : (
+                                <Badge className={`${getPaymentStatusColor(booking.payment_status)} text-xs px-2 py-1 mt-1`}>
+                                  {booking.payment_status}
+                                </Badge>
+                              )}
                             </div>
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm relative">
@@ -944,6 +1015,33 @@ export default function AdminBookingsPage() {
                                 <DropdownMenuItem 
                                   onClick={(e: React.MouseEvent) => {
                                     e.stopPropagation()
+                                    window.open(`tel:${booking.customers.phone}`, '_self')
+                                  }}
+                                >
+                                  <Phone className="w-4 h-4 mr-2" />
+                                  Call {booking.customers.name}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={(e: React.MouseEvent) => {
+                                    e.stopPropagation()
+                                    window.open(`sms:${booking.customers.phone}`, '_self')
+                                  }}
+                                >
+                                  <MessageSquare className="w-4 h-4 mr-2" />
+                                  Text {booking.customers.name}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={(e: React.MouseEvent) => {
+                                    e.stopPropagation()
+                                    window.open(`mailto:${booking.customers.email}`, '_self')
+                                  }}
+                                >
+                                  <Mail className="w-4 h-4 mr-2" />
+                                  Email {booking.customers.name}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={(e: React.MouseEvent) => {
+                                    e.stopPropagation()
                                     openRescheduleModal(booking, e)
                                   }}
                                   disabled={booking.status === 'completed'}
@@ -957,10 +1055,14 @@ export default function AdminBookingsPage() {
                                       e.stopPropagation()
                                       generatePaymentLink(booking)
                                     }}
-                                    disabled={booking.payment_status === 'paid'}
+                                    disabled={booking.payment_status === 'paid' || processingPayment.has(booking.id)}
                                   >
-                                    <CreditCard className="w-4 h-4 mr-2" />
-                                    Pay with Square
+                                    {processingPayment.has(booking.id) ? (
+                                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    ) : (
+                                      <CreditCard className="w-4 h-4 mr-2" />
+                                    )}
+                                    {processingPayment.has(booking.id) ? 'Processing...' : 'Pay with Square'}
                                   </DropdownMenuItem>
                                 )}
                                 {booking.status !== 'completed' && (
@@ -1081,9 +1183,14 @@ export default function AdminBookingsPage() {
                                         e.stopPropagation()
                                         generatePaymentLink(booking)
                                       }}
+                                      disabled={processingPayment.has(booking.id)}
                                       title="Generate payment link"
                                     >
-                                      <CreditCard className="w-3 h-3" />
+                                      {processingPayment.has(booking.id) ? (
+                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                      ) : (
+                                        <CreditCard className="w-3 h-3" />
+                                      )}
                                     </Button>
                                   )}
                                 </div>
@@ -1167,7 +1274,6 @@ export default function AdminBookingsPage() {
                               <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
                               <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
                               <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                               <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment</th>
                               <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
@@ -1198,22 +1304,11 @@ export default function AdminBookingsPage() {
                                 <td className="px-3 py-2 whitespace-nowrap">
                                   {formatDateTime(booking.booking_date, booking.booking_time)}
                                 </td>
-                                <td className="px-3 py-2 whitespace-nowrap">
-                                  <div>
-                                    <div className="text-sm text-gray-900 cursor-pointer hover:text-blue-700" onClick={(e) => {
-                                      e.stopPropagation()
-                                      window.open(`tel:${booking.customers.phone}`, '_self')
-                                    }}>
-                                      {renderPhoneNumber(booking.customers.phone, booking.id, "text-blue-500 hover:text-blue-700 underline cursor-pointer")}
-                                    </div>
-                                    <div className="text-xs text-gray-500">{booking.customers.email}</div>
-                                  </div>
-                                </td>
                                 <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
                                   <div>
                                     <div className="flex items-center gap-2">
                                       <span>{formatPrice(booking.price_charged)}</span>
-                                      {booking.payment_status !== 'paid' && booking.price_charged && booking.price_charged > 0 && (
+                                      {booking.price_charged > 0 && booking.payment_status === 'pending' && (
                                         <Button 
                                           variant="outline" 
                                           size="sm"
@@ -1222,15 +1317,26 @@ export default function AdminBookingsPage() {
                                             e.stopPropagation()
                                             generatePaymentLink(booking)
                                           }}
+                                          disabled={processingPayment.has(booking.id)}
                                           title="Generate payment link"
                                         >
-                                          <CreditCard className="w-3 h-3" />
+                                          {processingPayment.has(booking.id) ? (
+                                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                          ) : (
+                                            <CreditCard className="w-3 h-3 mr-1" />
+                                          )}
+                                          {processingPayment.has(booking.id) ? 'Processing...' : 'Pay Now'}
                                         </Button>
                                       )}
                                     </div>
-                                    <Badge className={`${getPaymentStatusColor(booking.payment_status)} text-xs px-2 py-1 mt-1`}>
-                                      {booking.payment_status}
-                                    </Badge>
+                                    {booking.price_charged > 0 && booking.payment_status !== 'pending' && (
+                                      <Badge className={`${getPaymentStatusColor(booking.payment_status)} text-xs px-2 py-1 mt-1`}>
+                                        {booking.payment_status}
+                                      </Badge>
+                                    )}
+                                    {booking.price_charged === 0 && (
+                                      <span className="text-xs text-gray-500 mt-1">Free</span>
+                                    )}
                                   </div>
                                 </td>
                                 <td className="px-3 py-2 whitespace-nowrap text-sm relative">
@@ -1250,6 +1356,33 @@ export default function AdminBookingsPage() {
                                         <DropdownMenuItem 
                                           onClick={(e: React.MouseEvent) => {
                                             e.stopPropagation()
+                                            window.open(`tel:${booking.customers.phone}`, '_self')
+                                          }}
+                                        >
+                                          <Phone className="w-4 h-4 mr-2" />
+                                          Call {booking.customers.name}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem 
+                                          onClick={(e: React.MouseEvent) => {
+                                            e.stopPropagation()
+                                            window.open(`sms:${booking.customers.phone}`, '_self')
+                                          }}
+                                        >
+                                          <MessageSquare className="w-4 h-4 mr-2" />
+                                          Text {booking.customers.name}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem 
+                                          onClick={(e: React.MouseEvent) => {
+                                            e.stopPropagation()
+                                            window.open(`mailto:${booking.customers.email}`, '_self')
+                                          }}
+                                        >
+                                          <Mail className="w-4 h-4 mr-2" />
+                                          Email {booking.customers.name}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem 
+                                          onClick={(e: React.MouseEvent) => {
+                                            e.stopPropagation()
                                             openRescheduleModal(booking, e)
                                           }}
                                           disabled={booking.status === 'completed'}
@@ -1263,7 +1396,7 @@ export default function AdminBookingsPage() {
                                               e.stopPropagation()
                                               generatePaymentLink(booking)
                                             }}
-                                            disabled={booking.payment_status === 'paid'}
+                                            disabled={booking.payment_status === 'paid' || processingPayment.has(booking.id)}
                                           >
                                             <CreditCard className="w-4 h-4 mr-2" />
                                             Pay with Square
@@ -1382,7 +1515,7 @@ export default function AdminBookingsPage() {
                         <span className="text-gray-600">Customer</span>
                         <div className="flex items-center gap-2">
                           <Link 
-                            href={`/admin/customers?customerId=${selectedBooking.customer_id}`}
+                            href={`/admin/customers?customerId=${selectedBooking.customer_id}&search=${encodeURIComponent(selectedBooking.customers.name)}`}
                             className="font-medium text-blue-600 hover:text-blue-800 underline cursor-pointer"
                           >
                             {selectedBooking.customers.name}
@@ -1421,28 +1554,34 @@ export default function AdminBookingsPage() {
                           {selectedBooking.status}
                         </Badge>
                       </div>
-                      <div className="flex justify-between items-start py-2 md:py-2">
+                        <div className="flex justify-between items-start py-2 md:py-2">
                         <span className="text-gray-600">Payment</span>
                         <div className="text-right">
                           <div className="font-medium text-gray-900 mb-1">{formatPrice(selectedBooking.price_charged)}</div>
                           <div className="flex items-center gap-2 justify-end">
-                            <Badge 
-                              variant={selectedBooking.payment_status === 'paid' ? 'default' : 'secondary'}
-                              className={selectedBooking.payment_status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}
-                            >
-                              {selectedBooking.payment_status}
-                            </Badge>
-                            {selectedBooking.payment_status !== 'paid' && selectedBooking.price_charged && selectedBooking.price_charged > 0 && (
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                className="h-7 px-2 text-xs"
-                                onClick={() => generatePaymentLink(selectedBooking)}
-                                title="Generate and copy payment link"
-                              >
-                                <CreditCard className="w-3 h-3 mr-1" />
-                                Pay Link
-                              </Button>
+                            {selectedBooking.price_charged === 0 ? (
+                              <span className="text-xs text-gray-500">Free appointment</span>
+                            ) : (
+                              <>
+                                <Badge 
+                                  variant={selectedBooking.payment_status === 'paid' ? 'default' : 'secondary'}
+                                  className={selectedBooking.payment_status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}
+                                >
+                                  {selectedBooking.payment_status}
+                                </Badge>
+                                {selectedBooking.payment_status !== 'paid' && (
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    className="h-7 px-2 text-xs"
+                                    onClick={() => generatePaymentLink(selectedBooking)}
+                                    title="Generate and copy payment link"
+                                  >
+                                    <CreditCard className="w-3 h-3 mr-1" />
+                                    Pay Now
+                                  </Button>
+                                )}
+                              </>
                             )}
                           </div>
                         </div>

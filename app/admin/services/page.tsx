@@ -398,113 +398,155 @@ export default function AdminServicesPage() {
         {services.filter(service => service.is_active).map((service) => (
           <Card key={service.id} className={!service.is_active ? 'opacity-60' : ''}>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div>
-                    <CardTitle className="text-xl">{service.name}</CardTitle>
+              {/* Mobile-first header layout */}
+              <div className="space-y-4">
+                {/* Top row: Service name and status */}
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <CardTitle className="text-xl break-words">{service.name}</CardTitle>
                     {service.category && (
-                      <Badge variant="secondary" className="mt-1">
+                      <Badge variant="secondary" className="mt-2 w-fit">
                         {service.category}
                       </Badge>
                     )}
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex-shrink-0">
                     {service.is_active ? (
-                      <Badge variant="default" className="bg-green-100 text-green-800">
+                      <Badge variant="default" className="bg-green-100 text-green-800 w-fit">
                         <Eye className="w-3 h-3 mr-1" />
                         Active
                       </Badge>
                     ) : (
-                      <Badge variant="secondary" className="bg-gray-100 text-gray-800">
+                      <Badge variant="secondary" className="bg-gray-100 text-gray-800 w-fit">
                         <EyeOff className="w-3 h-3 mr-1" />
                         Inactive
                       </Badge>
                     )}
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                
+                {/* Action buttons - mobile-friendly layout */}
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => toggleServiceStatus(service)}
+                    className="w-full sm:w-auto"
                   >
                     {service.is_active ? 'Deactivate' : 'Activate'}
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => openEditDialog(service)}
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent 
-                      className="bg-white border border-gray-200 shadow-xl"
-                      style={{ backgroundColor: 'white', opacity: 1 }}
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openEditDialog(service)}
+                      className="flex-1 sm:flex-none"
                     >
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Service</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete &quot;{service.name}&quot;? This action cannot be undone.
-                          {service.is_active && (
-                            <span className="block mt-2 text-yellow-600">
-                              ⚠️ This service is currently active and visible to customers.
-                            </span>
-                          )}
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => handleDelete(service.id)}
-                          className="bg-red-600 hover:bg-red-700"
+                      <Edit className="w-4 h-4 sm:mr-2" />
+                      <span className="sm:hidden">Edit</span>
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 sm:flex-none text-red-600 hover:text-red-700"
                         >
-                          Delete Service
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                          <Trash2 className="w-4 h-4 sm:mr-2" />
+                          <span className="sm:hidden">Delete</span>
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent 
+                        className="bg-white border border-gray-200 shadow-xl"
+                        style={{ backgroundColor: 'white', opacity: 1 }}
+                      >
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Service</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete &quot;{service.name}&quot;? This action cannot be undone.
+                            {service.is_active && (
+                              <span className="block mt-2 text-yellow-600">
+                                ⚠️ This service is currently active and visible to customers.
+                              </span>
+                            )}
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDelete(service.id)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Delete Service
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Duration</p>
-                  <p className="text-lg">{formatDuration(service.duration_minutes)}</p>
+              {/* Mobile-optimized content grid */}
+              <div className="space-y-4 sm:space-y-0">
+                {/* Mobile: Stack all items vertically */}
+                <div className="block sm:hidden space-y-4">
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <p className="text-sm font-medium text-gray-600">Duration</p>
+                    <p className="text-lg font-semibold">{formatDuration(service.duration_minutes)}</p>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <p className="text-sm font-medium text-gray-600">New Customer Price</p>
+                    <p className="text-lg font-bold text-purple-600">{formatPrice(service.new_customer_price)}</p>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <p className="text-sm font-medium text-gray-600">Existing Customer Price</p>
+                    <p className="text-lg font-bold text-indigo-600">{formatPrice(service.existing_customer_price)}</p>
+                  </div>
+                  <div className="py-2">
+                    <p className="text-sm font-medium text-gray-600 mb-2">Availability</p>
+                    <div className="flex flex-wrap gap-2">
+                      {service.is_new_customer && (
+                        <Badge className="bg-purple-100 text-purple-800">New Customers</Badge>
+                      )}
+                      {service.is_existing_customer && (
+                        <Badge className="bg-indigo-100 text-indigo-800">Existing Customers</Badge>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">New Customer Price</p>
-                  <p className="text-lg font-bold text-purple-600">{formatPrice(service.new_customer_price)}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Existing Customer Price</p>
-                  <p className="text-lg font-bold text-indigo-600">{formatPrice(service.existing_customer_price)}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Availability</p>
-                  <div className="flex flex-col space-y-1">
-                    {service.is_new_customer && (
-                      <Badge className="w-fit bg-purple-100 text-purple-800">New Customers</Badge>
-                    )}
-                    {service.is_existing_customer && (
-                      <Badge className="w-fit bg-indigo-100 text-indigo-800">Existing Customers</Badge>
-                    )}
+                
+                {/* Desktop: Grid layout */}
+                <div className="hidden sm:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Duration</p>
+                    <p className="text-lg">{formatDuration(service.duration_minutes)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">New Customer Price</p>
+                    <p className="text-lg font-bold text-purple-600">{formatPrice(service.new_customer_price)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Existing Customer Price</p>
+                    <p className="text-lg font-bold text-indigo-600">{formatPrice(service.existing_customer_price)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Availability</p>
+                    <div className="flex flex-col space-y-1">
+                      {service.is_new_customer && (
+                        <Badge className="w-fit bg-purple-100 text-purple-800">New Customers</Badge>
+                      )}
+                      {service.is_existing_customer && (
+                        <Badge className="w-fit bg-indigo-100 text-indigo-800">Existing Customers</Badge>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
+              
               {service.description && (
-                <div className="mt-4">
-                  <p className="text-sm text-gray-600">{service.description}</p>
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <p className="text-sm text-gray-600 leading-relaxed">{service.description}</p>
                 </div>
               )}
             </CardContent>
@@ -524,101 +566,140 @@ export default function AdminServicesPage() {
             {services.filter(service => !service.is_active).map((service) => (
               <Card key={service.id} className="opacity-60 border-gray-200">
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div>
-                        <CardTitle className="text-xl text-gray-600">{service.name}</CardTitle>
+                  {/* Mobile-first header layout for inactive services */}
+                  <div className="space-y-4">
+                    {/* Top row: Service name and status */}
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-xl text-gray-600 break-words">{service.name}</CardTitle>
                         {service.category && (
-                          <Badge variant="secondary" className="mt-1 bg-gray-100 text-gray-600">
+                          <Badge variant="secondary" className="mt-2 w-fit bg-gray-100 text-gray-600">
                             {service.category}
                           </Badge>
                         )}
                       </div>
-                      <Badge variant="secondary" className="bg-gray-100 text-gray-800">
-                        <Eye className="w-3 h-3 mr-1" />
-                        Inactive
-                      </Badge>
+                      <div className="flex-shrink-0">
+                        <Badge variant="secondary" className="bg-gray-100 text-gray-800 w-fit">
+                          <Eye className="w-3 h-3 mr-1" />
+                          Inactive
+                        </Badge>
+                      </div>
                     </div>
                     
-                    <div className="flex items-center space-x-2">
+                    {/* Action buttons - mobile-friendly layout */}
+                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => toggleServiceStatus(service)}
                         disabled={isSubmitting}
+                        className="w-full sm:w-auto"
                       >
-                        <Eye className="w-4 h-4 mr-2" />
+                        <Eye className="w-4 h-4 sm:mr-2" />
                         Activate
                       </Button>
-                      
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openEditDialog(service)}
-                      >
-                        <Edit className="w-4 h-4 mr-2" />
-                        Edit
-                      </Button>
-                      
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Delete
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Service</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete &quot;{service.name}&quot;? This action cannot be undone.
-                              If this service has existing bookings, it cannot be deleted and should remain deactivated instead.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDelete(service.id)}
-                              className="bg-red-600 hover:bg-red-700"
-                            >
-                              Delete Service
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openEditDialog(service)}
+                          className="flex-1 sm:flex-none"
+                        >
+                          <Edit className="w-4 h-4 sm:mr-2" />
+                          <span className="sm:hidden">Edit</span>
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="outline" size="sm" className="flex-1 sm:flex-none text-red-600 hover:text-red-700">
+                              <Trash2 className="w-4 h-4 sm:mr-2" />
+                              <span className="sm:hidden">Delete</span>
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Service</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete &quot;{service.name}&quot;? This action cannot be undone.
+                                If this service has existing bookings, it cannot be deleted and should remain deactivated instead.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDelete(service.id)}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Delete Service
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </div>
                   </div>
                 </CardHeader>
                 
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Duration</p>
-                      <p className="text-lg font-bold text-gray-500">{service.duration_minutes} minutes</p>
+                  {/* Mobile-optimized content grid for inactive services */}
+                  <div className="space-y-4 sm:space-y-0">
+                    {/* Mobile: Stack all items vertically */}
+                    <div className="block sm:hidden space-y-4">
+                      <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                        <p className="text-sm font-medium text-gray-600">Duration</p>
+                        <p className="text-lg font-semibold text-gray-500">{formatDuration(service.duration_minutes)}</p>
+                      </div>
+                      <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                        <p className="text-sm font-medium text-gray-600">New Customer Price</p>
+                        <p className="text-lg font-bold text-gray-500">{formatPrice(service.new_customer_price)}</p>
+                      </div>
+                      <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                        <p className="text-sm font-medium text-gray-600">Existing Customer Price</p>
+                        <p className="text-lg font-bold text-gray-500">{formatPrice(service.existing_customer_price)}</p>
+                      </div>
+                      <div className="py-2">
+                        <p className="text-sm font-medium text-gray-600 mb-2">Availability</p>
+                        <div className="flex flex-wrap gap-2">
+                          {service.is_new_customer && (
+                            <Badge className="bg-purple-100 text-purple-800">New Customers</Badge>
+                          )}
+                          {service.is_existing_customer && (
+                            <Badge className="bg-indigo-100 text-indigo-800">Existing Customers</Badge>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">New Customer Price</p>
-                      <p className="text-lg font-bold text-gray-500">{formatPrice(service.new_customer_price)}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Existing Customer Price</p>
-                      <p className="text-lg font-bold text-gray-500">{formatPrice(service.existing_customer_price)}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Availability</p>
-                      <div className="flex flex-col space-y-1">
-                        {service.is_new_customer && (
-                          <Badge className="w-fit bg-purple-100 text-purple-800">New Customers</Badge>
-                        )}
-                        {service.is_existing_customer && (
-                          <Badge className="w-fit bg-indigo-100 text-indigo-800">Existing Customers</Badge>
-                        )}
+                    
+                    {/* Desktop: Grid layout */}
+                    <div className="hidden sm:grid grid-cols-1 md:grid-cols-4 gap-6">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Duration</p>
+                        <p className="text-lg font-bold text-gray-500">{formatDuration(service.duration_minutes)}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">New Customer Price</p>
+                        <p className="text-lg font-bold text-gray-500">{formatPrice(service.new_customer_price)}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Existing Customer Price</p>
+                        <p className="text-lg font-bold text-gray-500">{formatPrice(service.existing_customer_price)}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Availability</p>
+                        <div className="flex flex-col space-y-1">
+                          {service.is_new_customer && (
+                            <Badge className="w-fit bg-purple-100 text-purple-800">New Customers</Badge>
+                          )}
+                          {service.is_existing_customer && (
+                            <Badge className="w-fit bg-indigo-100 text-indigo-800">Existing Customers</Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
+                  
                   {service.description && (
-                    <div className="mt-4">
-                      <p className="text-sm text-gray-500">{service.description}</p>
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <p className="text-sm text-gray-500 leading-relaxed">{service.description}</p>
                     </div>
                   )}
                 </CardContent>

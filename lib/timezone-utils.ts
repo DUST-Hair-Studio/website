@@ -265,7 +265,7 @@ export async function calculateEndTime(
  * @param timezone - Optional timezone override
  * @returns Promise<boolean> - true if the appointment is in the future
  */
-export async function isFutureAppointment(dateString: string, timeString: string, timezone?: string): Promise<boolean> {
+export async function isFutureAppointment(dateString: string, timeString: string): Promise<boolean> {
   try {
     // Ensure time string has seconds if not provided
     const fullTimeString = timeString.includes(':') && timeString.split(':').length === 2 

@@ -7,9 +7,9 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Switch } from '@/components/ui/switch'
-import { Loader2, Search, Users, UserPlus, User, Calendar, DollarSign, Filter, CheckSquare, Square, Edit, UserX, UserCheck, Phone, MessageSquare, Mail } from 'lucide-react'
+import { Loader2, Search, Users, UserPlus, User, DollarSign, Filter, CheckSquare, Square, Edit, UserX, UserCheck, Phone, MessageSquare, Mail } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Customer } from '@/types'
 
@@ -66,6 +66,29 @@ export default function AdminCustomersPage() {
     fetchCustomers()
   }, [])
 
+  // Handle URL parameters to auto-open customer details modal
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const customerId = urlParams.get('customerId')
+    const searchParam = urlParams.get('search')
+    
+    if (customerId && customers.length > 0) {
+      const customer = customers.find(c => c.id === customerId)
+      if (customer) {
+        setSelectedCustomer(customer)
+        setShowDetailsDialog(true)
+        // Clean up the URL parameter
+        const newUrl = window.location.pathname
+        window.history.replaceState({}, '', newUrl)
+      }
+    }
+    
+    // Set search term if provided in URL
+    if (searchParam) {
+      setSearchTerm(searchParam)
+    }
+  }, [customers])
+
   // Close phone menu when clicking outside
   useEffect(() => {
     const handleClickOutside = () => {
@@ -78,50 +101,50 @@ export default function AdminCustomersPage() {
     }
   }, [activePhoneMenu])
 
-  const renderPhoneNumber = (phone: string, customerId: string, className: string = "text-blue-500 hover:text-blue-700 underline cursor-pointer") => {
-    const isActive = activePhoneMenu === customerId
-    
-    return (
-      <div className="relative inline-block">
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            setActivePhoneMenu(isActive ? null : customerId)
-          }}
-          className={className}
-        >
-          {phone}
-        </button>
-        
-        {isActive && (
-          <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-10 min-w-[120px]">
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                window.open(`tel:${phone}`, '_self')
-                setActivePhoneMenu(null)
-              }}
-              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-            >
-              <Phone className="w-3 h-3" />
-              Call
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                window.open(`sms:${phone}`, '_self')
-                setActivePhoneMenu(null)
-              }}
-              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-            >
-              <MessageSquare className="w-3 h-3" />
-              Text
-            </button>
-          </div>
-        )}
-      </div>
-    )
-  }
+  // const renderPhoneNumber = (phone: string, customerId: string, className: string = "text-blue-500 hover:text-blue-700 underline cursor-pointer") => {
+  //   const isActive = activePhoneMenu === customerId
+  //   
+  //   return (
+  //     <div className="relative inline-block">
+  //       <button
+  //         onClick={(e) => {
+  //           e.stopPropagation()
+  //           setActivePhoneMenu(isActive ? null : customerId)
+  //         }}
+  //         className={className}
+  //       >
+  //         {phone}
+  //       </button>
+  //       
+  //       {isActive && (
+  //         <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-10 min-w-[120px]">
+  //           <button
+  //             onClick={(e) => {
+  //               e.stopPropagation()
+  //               window.open(`tel:${phone}`, '_self')
+  //               setActivePhoneMenu(null)
+  //             }}
+  //             className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+  //           >
+  //             <Phone className="w-3 h-3" />
+  //             Call
+  //           </button>
+  //           <button
+  //             onClick={(e) => {
+  //               e.stopPropagation()
+  //               window.open(`sms:${phone}`, '_self')
+  //               setActivePhoneMenu(null)
+  //             }}
+  //             className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+  //           >
+  //             <MessageSquare className="w-3 h-3" />
+  //             Text
+  //           </button>
+  //         </div>
+  //       )}
+  //     </div>
+  //   )
+  // }
 
   // Filter customers based on search and type
   const filteredCustomers = customers.filter(customer => {
