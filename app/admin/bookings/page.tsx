@@ -122,6 +122,38 @@ export default function AdminBookingsPage() {
     }
   }
 
+  // Mark payment as collected via POS
+  const markPaymentCollected = async (booking: BookingWithDetails) => {
+    try {
+      const response = await fetch(`/api/admin/bookings/${booking.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          payment_status: 'paid',
+          status: 'confirmed'
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update payment status')
+      }
+
+      // Refresh bookings
+      window.location.reload()
+      
+      toast.success('Payment marked as collected!', {
+        description: 'Use your Square POS to process the payment.'
+      })
+    } catch (error) {
+      console.error('Error marking payment as collected:', error)
+      toast.error('Failed to update payment status', {
+        description: 'Please try again.'
+      })
+    }
+  }
+
   // Fetch all bookings
   useEffect(() => {
     const fetchBookings = async () => {
@@ -767,24 +799,44 @@ export default function AdminBookingsPage() {
                             {booking.price_charged === 0 ? (
                               <span className="text-xs text-gray-500 mt-1">Free</span>
                             ) : booking.payment_status === 'pending' ? (
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                className="h-6 px-2 text-xs mt-1"
-                                onClick={(e: React.MouseEvent) => {
-                                  e.stopPropagation()
-                                  generatePaymentLink(booking)
-                                }}
-                                disabled={processingPayment.has(booking.id)}
-                                title="Generate payment link"
-                              >
-                                {processingPayment.has(booking.id) ? (
-                                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                                ) : (
-                                  <CreditCard className="w-3 h-3 mr-1" />
-                                )}
-                                {processingPayment.has(booking.id) ? 'Processing...' : 'Pay Now'}
-                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    className="h-6 px-2 text-xs mt-1"
+                                    disabled={processingPayment.has(booking.id)}
+                                    onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                                  >
+                                    {processingPayment.has(booking.id) ? (
+                                      <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                    ) : (
+                                      <CreditCard className="w-3 h-3 mr-1" />
+                                    )}
+                                    {processingPayment.has(booking.id) ? 'Processing...' : 'Pay Now'}
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                  <DropdownMenuItem 
+                                    onClick={(e: React.MouseEvent) => {
+                                      e.stopPropagation()
+                                      markPaymentCollected(booking)
+                                    }}
+                                  >
+                                    <CreditCard className="w-4 h-4 mr-2" />
+                                    Pay Now (POS)
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    onClick={(e: React.MouseEvent) => {
+                                      e.stopPropagation()
+                                      generatePaymentLink(booking)
+                                    }}
+                                  >
+                                    <MessageSquare className="w-4 h-4 mr-2" />
+                                    Send Payment Link
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             ) : (
                               <Badge className={`${getPaymentStatusColor(booking.payment_status)} text-xs px-2 py-1 mt-1`}>
                                 {booking.payment_status}
@@ -858,21 +910,32 @@ export default function AdminBookingsPage() {
                               <RotateCcw className="w-4 h-4 mr-2" />
                               Reschedule
                             </DropdownMenuItem>
-                            {booking.price_charged && booking.price_charged > 0 && (
-                              <DropdownMenuItem 
-                                onClick={(e: React.MouseEvent) => {
-                                  e.stopPropagation()
-                                  generatePaymentLink(booking)
-                                }}
-                                disabled={booking.payment_status === 'paid' || processingPayment.has(booking.id)}
-                              >
-                                {processingPayment.has(booking.id) ? (
-                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                ) : (
+                            {booking.price_charged && booking.price_charged > 0 && booking.payment_status !== 'paid' && (
+                              <>
+                                <DropdownMenuItem 
+                                  onClick={(e: React.MouseEvent) => {
+                                    e.stopPropagation()
+                                    markPaymentCollected(booking)
+                                  }}
+                                >
                                   <CreditCard className="w-4 h-4 mr-2" />
-                                )}
-                                {processingPayment.has(booking.id) ? 'Processing...' : 'Pay with Square'}
-                              </DropdownMenuItem>
+                                  Pay Now (POS)
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={(e: React.MouseEvent) => {
+                                    e.stopPropagation()
+                                    generatePaymentLink(booking)
+                                  }}
+                                  disabled={processingPayment.has(booking.id)}
+                                >
+                                  {processingPayment.has(booking.id) ? (
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  ) : (
+                                    <MessageSquare className="w-4 h-4 mr-2" />
+                                  )}
+                                  {processingPayment.has(booking.id) ? 'Processing...' : 'Send Payment Link'}
+                                </DropdownMenuItem>
+                              </>
                             )}
                             {booking.status !== 'completed' && (
                               <DropdownMenuItem 
@@ -1067,24 +1130,44 @@ export default function AdminBookingsPage() {
                               {booking.price_charged === 0 ? (
                                 <span className="text-xs text-gray-500 mt-1">Free</span>
                               ) : booking.payment_status === 'pending' ? (
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  className="h-6 px-2 text-xs mt-1"
-                                  onClick={(e: React.MouseEvent) => {
-                                    e.stopPropagation()
-                                    generatePaymentLink(booking)
-                                  }}
-                                  disabled={processingPayment.has(booking.id)}
-                                  title="Generate payment link"
-                                >
-                                  {processingPayment.has(booking.id) ? (
-                                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                                  ) : (
-                                    <CreditCard className="w-3 h-3 mr-1" />
-                                  )}
-                                  {processingPayment.has(booking.id) ? 'Processing...' : 'Pay Now'}
-                                </Button>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      className="h-6 px-2 text-xs mt-1"
+                                      disabled={processingPayment.has(booking.id)}
+                                      onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                                    >
+                                      {processingPayment.has(booking.id) ? (
+                                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                      ) : (
+                                        <CreditCard className="w-3 h-3 mr-1" />
+                                      )}
+                                      {processingPayment.has(booking.id) ? 'Processing...' : 'Pay Now'}
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent>
+                                    <DropdownMenuItem 
+                                      onClick={(e: React.MouseEvent) => {
+                                        e.stopPropagation()
+                                        markPaymentCollected(booking)
+                                      }}
+                                    >
+                                      <CreditCard className="w-4 h-4 mr-2" />
+                                      Pay Now (POS)
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem 
+                                      onClick={(e: React.MouseEvent) => {
+                                        e.stopPropagation()
+                                        generatePaymentLink(booking)
+                                      }}
+                                    >
+                                      <MessageSquare className="w-4 h-4 mr-2" />
+                                      Send Payment Link
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               ) : (
                                 <Badge className={`${getPaymentStatusColor(booking.payment_status)} text-xs px-2 py-1 mt-1`}>
                                   {booking.payment_status}
