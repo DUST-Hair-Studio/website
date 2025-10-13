@@ -109,9 +109,9 @@ export async function POST(request: NextRequest) {
         email: booking.customers?.email || customerEmail,
         phone: booking.customers?.phone || customerPhone || ''
       },
-      paymentUrl: paymentResult.paymentUrl,
-      orderId: paymentResult.orderId,
-      paymentLinkId: paymentResult.paymentLinkId
+      paymentUrl: paymentResult.paymentUrl || '',
+      orderId: paymentResult.orderId || '',
+      paymentLinkId: paymentResult.paymentLinkId || ''
     };
 
     console.log('📧 [SEND PAYMENT LINK EMAIL] Sending payment link email...');

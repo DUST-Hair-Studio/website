@@ -10,9 +10,9 @@ export async function GET() {
     
     const squareClient = await getSquareClient();
     
-    const response = await squareClient.locationsApi.listLocations();
+    const response = await squareClient.locations.list();
     
-    const locations = response.result.locations || [];
+    const locations = response.locations || [];
     
     console.log('✅ Found locations:', locations.map(l => ({
       id: l.id,

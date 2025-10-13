@@ -166,6 +166,7 @@ export async function PUT(
         booking_date: updatedBooking.booking_date,
         booking_time: updatedBooking.booking_time,
         duration_minutes: updatedBooking.duration_minutes,
+        price_charged: updatedBooking.price_charged,
         services: {
           name: updatedBooking.services.name,
           duration_minutes: updatedBooking.services.duration_minutes
@@ -275,6 +276,7 @@ export async function PATCH(
           booking_date: booking.booking_date,
           booking_time: booking.booking_time,
           duration_minutes: booking.duration_minutes,
+          price_charged: booking.price_charged,
           services: {
             name: booking.services.name,
             duration_minutes: booking.services.duration_minutes

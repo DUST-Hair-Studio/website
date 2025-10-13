@@ -79,6 +79,7 @@ export async function POST() {
           booking_date: reminder.bookings.booking_date,
           booking_time: reminder.bookings.booking_time,
           duration_minutes: reminder.bookings.duration_minutes,
+          price_charged: reminder.bookings.price_charged,
           services: {
             name: reminder.bookings.services.name,
             duration_minutes: reminder.bookings.services.duration_minutes
