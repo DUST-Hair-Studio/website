@@ -4,16 +4,36 @@ import { createAdminSupabaseClient } from '@/lib/supabase-server';
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🔍 [PAYMENT LINK] Starting payment link generation...');
+    
     const body = await request.json();
+    console.log('🔍 [PAYMENT LINK] Request body:', { 
+      bookingId: body.bookingId,
+      serviceName: body.serviceName,
+      price: body.price,
+      hasEmail: !!body.customerEmail,
+      hasPhone: !!body.customerPhone,
+      hasName: !!body.customerName
+    });
+    
     const { bookingId, serviceName, price, customerEmail, customerPhone, customerName } = body;
 
     if (!bookingId || !serviceName || !price || !customerEmail || !customerName) {
+      console.log('❌ [PAYMENT LINK] Missing required fields:', {
+        bookingId: !!bookingId,
+        serviceName: !!serviceName,
+        price: !!price,
+        customerEmail: !!customerEmail,
+        customerName: !!customerName
+      });
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       );
     }
 
+    console.log('🔍 [PAYMENT LINK] All fields present, calling createPaymentLink...');
+    
     // Generate payment link using Square
     const paymentResult = await createPaymentLink({
       id: bookingId,
@@ -22,6 +42,12 @@ export async function POST(request: NextRequest) {
       customerEmail,
       customerPhone,
       customerName
+    });
+    
+    console.log('✅ [PAYMENT LINK] Payment link created successfully:', {
+      hasUrl: !!paymentResult.paymentUrl,
+      hasOrderId: !!paymentResult.orderId,
+      hasPaymentLinkId: !!paymentResult.paymentLinkId
     });
 
     // Update booking with payment link information
