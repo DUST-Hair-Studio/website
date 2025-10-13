@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase-server'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient()
     
@@ -30,10 +30,14 @@ export async function GET() {
       )
     }
 
-    // Use admin client to fetch all waitlist requests
+    // Get status filter from query parameters
+    const { searchParams } = new URL(request.url)
+    const statusFilter = searchParams.get('status')
+
+    // Use admin client to fetch waitlist requests
     const adminSupabase = createAdminSupabaseClient()
 
-    const { data: waitlistRequests, error: waitlistError } = await adminSupabase
+    let query = adminSupabase
       .from('waitlist_requests')
       .select(`
         *,
@@ -48,6 +52,14 @@ export async function GET() {
           phone
         )
       `)
+
+    // Apply status filter if provided
+    if (statusFilter) {
+      const statuses = statusFilter.split(',')
+      query = query.in('status', statuses)
+    }
+
+    const { data: waitlistRequests, error: waitlistError } = await query
       .order('created_at', { ascending: false })
 
     if (waitlistError) {

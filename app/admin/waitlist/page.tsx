@@ -424,11 +424,11 @@ export default function AdminWaitlistPage() {
                       <div>
                         <div className="text-gray-500">Date Range</div>
                         <div className="font-medium text-gray-900">{formatDate(request.start_date)}</div>
-                        <div className="text-gray-500">to {formatDate(request.end_date)}</div>
+                        <div className="font-medium text-gray-900">to {formatDate(request.end_date)}</div>
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-3 text-xs pt-2 border-t">
+                    <div className="grid grid-cols-2 gap-3 text-xs pt-2">
                       <div>
                         <div className="text-gray-500">Created</div>
                         <div className="text-gray-900">{formatDate(request.created_at)}</div>
@@ -442,7 +442,7 @@ export default function AdminWaitlistPage() {
                     </div>
 
                     {/* Contact Buttons */}
-                    <div className="flex gap-2 pt-2 border-t">
+                    <div className="flex gap-2 pt-2">
                       <Button 
                         variant="outline" 
                         size="sm"

@@ -60,10 +60,10 @@ export default function AdminBookingsPage() {
     }
   }, [activePhoneMenu])
 
-  // Fetch waitlist count
+  // Fetch waitlist count (only notified and pending statuses)
   const fetchWaitlistCount = async () => {
     try {
-      const response = await fetch('/api/admin/waitlist')
+      const response = await fetch('/api/admin/waitlist?status=notified,pending')
       const data = await response.json()
       setWaitlistCount(data.waitlist?.length || 0)
     } catch (error) {
