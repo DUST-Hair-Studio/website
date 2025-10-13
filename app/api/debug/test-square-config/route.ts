@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createAdminSupabaseClient } from '@/lib/supabase-server';
 
+// Force Node.js runtime for Square SDK compatibility
+export const runtime = 'nodejs';
+
 export async function GET() {
   try {
     const supabase = createAdminSupabaseClient();

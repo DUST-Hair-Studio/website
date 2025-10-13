@@ -125,7 +125,7 @@ function BookingConfirmationContent() {
             </div>
             <CardTitle className="text-2xl text-green-800">Payment Successful!</CardTitle>
             <p className="text-green-600 mt-2">
-              Thank you for your payment. Your appointment is confirmed.
+              Thank you for your payment
             </p>
           </CardHeader>
           

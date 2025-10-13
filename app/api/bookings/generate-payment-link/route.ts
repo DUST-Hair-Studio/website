@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createPaymentLink } from '@/lib/square-payment';
 import { createAdminSupabaseClient } from '@/lib/supabase-server';
 
+// Force Node.js runtime for Square SDK compatibility
+export const runtime = 'nodejs';
+
 export async function POST(request: NextRequest) {
   try {
     console.log('🔍 [PAYMENT LINK] Starting payment link generation...');

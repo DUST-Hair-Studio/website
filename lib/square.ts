@@ -57,12 +57,19 @@ export async function getSquareClient() {
     }
     
     // Use dynamic import for better compatibility with Next.js
-    const square = await import('square');
+    let square;
+    try {
+      square = await import('square');
+    } catch (importError) {
+      console.error('❌ Failed to import Square SDK:', importError);
+      throw new Error(`Square SDK import failed: ${importError instanceof Error ? importError.message : 'Unknown error'}. Make sure you're using Node.js runtime.`);
+    }
     
     // Square SDK v43+ uses SquareClient instead of Client
     const { SquareClient, SquareEnvironment } = square;
     
     if (!SquareClient) {
+      console.error('❌ SquareClient not found in imported module:', Object.keys(square));
       throw new Error('SquareClient not found in square module');
     }
     
@@ -101,12 +108,19 @@ export async function getSquareClientFromEnv() {
 
   try {
     // Use dynamic import for better compatibility with Next.js
-    const square = await import('square');
+    let square;
+    try {
+      square = await import('square');
+    } catch (importError) {
+      console.error('❌ Failed to import Square SDK:', importError);
+      throw new Error(`Square SDK import failed: ${importError instanceof Error ? importError.message : 'Unknown error'}. Make sure you're using Node.js runtime.`);
+    }
     
     // Square SDK v43+ uses SquareClient instead of Client
     const { SquareClient, SquareEnvironment } = square;
     
     if (!SquareClient) {
+      console.error('❌ SquareClient not found in imported module:', Object.keys(square));
       throw new Error('SquareClient not found in square module');
     }
     
