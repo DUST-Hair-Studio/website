@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { Booking } from '@/types'
 import { Button } from '@/components/ui/button'
@@ -47,6 +47,45 @@ export default function ReschedulePage() {
   // Cache for availability checks to avoid duplicate API calls (same as booking flow)
   const [availabilityCache, setAvailabilityCache] = useState<Map<string, boolean>>(new Map())
 
+  const fetchBooking = useCallback(async () => {
+    try {
+      setLoading(true)
+      const response = await fetch(`/api/customer/bookings/${bookingId}`)
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          router.push('/login?redirect=/appointments')
+          return
+        }
+        if (response.status === 404) {
+          setError('Booking not found')
+          return
+        }
+        throw new Error('Failed to fetch booking')
+      }
+      
+      const data = await response.json()
+      setBooking(data.booking)
+      
+      // Check if booking can be rescheduled
+      if (data.booking && !canReschedule(data.booking)) {
+        setError('This booking cannot be rescheduled')
+        return
+      }
+    } catch (error) {
+      console.error('Error fetching booking:', error)
+      setError('Failed to load booking details')
+    } finally {
+      setLoading(false)
+    }
+  }, [bookingId, router])
+
+  const canReschedule = (booking: BookingWithDetails) => {
+    const now = new Date()
+    const bookingDateTime = new Date(`${booking.booking_date}T${booking.booking_time}`)
+    return bookingDateTime > now && booking.status === 'confirmed'
+  }
+
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/login?redirect=/appointments')
@@ -56,7 +95,7 @@ export default function ReschedulePage() {
     if (user && bookingId) {
       fetchBooking()
     }
-  }, [user, authLoading, bookingId, router])
+  }, [user, authLoading, bookingId, router, fetchBooking])
 
   // Fetch business hours (same as booking flow)
   useEffect(() => {
@@ -76,42 +115,8 @@ export default function ReschedulePage() {
     fetchBusinessHours()
   }, [])
 
-  // Check availability for visible calendar days when booking and business hours are loaded (same as booking flow)
-  useEffect(() => {
-    if (booking && businessHours.length > 0) {
-      console.log('🔍 Reschedule - Running availability check for visible days')
-      checkAvailabilityForVisibleDays()
-    }
-  }, [booking, businessHours])
-
-  // Business day and availability checking functions (same as booking flow)
-  const isBusinessDay = (date: Date): boolean => {
-    // If business hours haven't loaded yet, allow all dates temporarily
-    if (businessHours.length === 0) {
-      console.log('🔍 Reschedule - Business hours not loaded yet, allowing date:', date.toDateString())
-      return true
-    }
-    
-    const dayOfWeek = date.getDay() // 0 = Sunday, 1 = Monday, etc.
-    const dayHours = businessHours.find(hours => hours.day_of_week === dayOfWeek)
-    const isOpen = dayHours && dayHours.is_open
-    
-    console.log(`🔍 Reschedule - Date: ${date.toDateString()}, Day: ${dayOfWeek}, DayHours:`, dayHours, `IsOpen: ${isOpen}`)
-    return !!isOpen
-  }
-
-  const hasNoAvailability = (date: Date) => {
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    const dateStr = `${year}-${month}-${day}`
-    const hasNoAvail = datesWithNoAvailability.has(dateStr)
-    console.log(`🔍 Reschedule - hasNoAvailability(${dateStr}): ${hasNoAvail}`)
-    return hasNoAvail
-  }
-
   // Efficient availability check for visible calendar days (same as booking flow)
-  const checkAvailabilityForVisibleDays = async () => {
+  const checkAvailabilityForVisibleDays = useCallback(async () => {
     if (!booking?.services || businessHours.length === 0) return
     
     console.log('🔍 Reschedule - Checking availability for visible calendar days...')
@@ -128,8 +133,15 @@ export default function ReschedulePage() {
       const currentMonthBusinessDays: string[] = []
       const currentDate = new Date(currentMonth)
       
+      const isBusinessDayForCheck = (date: Date): boolean => {
+        if (businessHours.length === 0) return true
+        const dayOfWeek = date.getDay()
+        const dayHours = businessHours.find(hours => hours.day_of_week === dayOfWeek)
+        return !!(dayHours && dayHours.is_open)
+      }
+      
       while (currentDate < nextMonth) {
-        if (isBusinessDay(currentDate)) {
+        if (isBusinessDayForCheck(currentDate)) {
           const year = currentDate.getFullYear()
           const month = String(currentDate.getMonth() + 1).padStart(2, '0')
           const day = String(currentDate.getDate()).padStart(2, '0')
@@ -171,45 +183,40 @@ export default function ReschedulePage() {
     } finally {
       setLoadingCalendar(false)
     }
-  }
+  }, [booking, businessHours, availabilityCache])
 
-  const fetchBooking = async () => {
-    try {
-      setLoading(true)
-      const response = await fetch(`/api/customer/bookings/${bookingId}`)
-      
-      if (!response.ok) {
-        if (response.status === 401) {
-          router.push('/login?redirect=/appointments')
-          return
-        }
-        if (response.status === 404) {
-          setError('Booking not found')
-          return
-        }
-        throw new Error('Failed to fetch booking')
-      }
-      
-      const data = await response.json()
-      setBooking(data.booking)
-      
-      // Check if booking can be rescheduled
-      if (data.booking && !canReschedule(data.booking)) {
-        setError('This booking cannot be rescheduled')
-        return
-      }
-    } catch (error) {
-      console.error('Error fetching booking:', error)
-      setError('Failed to load booking details')
-    } finally {
-      setLoading(false)
+  // Check availability for visible calendar days when booking and business hours are loaded (same as booking flow)
+  useEffect(() => {
+    if (booking && businessHours.length > 0) {
+      console.log('🔍 Reschedule - Running availability check for visible days')
+      checkAvailabilityForVisibleDays()
     }
+  }, [booking, businessHours, checkAvailabilityForVisibleDays])
+
+  // Business day and availability checking functions (same as booking flow)
+  const isBusinessDay = (date: Date): boolean => {
+    // If business hours haven't loaded yet, allow all dates temporarily
+    if (businessHours.length === 0) {
+      console.log('🔍 Reschedule - Business hours not loaded yet, allowing date:', date.toDateString())
+      return true
+    }
+    
+    const dayOfWeek = date.getDay() // 0 = Sunday, 1 = Monday, etc.
+    const dayHours = businessHours.find(hours => hours.day_of_week === dayOfWeek)
+    const isOpen = dayHours && dayHours.is_open
+    
+    console.log(`🔍 Reschedule - Date: ${date.toDateString()}, Day: ${dayOfWeek}, DayHours:`, dayHours, `IsOpen: ${isOpen}`)
+    return !!isOpen
   }
 
-  const canReschedule = (booking: BookingWithDetails) => {
-    const now = new Date()
-    const bookingDateTime = new Date(`${booking.booking_date}T${booking.booking_time}`)
-    return bookingDateTime > now && booking.status === 'confirmed'
+  const hasNoAvailability = (date: Date) => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const dateStr = `${year}-${month}-${day}`
+    const hasNoAvail = datesWithNoAvailability.has(dateStr)
+    console.log(`🔍 Reschedule - hasNoAvailability(${dateStr}): ${hasNoAvail}`)
+    return hasNoAvail
   }
 
   const handleDateSelect = async (date: Date | undefined) => {

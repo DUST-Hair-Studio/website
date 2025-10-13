@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Booking } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -88,51 +88,29 @@ export default function RescheduleModal({
     }
   }, [isOpen])
 
-  // Check availability for visible calendar days when booking and business hours are loaded
-  useEffect(() => {
-    if (booking && businessHours.length > 0 && isOpen) {
-      checkAvailabilityForVisibleDays()
-    }
-  }, [booking, businessHours, isOpen])
-
-  // Business day and availability checking functions
-  const isBusinessDay = (date: Date): boolean => {
-    if (businessHours.length === 0) {
-      return true
-    }
-    
-    const dayOfWeek = date.getDay()
-    const dayHours = businessHours.find(hours => hours.day_of_week === dayOfWeek)
-    return !!(dayHours && dayHours.is_open)
-  }
-
-  const hasNoAvailability = (date: Date) => {
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    const dateStr = `${year}-${month}-${day}`
-    return datesWithNoAvailability.has(dateStr)
-  }
-
   // Efficient availability check for visible calendar days
-  const checkAvailabilityForVisibleDays = async () => {
+  const checkAvailabilityForVisibleDays = useCallback(async () => {
     if (!booking?.services || businessHours.length === 0) return
     
     setLoadingCalendar(true)
     
     try {
       const today = new Date()
-      
-      // Check current month first
       const currentMonth = new Date(today.getFullYear(), today.getMonth(), 1)
       const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1)
       
-      // Get business days for current month
       const currentMonthBusinessDays: string[] = []
       const currentDate = new Date(currentMonth)
       
+      const isBusinessDayForCheck = (date: Date): boolean => {
+        if (businessHours.length === 0) return true
+        const dayOfWeek = date.getDay()
+        const dayHours = businessHours.find(hours => hours.day_of_week === dayOfWeek)
+        return !!(dayHours && dayHours.is_open)
+      }
+      
       while (currentDate < nextMonth) {
-        if (isBusinessDay(currentDate)) {
+        if (isBusinessDayForCheck(currentDate)) {
           const year = currentDate.getFullYear()
           const month = String(currentDate.getMonth() + 1).padStart(2, '0')
           const day = String(currentDate.getDate()).padStart(2, '0')
@@ -141,7 +119,6 @@ export default function RescheduleModal({
         currentDate.setDate(currentDate.getDate() + 1)
       }
       
-      // Check availability for current month business days
       for (const dateStr of currentMonthBusinessDays) {
         if (availabilityCache.has(dateStr)) continue
         
@@ -168,6 +145,32 @@ export default function RescheduleModal({
     } finally {
       setLoadingCalendar(false)
     }
+  }, [booking, businessHours, availabilityCache])
+
+  // Check availability for visible calendar days when booking and business hours are loaded
+  useEffect(() => {
+    if (booking && businessHours.length > 0 && isOpen) {
+      checkAvailabilityForVisibleDays()
+    }
+  }, [booking, businessHours, isOpen, checkAvailabilityForVisibleDays])
+
+  // Business day and availability checking functions
+  const isBusinessDay = (date: Date): boolean => {
+    if (businessHours.length === 0) {
+      return true
+    }
+    
+    const dayOfWeek = date.getDay()
+    const dayHours = businessHours.find(hours => hours.day_of_week === dayOfWeek)
+    return !!(dayHours && dayHours.is_open)
+  }
+
+  const hasNoAvailability = (date: Date) => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const dateStr = `${year}-${month}-${day}`
+    return datesWithNoAvailability.has(dateStr)
   }
 
   const canReschedule = (booking: BookingWithDetails) => {

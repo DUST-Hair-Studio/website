@@ -57,16 +57,16 @@ export function AdminSidebar() {
           try {
             const errorData = JSON.parse(errorText)
             console.error('🔔 [WAITLIST BADGE] Error details:', errorData)
-          } catch (e) {
-            // Couldn't parse as JSON, already logged as text
-          }
-          // Set count to 0 on error to prevent UI issues
-          setUnreadWaitlistCount(0)
+          } catch {
+          // Couldn't parse as JSON, already logged as text
         }
-      } catch (error) {
-        console.error('🔔 [WAITLIST BADGE] Error fetching unread waitlist count:', error)
         // Set count to 0 on error to prevent UI issues
         setUnreadWaitlistCount(0)
+      }
+    } catch {
+      console.error('🔔 [WAITLIST BADGE] Error fetching unread waitlist count')
+      // Set count to 0 on error to prevent UI issues
+      setUnreadWaitlistCount(0)
       }
     }
     

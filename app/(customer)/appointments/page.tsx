@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { Booking } from '@/types'
 import { WaitlistRequestWithDetails } from '@/types'
@@ -48,19 +48,7 @@ export default function MyAppointmentsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login?redirect=/appointments')
-      return
-    }
-
-    if (user) {
-      fetchBookings()
-      fetchWaitlist()
-    }
-  }, [user, authLoading, router])
-
-  const fetchBookings = async () => {
+  const fetchBookings = useCallback(async () => {
     try {
       setBookingsLoading(true)
       setBookingsError('')
@@ -87,9 +75,9 @@ export default function MyAppointmentsPage() {
     } finally {
       setBookingsLoading(false)
     }
-  }
+  }, [router])
 
-  const fetchWaitlist = async () => {
+  const fetchWaitlist = useCallback(async () => {
     try {
       setWaitlistLoading(true)
       const response = await fetch('/api/customer/waitlist')
@@ -107,7 +95,19 @@ export default function MyAppointmentsPage() {
     } finally {
       setWaitlistLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login?redirect=/appointments')
+      return
+    }
+
+    if (user) {
+      fetchBookings()
+      fetchWaitlist()
+    }
+  }, [user, authLoading, router, fetchBookings, fetchWaitlist])
 
   const formatDate = (dateString: string) => {
     return formatBusinessDateTime(dateString, '00:00:00', {

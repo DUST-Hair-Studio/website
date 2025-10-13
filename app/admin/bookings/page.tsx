@@ -73,7 +73,58 @@ export default function AdminBookingsPage() {
     }
   }
 
-  // Generate payment link for a booking
+  // Send payment link via email
+  const sendPaymentLinkEmail = async (booking: BookingWithDetails) => {
+    try {
+      // Add booking to processing set
+      setProcessingPayment(prev => new Set(prev).add(booking.id))
+      
+      const response = await fetch('/api/bookings/send-payment-link', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bookingId: booking.id,
+          serviceName: booking.services?.name || 'Service',
+          price: booking.price_charged,
+          customerEmail: booking.customers.email,
+          customerPhone: booking.customers.phone,
+          customerName: booking.customers.name
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to send payment link')
+      }
+
+      const data = await response.json()
+      
+      if (data.emailSent) {
+        toast.success('Payment link sent!', {
+          description: `Payment link has been sent to ${booking.customers.email}`
+        })
+      } else {
+        toast.warning('Payment link generated but email failed', {
+          description: 'Payment link was created but could not be sent via email. You can copy the link manually.'
+        })
+      }
+    } catch (error) {
+      console.error('Error sending payment link:', error)
+      toast.error('Failed to send payment link', {
+        description: 'Please try again or check your email configuration.'
+      })
+    } finally {
+      // Remove booking from processing set
+      setProcessingPayment(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(booking.id)
+        return newSet
+      })
+    }
+  }
+
+  // Generate payment link for a booking (legacy function - opens in new tab)
   const generatePaymentLink = async (booking: BookingWithDetails) => {
     try {
       // Add booking to processing set
@@ -829,7 +880,7 @@ export default function AdminBookingsPage() {
                                   <DropdownMenuItem 
                                     onClick={(e: React.MouseEvent) => {
                                       e.stopPropagation()
-                                      generatePaymentLink(booking)
+                                      sendPaymentLinkEmail(booking)
                                     }}
                                   >
                                     <MessageSquare className="w-4 h-4 mr-2" />
@@ -924,7 +975,7 @@ export default function AdminBookingsPage() {
                                 <DropdownMenuItem 
                                   onClick={(e: React.MouseEvent) => {
                                     e.stopPropagation()
-                                    generatePaymentLink(booking)
+                                    sendPaymentLinkEmail(booking)
                                   }}
                                   disabled={processingPayment.has(booking.id)}
                                 >
@@ -1160,7 +1211,7 @@ export default function AdminBookingsPage() {
                                     <DropdownMenuItem 
                                       onClick={(e: React.MouseEvent) => {
                                         e.stopPropagation()
-                                        generatePaymentLink(booking)
+                                        sendPaymentLinkEmail(booking)
                                       }}
                                     >
                                       <MessageSquare className="w-4 h-4 mr-2" />

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase-server'
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     console.log('🔔 [UNREAD COUNT API] Starting request...')
     

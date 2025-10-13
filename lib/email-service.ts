@@ -7,7 +7,7 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 export interface EmailTemplate {
   id: string
   name: string
-  type: 'confirmation' | 'reminder' | 'followup' | 'cancellation' | 'reschedule' | 'waitlist' | 'custom'
+  type: 'confirmation' | 'reminder' | 'followup' | 'cancellation' | 'reschedule' | 'waitlist' | 'payment_link' | 'custom'
   subject: string
   message: string
   hours_before: number
@@ -19,6 +19,7 @@ export interface BookingData {
   booking_date: string
   booking_time: string
   duration_minutes: number
+  price_charged: number
   services: {
     name: string
     duration_minutes: number
@@ -28,6 +29,12 @@ export interface BookingData {
     email: string
     phone: string
   }
+}
+
+export interface PaymentLinkData extends BookingData {
+  paymentUrl: string
+  orderId: string
+  paymentLinkId: string
 }
 
 export interface BusinessSettings {
@@ -119,7 +126,7 @@ export class EmailService {
   }
 
   // Get active email template by type
-  private async getEmailTemplate(type: 'confirmation' | 'reminder' | 'followup' | 'cancellation' | 'reschedule' | 'waitlist'): Promise<EmailTemplate | null> {
+  private async getEmailTemplate(type: 'confirmation' | 'reminder' | 'followup' | 'cancellation' | 'reschedule' | 'waitlist' | 'payment_link'): Promise<EmailTemplate | null> {
     const { data: template, error } = await this.supabase
       .from('reminder_templates')
       .select('*')
@@ -588,6 +595,137 @@ ${businessSettings.business_phone}`
 
     } catch (error) {
       console.error('❌ [WAITLIST CONFIRMATION] Exception in sendWaitlistConfirmationEmail:', error)
+      return false
+    }
+  }
+
+  // Send payment link email
+  async sendPaymentLinkEmail(paymentData: PaymentLinkData): Promise<boolean> {
+    try {
+      console.log('📧 [PAYMENT LINK EMAIL] Starting to send payment link email')
+
+      // Check if Resend is configured
+      if (!resend) {
+        console.log('❌ [PAYMENT LINK EMAIL] Resend API key not configured')
+        return false
+      }
+
+      const businessSettings = await this.getBusinessSettings()
+
+      // Check if email is enabled
+      const { data: emailEnabled } = await this.supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'email_enabled')
+        .single()
+
+      if (emailEnabled?.value === false) {
+        console.log('❌ [PAYMENT LINK EMAIL] Email notifications are disabled')
+        return false
+      }
+
+      const appointmentDate = new Date(paymentData.booking_date).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        timeZone: businessSettings.timezone
+      })
+
+      const appointmentTime = new Date(`${paymentData.booking_date}T${paymentData.booking_time}`).toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: businessSettings.timezone
+      })
+
+      const formattedPrice = (paymentData.price_charged / 100).toFixed(2)
+
+      const subject = `Payment Request - ${paymentData.services.name} on ${appointmentDate}`
+      const message = `Hi ${paymentData.customers.name},
+
+Thank you for your recent appointment at ${businessSettings.business_name}!
+
+Appointment Details:
+• Service: ${paymentData.services.name}
+• Date: ${appointmentDate}
+• Time: ${appointmentTime}
+• Amount Due: $${formattedPrice}
+
+To complete your payment, please click the secure payment link below. You can pay with any major credit card or debit card.
+
+Payment Link: ${paymentData.paymentUrl}
+
+This payment link is secure and will take you to our payment processor where you can complete your transaction safely.
+
+If you have any questions about this payment or your appointment, please don't hesitate to contact us at ${businessSettings.business_phone}.
+
+Thank you for choosing ${businessSettings.business_name}!
+
+Best regards,
+The ${businessSettings.business_name} Team`
+
+      const { data: emailData, error } = await resend.emails.send({
+        from: businessSettings.business_email,
+        to: [paymentData.customers.email],
+        subject,
+        text: message,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #333;">Payment Request - ${paymentData.services.name}</h2>
+            
+            <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3b82f6;">
+              <p style="margin: 0; color: #1e3a8a; font-size: 16px; font-weight: 600;">
+                💳 Payment Request
+              </p>
+            </div>
+
+            <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <p style="margin: 0 0 15px 0;"><strong>Hi ${paymentData.customers.name},</strong></p>
+              <p style="margin: 0 0 15px 0;">Thank you for your recent appointment at <strong>${businessSettings.business_name}</strong>!</p>
+              
+              <div style="background: white; padding: 15px; border-radius: 6px; margin: 15px 0;">
+                <h3 style="margin: 0 0 10px 0; color: #333;">Appointment Details:</h3>
+                <p style="margin: 5px 0;"><strong>Service:</strong> ${paymentData.services.name}</p>
+                <p style="margin: 5px 0;"><strong>Date:</strong> ${appointmentDate}</p>
+                <p style="margin: 5px 0;"><strong>Time:</strong> ${appointmentTime}</p>
+                <p style="margin: 5px 0;"><strong>Amount Due:</strong> <span style="color: #059669; font-weight: bold; font-size: 18px;">$${formattedPrice}</span></p>
+              </div>
+
+              <p style="margin: 15px 0;">To complete your payment, please click the secure payment button below. You can pay with any major credit card or debit card.</p>
+            </div>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${paymentData.paymentUrl}" style="display: inline-block; background-color: #059669; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                💳 Pay $${formattedPrice} Now
+              </a>
+            </div>
+
+            <div style="background: #fef3c7; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #f59e0b;">
+              <p style="margin: 0; color: #92400e; font-size: 14px;">
+                🔒 <strong>Secure Payment:</strong> This payment link is secure and will take you to our payment processor where you can complete your transaction safely.
+              </p>
+            </div>
+
+            <div style="border-top: 1px solid #eee; padding-top: 20px; font-size: 12px; color: #666;">
+              <p>If you have any questions about this payment or your appointment, please don't hesitate to contact us at ${businessSettings.business_phone}.</p>
+              <p>Thank you for choosing ${businessSettings.business_name}!</p>
+              <p style="margin-top: 15px;"><strong>Booking ID:</strong> ${paymentData.id}</p>
+            </div>
+          </div>
+        `
+      })
+
+      if (error) {
+        console.error('❌ [PAYMENT LINK EMAIL] Error sending email:', error)
+        return false
+      }
+
+      console.log('✅ [PAYMENT LINK EMAIL] Email sent successfully!', { emailId: emailData?.id, to: paymentData.customers.email })
+      return true
+
+    } catch (error) {
+      console.error('❌ [PAYMENT LINK EMAIL] Exception in sendPaymentLinkEmail:', error)
       return false
     }
   }

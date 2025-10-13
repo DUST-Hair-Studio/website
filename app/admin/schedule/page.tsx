@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -33,7 +33,7 @@ function AdminScheduleContent() {
   }
 
   // Handle OAuth callback
-  const handleOAuthCallback = async () => {
+  const handleOAuthCallback = useCallback(async () => {
     const code = searchParams.get('code')
     const error = searchParams.get('error')
 
@@ -67,7 +67,7 @@ function AdminScheduleContent() {
         toast.error(error instanceof Error ? error.message : 'Failed to connect Google Calendar')
       }
     }
-  }
+  }, [searchParams])
 
   useEffect(() => {
     fetchGoogleCalendarStatus()
@@ -75,7 +75,7 @@ function AdminScheduleContent() {
 
   useEffect(() => {
     handleOAuthCallback()
-  }, [searchParams])
+  }, [searchParams, handleOAuthCallback])
 
   if (loading) {
     return (

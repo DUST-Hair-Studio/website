@@ -40,7 +40,7 @@ export async function GET() {
     
     // Detailed error logging
     if (error && typeof error === 'object') {
-      const err = error as any;
+      const err = error as Record<string, unknown>;
       console.error('Error details:', {
         message: err.message,
         errors: err.errors,

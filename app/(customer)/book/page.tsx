@@ -2,7 +2,7 @@
 
 import { Navigation } from '@/components/navigation'
 import { useAuth } from '@/lib/auth-context'
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { Service } from '@/types'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -46,6 +46,12 @@ function BookPageContent() {
   const [waitlistEnabled, setWaitlistEnabled] = useState(true)
   
   const [step, setStep] = useState(1) // 1: Service, 2: Date/Time, 3: Details, 4: Confirmation
+
+  // State to track dates with no availability
+  const [datesWithNoAvailability, setDatesWithNoAvailability] = useState<Set<string>>(new Set())
+  
+  // Cache for availability checks to avoid duplicate API calls
+  const [availabilityCache, setAvailabilityCache] = useState<Map<string, boolean>>(new Map())
 
   // Handle authentication state changes - MUST be before other useEffects
   useEffect(() => {
@@ -143,64 +149,7 @@ function BookPageContent() {
     fetchBusinessHours()
   }, [])
 
-  // Check availability for visible calendar days when service and business hours are loaded
-  useEffect(() => {
-    if (selectedService && businessHours.length > 0) {
-      // Only run checkAvailabilityForVisibleDays if no date is selected
-      // If a date is selected, let the individual date fetch handle availability
-      if (!selectedDate) {
-        console.log('🔄 Running checkAvailabilityForVisibleDays (no selected date)')
-        checkAvailabilityForVisibleDays()
-      } else {
-        console.log('🔄 Skipping checkAvailabilityForVisibleDays (date already selected)')
-      }
-    }
-  }, [selectedService, businessHours, selectedDate])
-
-  // Refetch availability when service changes and a date is already selected
-  useEffect(() => {
-    console.log('🔄 useEffect triggered at:', new Date().toISOString(), {
-      selectedService: selectedService ? selectedService.name : 'null',
-      selectedDate: selectedDate ? selectedDate.toDateString() : 'null',
-      hasService: !!selectedService,
-      hasDate: !!selectedDate
-    })
-    
-    if (selectedService && selectedDate) {
-      console.log('🔄 Service changed, refetching availability for:', {
-        serviceName: selectedService.name,
-        serviceDuration: selectedService.duration_minutes,
-        selectedDate: selectedDate.toDateString()
-      })
-      fetchAvailableTimes(selectedDate)
-    } else {
-      console.log('🔄 useEffect: Not fetching - missing service or date')
-    }
-  }, [selectedService, selectedDate])
-
-
-  const handleServiceSelect = (service: Service) => {
-    console.log('🎯 handleServiceSelect called at:', new Date().toISOString())
-    
-    // Reset all booking-related state (simulate going back to step 1)
-    setSelectedDate(undefined)
-    setSelectedTime('')
-    setAvailableTimes([])
-    setLoadingTimes(false)
-    setLoadingCalendar(false)
-    
-    // Clear availability caches to force fresh data
-    setDatesWithNoAvailability(new Set())
-    setAvailabilityCache(new Map())
-    
-    // Set new service and go to step 2
-    setSelectedService(service)
-    setStep(2)
-    
-    console.log('🔄 Service changed, all state reset, will fetch fresh availability')
-  }
-
-  const isBusinessDay = (date: Date): boolean => {
+  const isBusinessDay = useCallback((date: Date): boolean => {
     // If business hours haven't loaded yet, allow all dates temporarily
     if (businessHours.length === 0) {
       console.log('Business hours not loaded yet, allowing date:', date.toDateString())
@@ -213,15 +162,9 @@ function BookPageContent() {
     
     console.log(`Date: ${date.toDateString()}, Day: ${dayOfWeek}, DayHours:`, dayHours, `IsOpen: ${isOpen}`)
     return !!isOpen
-  }
+  }, [businessHours])
 
-  // State to track dates with no availability
-  const [datesWithNoAvailability, setDatesWithNoAvailability] = useState<Set<string>>(new Set())
-  
-  // Cache for availability checks to avoid duplicate API calls
-  const [availabilityCache, setAvailabilityCache] = useState<Map<string, boolean>>(new Map())
-
-  const hasNoAvailability = (date: Date) => {
+  const hasNoAvailability = useCallback((date: Date) => {
     const year = date.getFullYear()
     const month = String(date.getMonth() + 1).padStart(2, '0')
     const day = String(date.getDate()).padStart(2, '0')
@@ -233,10 +176,10 @@ function BookPageContent() {
       console.log(`🎯 OCTOBER 10TH datesWithNoAvailability set:`, Array.from(datesWithNoAvailability))
     }
     return hasNoAvail
-  }
+  }, [datesWithNoAvailability])
 
   // Efficient availability check for visible calendar days (prioritized)
-  const checkAvailabilityForVisibleDays = async () => {
+  const checkAvailabilityForVisibleDays = useCallback(async () => {
     if (!selectedService || businessHours.length === 0) return
     
     console.log('🔍 Checking availability for visible calendar days (prioritized)...')
@@ -363,17 +306,9 @@ function BookPageContent() {
     } finally {
       setLoadingCalendar(false)
     }
-  }
+  }, [selectedService, businessHours, availabilityCache, isBusinessDay])
 
-
-  const handleDateSelect = async (date: Date | undefined) => {
-    setSelectedDate(date)
-    setSelectedTime('') // Reset time when date changes
-    
-    // Don't fetch here - let the useEffect handle it to avoid race conditions
-  }
-
-  const fetchAvailableTimes = async (date: Date): Promise<string[]> => {
+  const fetchAvailableTimes = useCallback(async (date: Date): Promise<string[]> => {
     console.log('🚀 fetchAvailableTimes called with:', { 
       date: date.toDateString(), 
       selectedService: selectedService ? {
@@ -451,6 +386,70 @@ function BookPageContent() {
     } finally {
       setLoadingTimes(false)
     }
+  }, [selectedService])
+
+  // Check availability for visible calendar days when service and business hours are loaded
+  useEffect(() => {
+    if (selectedService && businessHours.length > 0) {
+      // Only run checkAvailabilityForVisibleDays if no date is selected
+      // If a date is selected, let the individual date fetch handle availability
+      if (!selectedDate) {
+        console.log('🔄 Running checkAvailabilityForVisibleDays (no selected date)')
+        checkAvailabilityForVisibleDays()
+      } else {
+        console.log('🔄 Skipping checkAvailabilityForVisibleDays (date already selected)')
+      }
+    }
+  }, [selectedService, businessHours, selectedDate, checkAvailabilityForVisibleDays])
+
+  // Refetch availability when service changes and a date is already selected
+  useEffect(() => {
+    console.log('🔄 useEffect triggered at:', new Date().toISOString(), {
+      selectedService: selectedService ? selectedService.name : 'null',
+      selectedDate: selectedDate ? selectedDate.toDateString() : 'null',
+      hasService: !!selectedService,
+      hasDate: !!selectedDate
+    })
+    
+    if (selectedService && selectedDate) {
+      console.log('🔄 Service changed, refetching availability for:', {
+        serviceName: selectedService.name,
+        serviceDuration: selectedService.duration_minutes,
+        selectedDate: selectedDate.toDateString()
+      })
+      fetchAvailableTimes(selectedDate)
+    } else {
+      console.log('🔄 useEffect: Not fetching - missing service or date')
+    }
+  }, [selectedService, selectedDate, fetchAvailableTimes])
+
+
+  const handleServiceSelect = (service: Service) => {
+    console.log('🎯 handleServiceSelect called at:', new Date().toISOString())
+    
+    // Reset all booking-related state (simulate going back to step 1)
+    setSelectedDate(undefined)
+    setSelectedTime('')
+    setAvailableTimes([])
+    setLoadingTimes(false)
+    setLoadingCalendar(false)
+    
+    // Clear availability caches to force fresh data
+    setDatesWithNoAvailability(new Set())
+    setAvailabilityCache(new Map())
+    
+    // Set new service and go to step 2
+    setSelectedService(service)
+    setStep(2)
+    
+    console.log('🔄 Service changed, all state reset, will fetch fresh availability')
+  }
+
+  const handleDateSelect = async (date: Date | undefined) => {
+    setSelectedDate(date)
+    setSelectedTime('') // Reset time when date changes
+    
+    // Don't fetch here - let the useEffect handle it to avoid race conditions
   }
 
   const handleTimeSelect = (time: string) => {
