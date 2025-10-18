@@ -1,47 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSquareClient } from '@/lib/square';
 import { createAdminSupabaseClient } from '@/lib/supabase-server';
-import { randomUUID } from 'crypto';
 
 // Force Node.js runtime for crypto support
 export const runtime = 'nodejs';
 
 // Generate Square POS URL for automatic app opening
 function generateSquarePOSUrl(params: {
-  orderId: string;
   amount: number;
   customerName: string;
   serviceName: string;
   applicationId: string;
+  bookingId: string;
 }): string {
-  // Square POS API URL format
-  // square-commerce-v1://payment/create?data={base64_encoded_json}
+  // Square POS API URL format from documentation
+  // square-commerce-v1://payment/create?data={JSON_encoded_data}
   
   const posData = {
     amount_money: {
       amount: params.amount,
-      currency: 'USD'
+      currency_code: 'USD'
     },
-    note: `Booking: ${params.serviceName} - ${params.customerName}`,
-    order_id: params.orderId,
-    reference_id: params.orderId,
     callback_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://website-sigma-steel-43.vercel.app'}/api/webhooks/square`,
     client_id: params.applicationId,
-    version: 'v2.0'
+    version: '1.3',
+    notes: `Booking: ${params.serviceName} - ${params.customerName}`,
+    options: {
+      supported_tender_types: ['CREDIT_CARD', 'CASH', 'OTHER', 'SQUARE_GIFT_CARD', 'CARD_ON_FILE']
+    }
   };
 
-  // Encode the data as base64
-  const encodedData = Buffer.from(JSON.stringify(posData)).toString('base64');
-  
-  // Return the Square POS URL
-  return `square-commerce-v1://payment/create?data=${encodedData}`;
+  // Return the Square POS URL with properly encoded data
+  return `square-commerce-v1://payment/create?data=${encodeURIComponent(JSON.stringify(posData))}`;
 }
 
 export async function POST(request: NextRequest) {
   try {
     const { bookingId } = await request.json();
     
-    console.log('🔍 Creating Square order for booking:', bookingId);
+    console.log('🔍 Creating Square POS URL for booking:', bookingId);
 
     if (!bookingId) {
       return NextResponse.json(
@@ -52,7 +48,7 @@ export async function POST(request: NextRequest) {
 
     const supabase = createAdminSupabaseClient();
 
-    // First, fetch the booking itself
+    // Fetch booking details
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
       .select('*')
@@ -71,7 +67,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Then fetch customer and service details separately
+    // Fetch customer and service details
     const { data: customer } = await supabase
       .from('customers')
       .select('name, email')
@@ -84,100 +80,6 @@ export async function POST(request: NextRequest) {
       .eq('id', booking.service_id)
       .single();
 
-    // Combine the data
-    const bookingWithDetails = {
-      ...booking,
-      customers: customer,
-      services: service
-    };
-
-    // Check if booking already has a Square order
-    if (bookingWithDetails.square_order_id) {
-      return NextResponse.json(
-        { 
-          success: true,
-          orderId: bookingWithDetails.square_order_id,
-          message: 'Order already exists for this booking'
-        },
-        { status: 200 }
-      );
-    }
-
-    // Get Square client
-    const squareClient = await getSquareClient();
-
-    // Get location ID from settings
-    const { data: locationSetting } = await supabase
-      .from('settings')
-      .select('value')
-      .eq('key', 'square_location_id')
-      .single();
-
-    if (!locationSetting?.value) {
-      return NextResponse.json(
-        { error: 'Square location ID not configured' },
-        { status: 500 }
-      );
-    }
-
-    const locationId = locationSetting.value;
-
-    // Create Square order
-    const orderRequest = {
-      idempotencyKey: randomUUID(),
-      order: {
-        locationId: locationId,
-        lineItems: [
-          {
-            name: bookingWithDetails.services?.name || 'Hair Service',
-            quantity: '1',
-            basePriceMoney: {
-              amount: BigInt(bookingWithDetails.price_charged || bookingWithDetails.services?.price || 0),
-              currency: 'USD'
-            }
-          }
-        ],
-        metadata: {
-          bookingId: bookingWithDetails.id,
-          customerEmail: bookingWithDetails.customers?.email || '',
-          customerName: bookingWithDetails.customers?.name || '',
-          serviceName: bookingWithDetails.services?.name || ''
-        }
-      }
-    };
-
-    console.log('Creating Square order for booking:', bookingId, 'with request:', orderRequest);
-
-    const { result, ...httpResponse } = await (squareClient as any).ordersApi.createOrder(orderRequest);
-
-    if (httpResponse.statusCode !== 200 || !result.order) {
-      console.error('Square API error:', httpResponse);
-      return NextResponse.json(
-        { error: 'Failed to create Square order' },
-        { status: 500 }
-      );
-    }
-
-    const orderId = result.order.id;
-
-    // Update booking with Square order ID
-    const { error: updateError } = await supabase
-      .from('bookings')
-      .update({
-        square_order_id: orderId
-      })
-      .eq('id', bookingWithDetails.id);
-
-    if (updateError) {
-      console.error('Error updating booking with order ID:', updateError);
-      return NextResponse.json(
-        { error: 'Failed to save order ID to booking' },
-        { status: 500 }
-      );
-    }
-
-    console.log(`✅ Created Square order ${orderId} for booking ${bookingId}`);
-
     // Get Square application ID from settings
     const { data: appIdSetting } = await supabase
       .from('settings')
@@ -185,24 +87,32 @@ export async function POST(request: NextRequest) {
       .eq('key', 'square_application_id')
       .single();
 
+    if (!appIdSetting?.value) {
+      return NextResponse.json(
+        { error: 'Square application ID not configured' },
+        { status: 500 }
+      );
+    }
+
     // Generate Square POS URL for automatic app opening
     const posUrl = generateSquarePOSUrl({
-      orderId: orderId,
-      amount: bookingWithDetails.price_charged || bookingWithDetails.services?.price || 0,
-      customerName: bookingWithDetails.customers?.name || '',
-      serviceName: bookingWithDetails.services?.name || '',
-      applicationId: appIdSetting?.value || process.env.SQUARE_APPLICATION_ID || ''
+      amount: booking.price_charged || service?.price || 0,
+      customerName: customer?.name || '',
+      serviceName: service?.name || '',
+      applicationId: appIdSetting.value,
+      bookingId: booking.id
     });
+
+    console.log(`✅ Generated Square POS URL for booking ${bookingId}`);
 
     return NextResponse.json({
       success: true,
-      orderId: orderId,
       posUrl: posUrl,
-      message: 'Square order created successfully'
+      message: 'Square POS URL generated successfully'
     });
 
   } catch (error) {
-    console.error('Error creating Square order:', error);
+    console.error('Error generating Square POS URL:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

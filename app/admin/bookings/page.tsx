@@ -208,38 +208,31 @@ export default function AdminBookingsPage() {
           }, 100)
           
           toast.success('Opening Square POS...', {
-            description: `Order ID: ${data.orderId}. Square POS app should open automatically.`
+            description: `Square POS app should open automatically with payment details.`
           })
         } catch (error) {
-          // Fallback: show order ID and copy to clipboard
-          navigator.clipboard.writeText(data.orderId).then(() => {
-            toast.success('Order ID copied to clipboard!', {
-              description: `Order ID: ${data.orderId}. Paste this into Square POS.`
+          // Fallback: show POS URL and copy to clipboard
+          navigator.clipboard.writeText(data.posUrl).then(() => {
+            toast.success('POS URL copied to clipboard!', {
+              description: `POS URL copied. You can paste this into your browser to open Square POS.`
             })
           }).catch(() => {
-            toast.success('Square order created!', {
-              description: `Order ID: ${data.orderId}. Use this in your Square POS.`
+            toast.success('Square POS URL generated!', {
+              description: `POS URL: ${data.posUrl.substring(0, 50)}...`
             })
           })
         }
       } else {
-        // Fallback: show order ID if POS URL not available
-        toast.success('Square order created!', {
-          description: `Order ID: ${data.orderId}. Use this in your Square POS to process the payment.`
+        // Fallback: show error if POS URL not available
+        toast.error('Failed to generate POS URL', {
+          description: 'Please check your Square settings and try again.'
         })
       }
 
-      // Update the booking in the local state to show the order ID
-      setBookings(prevBookings => 
-        prevBookings.map(b => 
-          b.id === booking.id 
-            ? { ...b, square_order_id: data.orderId }
-            : b
-        )
-      )
+      // No need to update local state since we're not creating orders
     } catch (error) {
-      console.error('Error creating Square order:', error)
-      toast.error('Failed to create Square order', {
+      console.error('Error generating Square POS URL:', error)
+      toast.error('Failed to generate Square POS URL', {
         description: 'Please try again.'
       })
     }
