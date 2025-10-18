@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
 
     console.log('Creating Square order for booking:', bookingId, 'with request:', orderRequest);
 
-    const { result, ...httpResponse } = await squareClient.ordersApi.createOrder(orderRequest);
+    const { result, ...httpResponse } = await (squareClient as any).ordersApi.createOrder(orderRequest);
 
     if (httpResponse.statusCode !== 200 || !result.order) {
       console.error('Square API error:', httpResponse);
