@@ -29,20 +29,35 @@ export async function POST(request: NextRequest) {
     // Handle payment events
     if (event.type === 'payment.updated' || event.type === 'payment.created') {
       const payment = event.data.object.payment;
-      console.log(`Processing payment ${payment.id} with status: ${payment.status}`);
+      console.log(`🔄 Processing payment ${payment.id} with status: ${payment.status}`);
+      console.log(`💰 Payment details:`, {
+        id: payment.id,
+        status: payment.status,
+        order_id: payment.order_id,
+        payment_link_id: payment.payment_link_id,
+        amount: payment.amount_money?.amount,
+        currency: payment.amount_money?.currency,
+        metadata: payment.metadata
+      });
       
       if (payment && payment.status === 'COMPLETED') {
         // Find booking by order ID or payment link ID
         const supabase = createAdminSupabaseClient();
         
-        // Try to find booking by square_order_id first
+        // Try to find booking by square_order_id first (for POS payments)
         let { data: booking, error } = await supabase
           .from('bookings')
           .select('*')
           .eq('square_order_id', payment.order_id)
           .single();
 
-        // If not found by order ID, try to find by payment link ID
+        if (!error && booking) {
+          console.log(`✅ Found booking ${booking.id} by Square order ID ${payment.order_id} (POS payment)`);
+        } else {
+          console.log(`⚠️ No booking found by order ID ${payment.order_id}, trying payment link ID...`);
+        }
+
+        // If not found by order ID, try to find by payment link ID (for email payments)
         if (error && payment.payment_link_id) {
           const { data: bookingByLink, error: linkError } = await supabase
             .from('bookings')
@@ -53,6 +68,7 @@ export async function POST(request: NextRequest) {
           if (!linkError && bookingByLink) {
             booking = bookingByLink;
             error = null;
+            console.log(`✅ Found booking ${booking.id} by payment link ID ${payment.payment_link_id} (email payment)`);
           }
         }
 
@@ -67,6 +83,7 @@ export async function POST(request: NextRequest) {
           if (!metadataError && bookingByMetadata) {
             booking = bookingByMetadata;
             error = null;
+            console.log(`✅ Found booking ${booking.id} by metadata booking ID ${payment.metadata.bookingId}`);
           }
         }
 
@@ -106,7 +123,12 @@ export async function POST(request: NextRequest) {
             }
           }
         } else {
-          console.log(`No booking found for payment ${payment.id} with order ID ${payment.order_id}`);
+          console.log(`❌ No booking found for payment ${payment.id}`);
+          console.log(`🔍 Search criteria used:`, {
+            order_id: payment.order_id,
+            payment_link_id: payment.payment_link_id,
+            metadata_booking_id: payment.metadata?.bookingId
+          });
         }
       }
     }

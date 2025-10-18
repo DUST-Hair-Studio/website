@@ -11,7 +11,7 @@ export async function getSquareClient() {
     const { data: settings, error } = await supabase
       .from('settings')
       .select('key, value')
-      .in('key', ['square_enabled', 'square_access_token', 'square_environment'])
+      .in('key', ['square_enabled', 'square_access_token', 'square_environment', 'square_application_id', 'square_location_id'])
     
     if (error) {
       console.error('Error fetching Square settings:', error)

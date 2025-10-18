@@ -173,33 +173,73 @@ export default function AdminBookingsPage() {
     }
   }
 
-  // Mark payment as collected via POS
-  const markPaymentCollected = async (booking: BookingWithDetails) => {
+  // Create Square order for POS payment
+  const createSquareOrderForPOS = async (booking: BookingWithDetails) => {
     try {
-      const response = await fetch(`/api/admin/bookings/${booking.id}`, {
-        method: 'PATCH',
+      const response = await fetch('/api/bookings/create-pos-order', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          payment_status: 'paid',
-          status: 'confirmed'
+          bookingId: booking.id
         }),
       })
 
+      const data = await response.json()
+
       if (!response.ok) {
-        throw new Error('Failed to update payment status')
+        throw new Error(data.error || 'Failed to create Square order')
       }
 
-      // Refresh bookings
-      window.location.reload()
-      
-      toast.success('Payment marked as collected!', {
-        description: 'Use your Square POS to process the payment.'
-      })
+      // Open Square POS app automatically
+      if (data.posUrl) {
+        // Try to open the Square POS app
+        try {
+          // First try to open in new tab/window
+          const posWindow = window.open(data.posUrl, '_blank')
+          
+          // If that doesn't work (popup blocked), try direct navigation
+          setTimeout(() => {
+            if (!posWindow || posWindow.closed) {
+              // Popup was blocked, try direct navigation
+              window.location.href = data.posUrl
+            }
+          }, 100)
+          
+          toast.success('Opening Square POS...', {
+            description: `Order ID: ${data.orderId}. Square POS app should open automatically.`
+          })
+        } catch (error) {
+          // Fallback: show order ID and copy to clipboard
+          navigator.clipboard.writeText(data.orderId).then(() => {
+            toast.success('Order ID copied to clipboard!', {
+              description: `Order ID: ${data.orderId}. Paste this into Square POS.`
+            })
+          }).catch(() => {
+            toast.success('Square order created!', {
+              description: `Order ID: ${data.orderId}. Use this in your Square POS.`
+            })
+          })
+        }
+      } else {
+        // Fallback: show order ID if POS URL not available
+        toast.success('Square order created!', {
+          description: `Order ID: ${data.orderId}. Use this in your Square POS to process the payment.`
+        })
+      }
+
+      // Update the booking in the local state to show the order ID
+      setBookings(prevBookings => 
+        prevBookings.map(b => 
+          b.id === booking.id 
+            ? { ...b, square_order_id: data.orderId }
+            : b
+        )
+      )
     } catch (error) {
-      console.error('Error marking payment as collected:', error)
-      toast.error('Failed to update payment status', {
+      console.error('Error creating Square order:', error)
+      toast.error('Failed to create Square order', {
         description: 'Please try again.'
       })
     }
@@ -871,7 +911,7 @@ export default function AdminBookingsPage() {
                                   <DropdownMenuItem 
                                     onClick={(e: React.MouseEvent) => {
                                       e.stopPropagation()
-                                      markPaymentCollected(booking)
+                                      createSquareOrderForPOS(booking)
                                     }}
                                   >
                                     <CreditCard className="w-4 h-4 mr-2" />
@@ -889,9 +929,21 @@ export default function AdminBookingsPage() {
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             ) : (
-                              <Badge className={`${getPaymentStatusColor(booking.payment_status)} text-xs px-2 py-1 mt-1`}>
-                                {booking.payment_status}
-                              </Badge>
+                              <div>
+                                <Badge className={`${getPaymentStatusColor(booking.payment_status)} text-xs px-2 py-1 mt-1`}>
+                                  {booking.payment_status}
+                                </Badge>
+                                {booking.square_order_id && (
+                                  <div className="text-xs text-blue-600 mt-1">
+                                    Order: {booking.square_order_id}
+                                  </div>
+                                )}
+                                {booking.square_transaction_id && (
+                                  <div className="text-xs text-green-600 mt-1">
+                                    Txn: {booking.square_transaction_id}
+                                  </div>
+                                )}
+                              </div>
                             )}
                           </div>
                         </div>
@@ -966,7 +1018,7 @@ export default function AdminBookingsPage() {
                                 <DropdownMenuItem 
                                   onClick={(e: React.MouseEvent) => {
                                     e.stopPropagation()
-                                    markPaymentCollected(booking)
+                                    createSquareOrderForPOS(booking)
                                   }}
                                 >
                                   <CreditCard className="w-4 h-4 mr-2" />
@@ -1046,9 +1098,21 @@ export default function AdminBookingsPage() {
                           <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-900">
                             <div>
                               <div>{formatPrice(booking.price_charged)}</div>
-                              <Badge className={`${getPaymentStatusColor(booking.payment_status)} text-xs px-2 py-1 mt-1`}>
-                                {booking.payment_status}
-                              </Badge>
+                              <div>
+                                <Badge className={`${getPaymentStatusColor(booking.payment_status)} text-xs px-2 py-1 mt-1`}>
+                                  {booking.payment_status}
+                                </Badge>
+                                {booking.square_order_id && (
+                                  <div className="text-xs text-blue-600 mt-1">
+                                    Order: {booking.square_order_id}
+                                  </div>
+                                )}
+                                {booking.square_transaction_id && (
+                                  <div className="text-xs text-green-600 mt-1">
+                                    Txn: {booking.square_transaction_id}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </td>
                           <td className="px-3 py-3 whitespace-nowrap text-sm relative">
@@ -1202,7 +1266,7 @@ export default function AdminBookingsPage() {
                                     <DropdownMenuItem 
                                       onClick={(e: React.MouseEvent) => {
                                         e.stopPropagation()
-                                        markPaymentCollected(booking)
+                                        createSquareOrderForPOS(booking)
                                       }}
                                     >
                                       <CreditCard className="w-4 h-4 mr-2" />
