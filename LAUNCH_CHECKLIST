@@ -99,6 +99,11 @@ When ready to launch on https://www.dusthairstudio.com:
    - Update redirect URL from: https://website-sigma-steel-43.vercel.app/booking/confirmation
    - To: https://www.dusthairstudio.com/booking/confirmation
    - Save changes
+   
+   - Go to Point of Sale API settings
+   - Update Web callback URL from: https://website-sigma-steel-43.vercel.app/api/webhooks/square
+   - To: https://www.dusthairstudio.com/api/webhooks/square
+   - Save changes
 
 3. Configure Custom Domain in Vercel:
    - Go to Vercel Dashboard → Settings → Domains
@@ -142,6 +147,12 @@ Verify appointment links work correctly
 
 Square Payment Testing (if enabled):
 ✅ Test payment link generation in admin panel
+✅ Test Square POS integration:
+   - Click "Pay Now (POS)" on a booking
+   - Verify Square POS app opens with payment details
+   - Test successful payment flow
+   - Test payment cancellation flow
+   - Verify callback page shows correct status
 ✅ Verify Square credentials are working (check browser console for errors)
 ✅ Test with Square's test card numbers:
    - Visa: 4111 1111 1111 1111
