@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Switch } from '@/components/ui/switch'
-import { Loader2, Search, Users, UserPlus, User, DollarSign, Filter, CheckSquare, Square, Edit, UserX, UserCheck, Phone, MessageSquare, Mail } from 'lucide-react'
+import { Loader2, Search, Users, UserPlus, User, DollarSign, Filter, CheckSquare, Square, Edit, UserX, UserCheck, Phone, MessageSquare, Mail, Calendar, Clock, CreditCard } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Customer } from '@/types'
 
@@ -19,6 +19,20 @@ interface CustomerWithStats extends Customer {
   last_booking_price?: number
   total_spent: number
   birthday?: string
+}
+
+interface BillingHistoryItem {
+  id: string
+  date: string
+  time: string
+  service: string
+  duration: number
+  amount: number
+  paymentStatus: 'pending' | 'paid' | 'refunded'
+  bookingStatus: 'pending' | 'confirmed' | 'completed' | 'cancelled'
+  paidAt?: string
+  squareTransactionId?: string
+  createdAt: string
 }
 
 export default function AdminCustomersPage() {
@@ -41,6 +55,8 @@ export default function AdminCustomersPage() {
     notes: ''
   })
   const [activePhoneMenu, setActivePhoneMenu] = useState<string | null>(null)
+  const [billingHistory, setBillingHistory] = useState<BillingHistoryItem[]>([])
+  const [loadingBillingHistory, setLoadingBillingHistory] = useState(false)
 
   // Fetch customers
   const fetchCustomers = async () => {
@@ -66,6 +82,26 @@ export default function AdminCustomersPage() {
     fetchCustomers()
   }, [])
 
+  // Fetch billing history for selected customer
+  const fetchBillingHistory = async (customerId: string) => {
+    try {
+      setLoadingBillingHistory(true)
+      const response = await fetch(`/api/admin/customers/${customerId}/billing-history`)
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch billing history')
+      }
+      
+      const data = await response.json()
+      setBillingHistory(data.billingHistory || [])
+    } catch (error) {
+      console.error('Error fetching billing history:', error)
+      toast.error('Failed to load billing history')
+    } finally {
+      setLoadingBillingHistory(false)
+    }
+  }
+
   // Handle URL parameters to auto-open customer details modal
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -77,6 +113,7 @@ export default function AdminCustomersPage() {
       if (customer) {
         setSelectedCustomer(customer)
         setShowDetailsDialog(true)
+        fetchBillingHistory(customer.id)
         // Clean up the URL parameter
         const newUrl = window.location.pathname
         window.history.replaceState({}, '', newUrl)
@@ -479,6 +516,7 @@ export default function AdminCustomersPage() {
                     onClick={() => {
                       setSelectedCustomer(customer)
                       setShowDetailsDialog(true)
+                      fetchBillingHistory(customer.id)
                     }}
                   >
                     <div className="flex justify-between items-start mb-3">
@@ -582,6 +620,7 @@ export default function AdminCustomersPage() {
                         onClick={() => {
                           setSelectedCustomer(customer)
                           setShowDetailsDialog(true)
+                          fetchBillingHistory(customer.id)
                         }}
                         className="hover:bg-gray-50 cursor-pointer transition-colors"
                       >
@@ -796,6 +835,76 @@ export default function AdminCustomersPage() {
                         </div>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Billing History */}
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-3 md:mb-4 text-lg">Billing History</h4>
+                    {loadingBillingHistory ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="w-6 h-6 animate-spin" />
+                        <span className="ml-2 text-gray-600">Loading billing history...</span>
+                      </div>
+                    ) : billingHistory.length > 0 ? (
+                      <div className="space-y-3">
+                        {billingHistory.map((item) => (
+                          <div key={item.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Calendar className="w-4 h-4 text-gray-500" />
+                                  <span className="font-medium text-gray-900">{formatDate(item.date)}</span>
+                                  <Clock className="w-4 h-4 text-gray-500 ml-2" />
+                                  <span className="text-gray-600">{item.time}</span>
+                                </div>
+                                <div className="text-sm text-gray-600 mb-2">
+                                  {item.service} ({item.duration} min)
+                                </div>
+                                <div className="flex items-center gap-4 text-sm">
+                                  <div className="flex items-center gap-1">
+                                    <CreditCard className="w-4 h-4 text-gray-500" />
+                                    <span className="text-gray-600">Payment:</span>
+                                    <Badge 
+                                      variant={item.paymentStatus === 'paid' ? 'default' : item.paymentStatus === 'refunded' ? 'destructive' : 'secondary'}
+                                      className="text-xs"
+                                    >
+                                      {item.paymentStatus}
+                                    </Badge>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-gray-600">Status:</span>
+                                    <Badge 
+                                      variant={item.bookingStatus === 'completed' ? 'default' : item.bookingStatus === 'cancelled' ? 'destructive' : 'secondary'}
+                                      className="text-xs"
+                                    >
+                                      {item.bookingStatus}
+                                    </Badge>
+                                  </div>
+                                </div>
+                                {item.squareTransactionId && (
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    Square ID: {item.squareTransactionId}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="text-right">
+                                <div className="font-semibold text-gray-900">{formatPrice(item.amount)}</div>
+                                {item.paidAt && (
+                                  <div className="text-xs text-gray-500">
+                                    Paid: {formatDate(item.paidAt)}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <CreditCard className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                        <p>No billing history found</p>
+                      </div>
+                    )}
                   </div>
 
                 </div>
