@@ -30,66 +30,7 @@ export async function GET(request: NextRequest) {
       }
     }
     
-    // Return a custom HTML page instead of JSON
-    const html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Payment Status - DUST Hair Studio</title>
-          <meta name="viewport" content="width=device-width, initial-scale=1">
-          <style>
-            body { 
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-              background: #f8fafc;
-              margin: 0;
-              padding: 20px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              min-height: 100vh;
-            }
-            .container {
-              background: white;
-              padding: 40px;
-              border-radius: 12px;
-              box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-              text-align: center;
-              max-width: 400px;
-              width: 100%;
-            }
-            .success { color: #10b981; }
-            .error { color: #ef4444; }
-            .canceled { color: #f59e0b; }
-            .icon { font-size: 48px; margin-bottom: 16px; }
-            h1 { margin: 0 0 16px 0; font-size: 24px; }
-            p { margin: 0 0 24px 0; color: #6b7280; }
-            .button {
-              background: #3b82f6;
-              color: white;
-              padding: 12px 24px;
-              border: none;
-              border-radius: 6px;
-              text-decoration: none;
-              display: inline-block;
-              font-weight: 500;
-            }
-            .button:hover { background: #2563eb; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="icon">${data ? '⚠️' : '✅'}</div>
-            <h1>${data ? 'Payment Canceled' : 'Payment Processed'}</h1>
-            <p>${data ? 'You can try again by clicking "Pay Now (POS)" in the admin panel.' : 'The payment has been processed successfully.'}</p>
-            <a href="/admin/bookings" class="button">Return to Admin Panel</a>
-          </div>
-        </body>
-      </html>
-    `
-    
-    return new NextResponse(html, {
-      headers: { 'Content-Type': 'text/html' }
-    })
+    return NextResponse.json({ received: true })
   } catch (error) {
     console.error('Callback processing error:', error)
     return NextResponse.json({ error: 'Callback processing failed' }, { status: 500 })

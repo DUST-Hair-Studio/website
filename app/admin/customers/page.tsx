@@ -337,6 +337,31 @@ export default function AdminCustomersPage() {
     })
   }
 
+  // Format time in 12-hour format with correct timezone
+  const formatTime = (dateString: string, timeString: string) => {
+    if (!dateString || !timeString) return 'N/A'
+    
+    try {
+      // Create a date object by combining date and time
+      const [year, month, day] = dateString.split('-').map(Number)
+      const [hour, minute] = timeString.split(':').map(Number)
+      
+      // Create date in the business timezone (America/Los_Angeles)
+      const date = new Date(year, month - 1, day, hour, minute)
+      
+      // Format in 12-hour format with timezone
+      return date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: 'America/Los_Angeles'
+      })
+    } catch (error) {
+      console.error('Error formatting time:', error)
+      return timeString // Fallback to original time
+    }
+  }
+
   // Get customer stats
   const stats = {
     total: customers.length,
@@ -855,7 +880,7 @@ export default function AdminCustomersPage() {
                                   <Calendar className="w-4 h-4 text-gray-500" />
                                   <span className="font-medium text-gray-900">{formatDate(item.date)}</span>
                                   <Clock className="w-4 h-4 text-gray-500 ml-2" />
-                                  <span className="text-gray-600">{item.time}</span>
+                                  <span className="text-gray-600">{formatTime(item.date, item.time)}</span>
                                 </div>
                                 <div className="text-sm text-gray-600 mb-2">
                                   {item.service} ({item.duration} min)
