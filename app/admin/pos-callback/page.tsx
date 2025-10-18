@@ -21,7 +21,7 @@ export default function POSCallbackPage() {
           // Payment was canceled or failed
           if (transactionInfo.error_code === 'payment_canceled') {
             setStatus('canceled')
-            setMessage('Payment was canceled')
+            setMessage('Payment was canceled - returning to admin panel')
           } else {
             setStatus('error')
             setMessage(`Payment failed: ${transactionInfo.error_code}`)
@@ -36,15 +36,21 @@ export default function POSCallbackPage() {
         setMessage('Invalid payment response')
       }
     } else {
-      setStatus('error')
-      setMessage('No payment data received')
+      setStatus('canceled')
+      setMessage('Payment was canceled - returning to admin panel')
     }
 
-    // Redirect back to admin panel after 3 seconds
+    // Redirect back to admin panel immediately for cancellations, 3 seconds for success
+    const redirectDelay = status === 'canceled' ? 1000 : 3000
     setTimeout(() => {
-      router.push('/admin/bookings')
-    }, 3000)
-  }, [router])
+      // Close the tab if it was opened in a new tab, otherwise redirect
+      if (window.opener) {
+        window.close()
+      } else {
+        router.push('/admin/bookings')
+      }
+    }, redirectDelay)
+  }, [router, status])
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">

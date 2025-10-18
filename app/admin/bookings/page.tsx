@@ -238,6 +238,33 @@ export default function AdminBookingsPage() {
     }
   }
 
+  // Handle Square POS callback data
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const data = urlParams.get('data')
+    
+    if (data) {
+      try {
+        const transactionInfo = JSON.parse(decodeURIComponent(data))
+        
+        if (transactionInfo.error_code === 'payment_canceled') {
+          toast.info('Payment was canceled', {
+            description: 'You can try again by clicking "Pay Now (POS)"'
+          })
+        } else if (transactionInfo.transaction_id) {
+          toast.success('Payment completed!', {
+            description: 'The booking has been updated with payment details'
+          })
+        }
+        
+        // Clean up the URL
+        window.history.replaceState({}, document.title, window.location.pathname)
+      } catch (error) {
+        console.error('Error parsing Square POS callback:', error)
+      }
+    }
+  }, [])
+
   // Fetch all bookings
   useEffect(() => {
     const fetchBookings = async () => {
