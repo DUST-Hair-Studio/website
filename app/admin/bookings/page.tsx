@@ -1978,7 +1978,7 @@ export default function AdminBookingsPage() {
           />
           
           {/* Modal Content */}
-          <div className="fixed bottom-0 left-0 right-0 md:bottom-0 md:left-auto md:right-0 md:top-0 md:w-[500px] md:h-full bg-white rounded-t-3xl md:rounded-none md:rounded-l-xl shadow-xl md:shadow-2xl">
+          <div className="fixed bottom-0 left-0 right-0 md:bottom-0 md:left-auto md:right-0 md:top-0 md:w-[500px] md:h-full bg-white rounded-t-3xl md:rounded-none md:rounded-l-xl shadow-xl md:shadow-2xl max-h-[90vh] md:max-h-none">
             {/* Mobile Slide-up Container */}
             <div className="h-full flex flex-col md:flex md:flex-col md:h-full">
               {/* Drag Handle for Mobile */}
@@ -2041,7 +2041,7 @@ export default function AdminBookingsPage() {
               </div>
           
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto px-6 md:px-6 md:py-4 md:max-h-[calc(100vh-200px)]">
+            <div className="flex-1 overflow-y-auto px-6 md:px-6 md:py-4 md:max-h-[calc(100vh-200px)] min-h-0">
               {selectedBooking && (
                 <div className="space-y-4 md:space-y-6 pb-4 md:pb-6">
                   {/* Customer Info */}
