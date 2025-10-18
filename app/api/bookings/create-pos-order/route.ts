@@ -20,7 +20,7 @@ function generateSquarePOSUrl(params: {
       amount: params.amount,
       currency_code: 'USD'
     },
-    callback_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://website-sigma-steel-43.vercel.app'}/api/webhooks/square`,
+    callback_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://website-sigma-steel-43.vercel.app'}/admin/pos-callback`,
     client_id: params.applicationId,
     version: '1.3',
     notes: `Booking: ${params.serviceName} - ${params.customerName}`,

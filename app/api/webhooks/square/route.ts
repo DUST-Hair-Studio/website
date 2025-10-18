@@ -5,6 +5,38 @@ import { createAdminSupabaseClient } from '@/lib/supabase-server';
 // Force Node.js runtime for crypto support (needed for webhook signature verification)
 export const runtime = 'nodejs';
 
+export async function GET(request: NextRequest) {
+  try {
+    const url = new URL(request.url)
+    const data = url.searchParams.get('data')
+    
+    if (data) {
+      console.log('Square POS callback received:', data)
+      
+      try {
+        const transactionInfo = JSON.parse(decodeURIComponent(data))
+        console.log('Transaction info:', transactionInfo)
+        
+        // Handle successful payment
+        if (transactionInfo.transaction_id && !transactionInfo.error_code) {
+          console.log('✅ Payment successful:', transactionInfo.transaction_id)
+          // The webhook will handle the actual payment processing
+          // This is just for logging the callback
+        } else if (transactionInfo.error_code) {
+          console.log('❌ Payment failed or canceled:', transactionInfo.error_code)
+        }
+      } catch (error) {
+        console.error('Error parsing transaction data:', error)
+      }
+    }
+    
+    return NextResponse.json({ received: true })
+  } catch (error) {
+    console.error('Callback processing error:', error)
+    return NextResponse.json({ error: 'Callback processing failed' }, { status: 500 })
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.text();
