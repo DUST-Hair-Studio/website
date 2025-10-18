@@ -844,21 +844,6 @@ export default function AdminCustomersPage() {
                         <span className="text-gray-600">Total Spent</span>
                         <span className="font-medium text-gray-900">{formatPrice(selectedCustomer.total_spent)}</span>
                       </div>
-                      <div className="flex justify-between items-center py-1 md:py-2">
-                        <span className="text-gray-600">Last Booking</span>
-                        <div className="text-right">
-                          {selectedCustomer.last_booking_date ? (
-                            <div>
-                              <div className="font-medium text-gray-900">{formatDate(selectedCustomer.last_booking_date)}</div>
-                              {selectedCustomer.last_booking_price && (
-                                <div className="text-sm text-gray-600">{formatPrice(selectedCustomer.last_booking_price)}</div>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-gray-500">Never</span>
-                          )}
-                        </div>
-                      </div>
                     </div>
                   </div>
 
