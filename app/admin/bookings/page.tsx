@@ -922,21 +922,9 @@ export default function AdminBookingsPage() {
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             ) : (
-                              <div>
-                                <Badge className={`${getPaymentStatusColor(booking.payment_status)} text-xs px-2 py-1 mt-1`}>
-                                  {booking.payment_status}
-                                </Badge>
-                                {booking.square_order_id && (
-                                  <div className="text-xs text-blue-600 mt-1">
-                                    Order: {booking.square_order_id}
-                                  </div>
-                                )}
-                                {booking.square_transaction_id && (
-                                  <div className="text-xs text-green-600 mt-1">
-                                    Txn: {booking.square_transaction_id}
-                                  </div>
-                                )}
-                              </div>
+                              <Badge className={`${getPaymentStatusColor(booking.payment_status)} text-xs px-2 py-1 mt-1`}>
+                                {booking.payment_status}
+                              </Badge>
                             )}
                           </div>
                         </div>
@@ -1091,21 +1079,9 @@ export default function AdminBookingsPage() {
                           <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-900">
                             <div>
                               <div>{formatPrice(booking.price_charged)}</div>
-                              <div>
-                                <Badge className={`${getPaymentStatusColor(booking.payment_status)} text-xs px-2 py-1 mt-1`}>
-                                  {booking.payment_status}
-                                </Badge>
-                                {booking.square_order_id && (
-                                  <div className="text-xs text-blue-600 mt-1">
-                                    Order: {booking.square_order_id}
-                                  </div>
-                                )}
-                                {booking.square_transaction_id && (
-                                  <div className="text-xs text-green-600 mt-1">
-                                    Txn: {booking.square_transaction_id}
-                                  </div>
-                                )}
-                              </div>
+                              <Badge className={`${getPaymentStatusColor(booking.payment_status)} text-xs px-2 py-1 mt-1`}>
+                                {booking.payment_status}
+                              </Badge>
                             </div>
                           </td>
                           <td className="px-3 py-3 whitespace-nowrap text-sm relative">
