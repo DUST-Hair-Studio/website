@@ -37,19 +37,22 @@ export async function GET(
     }
 
     // Format the billing history data
-    const billingHistory = bookings?.map(booking => ({
-      id: booking.id,
-      date: booking.booking_date,
-      time: booking.booking_time,
-      service: booking.services?.[0]?.name || 'Unknown Service',
-      duration: booking.services?.[0]?.duration_minutes || 0,
-      amount: booking.price_charged,
-      paymentStatus: booking.payment_status,
-      bookingStatus: booking.status,
-      paidAt: booking.paid_at,
-      squareTransactionId: booking.square_transaction_id,
-      createdAt: booking.created_at
-    })) || []
+    const billingHistory = bookings?.map(booking => {
+      console.log('Booking services data:', booking.services)
+      return {
+        id: booking.id,
+        date: booking.booking_date,
+        time: booking.booking_time,
+        service: booking.services?.name || 'Unknown Service',
+        duration: booking.services?.duration_minutes || 0,
+        amount: booking.price_charged,
+        paymentStatus: booking.payment_status,
+        bookingStatus: booking.status,
+        paidAt: booking.paid_at,
+        squareTransactionId: booking.square_transaction_id,
+        createdAt: booking.created_at
+      }
+    }) || []
 
     return NextResponse.json({ billingHistory })
 

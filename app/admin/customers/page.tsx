@@ -907,7 +907,7 @@ export default function AdminCustomersPage() {
                                 <div className="text-sm text-gray-600 mb-2">
                                   {item.service} ({item.duration} min)
                                 </div>
-                                <div className="flex items-center gap-4 text-sm">
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm">
                                   <div className="flex items-center gap-1">
                                     <CreditCard className="w-4 h-4 text-gray-500" />
                                     <span className="text-gray-600">Payment:</span>
