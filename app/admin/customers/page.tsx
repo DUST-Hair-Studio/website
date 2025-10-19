@@ -57,6 +57,8 @@ export default function AdminCustomersPage() {
   const [activePhoneMenu, setActivePhoneMenu] = useState<string | null>(null)
   const [billingHistory, setBillingHistory] = useState<BillingHistoryItem[]>([])
   const [loadingBillingHistory, setLoadingBillingHistory] = useState(false)
+  const [selectedBooking, setSelectedBooking] = useState<BillingHistoryItem | null>(null)
+  const [showBookingDetails, setShowBookingDetails] = useState(false)
 
   // Fetch customers
   const fetchCustomers = async () => {
@@ -100,6 +102,12 @@ export default function AdminCustomersPage() {
     } finally {
       setLoadingBillingHistory(false)
     }
+  }
+
+  // Open booking details modal
+  const openBookingDetails = (booking: BillingHistoryItem) => {
+    setSelectedBooking(booking)
+    setShowBookingDetails(true)
   }
 
   // Handle URL parameters to auto-open customer details modal
@@ -847,9 +855,9 @@ export default function AdminCustomersPage() {
                     </div>
                   </div>
 
-                  {/* Billing History */}
+                  {/* Booking History */}
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-3 md:mb-4 text-lg">Billing History</h4>
+                    <h4 className="font-semibold text-gray-900 mb-3 md:mb-4 text-lg">Booking History</h4>
                     {loadingBillingHistory ? (
                       <div className="flex items-center justify-center py-8">
                         <Loader2 className="w-6 h-6 animate-spin" />
@@ -858,7 +866,11 @@ export default function AdminCustomersPage() {
                     ) : billingHistory.length > 0 ? (
                       <div className="space-y-3">
                         {billingHistory.map((item) => (
-                          <div key={item.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                          <div 
+                            key={item.id} 
+                            className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                            onClick={() => openBookingDetails(item)}
+                          >
                             <div className="flex justify-between items-start mb-2">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-1">
@@ -1051,6 +1063,126 @@ export default function AdminCustomersPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Booking Details Modal */}
+      {showBookingDetails && selectedBooking && (
+        <div className="fixed inset-0 z-50">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/50 md:bg-black/20"
+            onClick={() => setShowBookingDetails(false)}
+          />
+          
+          {/* Modal Content */}
+          <div className="fixed bottom-0 left-0 right-0 md:bottom-0 md:left-auto md:right-0 md:top-0 md:w-[500px] md:h-full bg-white rounded-t-3xl md:rounded-none md:rounded-l-xl shadow-xl md:shadow-2xl max-h-[90vh] md:max-h-none">
+            {/* Mobile Slide-up Container */}
+            <div className="h-full flex flex-col md:flex md:flex-col md:h-full">
+              {/* Drag Handle for Mobile */}
+              <div className="flex justify-center pt-3 pb-2 md:hidden">
+                <div className="w-12 h-1 bg-gray-300 rounded-full"></div>
+              </div>
+              
+              {/* Header */}
+              <div className="px-6 pb-4 border-b border-gray-200 md:border-none md:px-6 md:pt-6">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <div>
+                      <h2 className="text-xl font-semibold text-gray-900">
+                        {selectedBooking.service}
+                      </h2>
+                      <div className="text-sm font-normal text-gray-600">
+                        ({selectedBooking.duration} min)
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+          
+              {/* Scrollable Content */}
+              <div className="flex-1 overflow-y-auto px-6 md:px-6 md:py-4 md:max-h-[calc(100vh-200px)] min-h-0">
+                <div className="space-y-4 md:space-y-6 pb-4 md:pb-6">
+                  {/* Booking Info */}
+                  <div className="pb-6 md:pb-8 pt-4 md:border-t md:border-b md:border-gray-300">
+                    <h4 className="font-semibold text-gray-900 mb-3 md:mb-4 text-lg">Booking Information</h4>
+                    <div className="space-y-3 md:space-y-4">
+                      <div className="flex justify-between items-center py-2 md:py-2">
+                        <span className="text-gray-600">Date</span>
+                        <span className="font-medium text-gray-900">{formatDate(selectedBooking.date)}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2 md:py-2">
+                        <span className="text-gray-600">Time</span>
+                        <span className="font-medium text-gray-900">{formatTime(selectedBooking.date, selectedBooking.time)}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2 md:py-2">
+                        <span className="text-gray-600">Service</span>
+                        <span className="font-medium text-gray-900">{selectedBooking.service}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2 md:py-2">
+                        <span className="text-gray-600">Duration</span>
+                        <span className="font-medium text-gray-900">{selectedBooking.duration} minutes</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2 md:py-2">
+                        <span className="text-gray-600">Amount</span>
+                        <span className="font-medium text-gray-900">{formatPrice(selectedBooking.amount)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Payment & Status Info */}
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-3 md:mb-4 text-lg">Payment & Status</h4>
+                    <div className="space-y-3 md:space-y-4">
+                      <div className="flex justify-between items-center py-2 md:py-2">
+                        <span className="text-gray-600">Payment Status</span>
+                        <Badge 
+                          variant={selectedBooking.paymentStatus === 'paid' ? 'default' : selectedBooking.paymentStatus === 'refunded' ? 'destructive' : 'secondary'}
+                          className="text-xs"
+                        >
+                          {selectedBooking.paymentStatus}
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between items-center py-2 md:py-2">
+                        <span className="text-gray-600">Booking Status</span>
+                        <Badge 
+                          variant={selectedBooking.bookingStatus === 'completed' ? 'default' : selectedBooking.bookingStatus === 'cancelled' ? 'destructive' : 'secondary'}
+                          className="text-xs"
+                        >
+                          {selectedBooking.bookingStatus}
+                        </Badge>
+                      </div>
+                      {selectedBooking.paidAt && (
+                        <div className="flex justify-between items-center py-2 md:py-2">
+                          <span className="text-gray-600">Paid Date</span>
+                          <span className="font-medium text-gray-900">{formatDate(selectedBooking.paidAt)}</span>
+                        </div>
+                      )}
+                      {selectedBooking.squareTransactionId && (
+                        <div className="flex justify-between items-start py-2 md:py-2">
+                          <span className="text-gray-600">Square Transaction ID</span>
+                          <span className="font-medium text-gray-900 text-right break-all">{selectedBooking.squareTransactionId}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Actions */}
+              <div className="px-6 py-4 border-t border-gray-200 bg-white md:px-6 md:py-6 md:border-none">
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowBookingDetails(false)}
+                    className="flex-1 h-12"
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
