@@ -811,7 +811,7 @@ export default function AdminCustomersPage() {
               </div>
           
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto px-6 md:px-6 md:py-4 md:max-h-[calc(100vh-200px)] min-h-0 overscroll-contain touch-pan-y">
+            <div className="flex-1 overflow-y-auto px-6 md:px-6 md:py-4 min-h-0" style={{ WebkitOverflowScrolling: 'touch', maxHeight: 'calc(90vh - 200px)', height: '400px' }}>
               {selectedCustomer && (
                 <div className="space-y-4 md:space-y-6 pb-4 md:pb-6">
                   {/* Customer Info */}
@@ -1125,7 +1125,7 @@ export default function AdminCustomersPage() {
               </div>
           
               {/* Scrollable Content */}
-              <div className="flex-1 overflow-y-auto px-6 md:px-6 md:py-4 md:max-h-[calc(100vh-200px)] min-h-0">
+              <div className="flex-1 overflow-y-auto px-6 md:px-6 md:py-4 min-h-0" style={{ WebkitOverflowScrolling: 'touch', maxHeight: 'calc(90vh - 200px)' }}>
                 <div className="space-y-6 pb-4 md:pb-6">
                   {/* Customer Information */}
                   <div className="pt-4">
