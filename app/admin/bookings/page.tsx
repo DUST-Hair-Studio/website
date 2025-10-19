@@ -210,7 +210,7 @@ export default function AdminBookingsPage() {
           toast.success('Opening Square POS...', {
             description: `Square POS app should open automatically with payment details.`
           })
-        } catch (error) {
+        } catch {
           // Fallback: show POS URL and copy to clipboard
           navigator.clipboard.writeText(data.posUrl).then(() => {
             toast.success('POS URL copied to clipboard!', {

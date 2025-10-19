@@ -1100,65 +1100,73 @@ export default function AdminCustomersPage() {
           
               {/* Scrollable Content */}
               <div className="flex-1 overflow-y-auto px-6 md:px-6 md:py-4 md:max-h-[calc(100vh-200px)] min-h-0">
-                <div className="space-y-4 md:space-y-6 pb-4 md:pb-6">
-                  {/* Booking Info */}
-                  <div className="pb-6 md:pb-8 pt-4 md:border-t md:border-b md:border-gray-300">
-                    <h4 className="font-semibold text-gray-900 mb-3 md:mb-4 text-lg">Booking Information</h4>
-                    <div className="space-y-3 md:space-y-4">
-                      <div className="flex justify-between items-center py-2 md:py-2">
-                        <span className="text-gray-600">Date</span>
-                        <span className="font-medium text-gray-900">{formatDate(selectedBooking.date)}</span>
-                      </div>
-                      <div className="flex justify-between items-center py-2 md:py-2">
-                        <span className="text-gray-600">Time</span>
-                        <span className="font-medium text-gray-900">{formatTime(selectedBooking.date, selectedBooking.time)}</span>
-                      </div>
-                      <div className="flex justify-between items-center py-2 md:py-2">
-                        <span className="text-gray-600">Service</span>
-                        <span className="font-medium text-gray-900">{selectedBooking.service}</span>
-                      </div>
-                      <div className="flex justify-between items-center py-2 md:py-2">
-                        <span className="text-gray-600">Duration</span>
-                        <span className="font-medium text-gray-900">{selectedBooking.duration} minutes</span>
-                      </div>
-                      <div className="flex justify-between items-center py-2 md:py-2">
-                        <span className="text-gray-600">Amount</span>
-                        <span className="font-medium text-gray-900">{formatPrice(selectedBooking.amount)}</span>
+                <div className="space-y-6 pb-4 md:pb-6">
+                  {/* Customer Information */}
+                  <div className="pt-4">
+                    <h4 className="font-semibold text-gray-900 mb-4 text-lg">Customer Information</h4>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center py-2">
+                        <span className="text-gray-600">Customer</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-gray-900">{selectedCustomer?.name || 'N/A'}</span>
+                          <Badge
+                            variant={selectedCustomer?.is_existing_customer ? "default" : "secondary"}
+                            className={`${selectedCustomer?.is_existing_customer ? "bg-indigo-100 text-indigo-800" : "bg-purple-100 text-purple-800"}`}
+                          >
+                            {selectedCustomer?.is_existing_customer ? 'existing' : 'new'}
+                          </Badge>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Payment & Status Info */}
-                  <div>
-                    <h4 className="font-semibold text-gray-900 mb-3 md:mb-4 text-lg">Payment & Status</h4>
-                    <div className="space-y-3 md:space-y-4">
-                      <div className="flex justify-between items-center py-2 md:py-2">
-                        <span className="text-gray-600">Payment Status</span>
-                        <Badge 
-                          variant={selectedBooking.paymentStatus === 'paid' ? 'default' : selectedBooking.paymentStatus === 'refunded' ? 'destructive' : 'secondary'}
-                          className="text-xs"
-                        >
-                          {selectedBooking.paymentStatus}
-                        </Badge>
-                      </div>
-                      <div className="flex justify-between items-center py-2 md:py-2">
-                        <span className="text-gray-600">Booking Status</span>
-                        <Badge 
-                          variant={selectedBooking.bookingStatus === 'completed' ? 'default' : selectedBooking.bookingStatus === 'cancelled' ? 'destructive' : 'secondary'}
-                          className="text-xs"
-                        >
-                          {selectedBooking.bookingStatus}
-                        </Badge>
-                      </div>
-                      {selectedBooking.paidAt && (
-                        <div className="flex justify-between items-center py-2 md:py-2">
-                          <span className="text-gray-600">Paid Date</span>
-                          <span className="font-medium text-gray-900">{formatDate(selectedBooking.paidAt)}</span>
+                  {/* Booking Information */}
+                  <div className="border-t border-gray-200 pt-6">
+                    <h4 className="font-semibold text-gray-900 mb-4 text-lg">Booking Information</h4>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-start py-2">
+                        <span className="text-gray-600">Date & Time</span>
+                        <div className="text-right">
+                          <div className="font-medium text-gray-900">{formatDate(selectedBooking.date)}</div>
+                          <div className="text-sm text-gray-600">{formatTime(selectedBooking.date, selectedBooking.time)}</div>
                         </div>
-                      )}
+                      </div>
+                      <div className="flex justify-between items-center py-2">
+                        <span className="text-gray-600">Status</span>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          selectedBooking.bookingStatus === 'completed' 
+                            ? 'bg-green-100 text-green-800' 
+                            : selectedBooking.bookingStatus === 'cancelled' 
+                            ? 'bg-red-100 text-red-800' 
+                            : selectedBooking.bookingStatus === 'confirmed'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {selectedBooking.bookingStatus}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-start py-2">
+                        <span className="text-gray-600">Payment</span>
+                        <div className="text-right">
+                          <div className="font-medium text-gray-900">{formatPrice(selectedBooking.amount)}</div>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mt-1 ${
+                            selectedBooking.paymentStatus === 'paid' 
+                              ? 'bg-green-100 text-green-800' 
+                              : selectedBooking.paymentStatus === 'refunded' 
+                              ? 'bg-red-100 text-red-800' 
+                              : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {selectedBooking.paymentStatus}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center py-2">
+                        <span className="text-gray-600">Created</span>
+                        <span className="font-medium text-gray-900">{formatDate(selectedBooking.createdAt)}</span>
+                      </div>
                       {selectedBooking.squareTransactionId && (
-                        <div className="flex justify-between items-start py-2 md:py-2">
-                          <span className="text-gray-600">Square Transaction ID</span>
+                        <div className="flex justify-between items-start py-2">
+                          <span className="text-gray-600">Square ID</span>
                           <span className="font-medium text-gray-900 text-right break-all">{selectedBooking.squareTransactionId}</span>
                         </div>
                       )}
@@ -1177,7 +1185,23 @@ export default function AdminCustomersPage() {
                   >
                     Close
                   </Button>
+                  <Button
+                    variant="destructive"
+                    disabled={selectedBooking.paymentStatus === 'paid'}
+                    className="flex-1 h-12"
+                    title={selectedBooking.paymentStatus === 'paid' ? 'Cannot delete paid bookings to maintain financial integrity' : 'Delete booking'}
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Delete Booking
+                  </Button>
                 </div>
+                {selectedBooking.paymentStatus === 'paid' && (
+                  <p className="text-xs text-gray-500 mt-2 text-center">
+                    Cannot delete paid bookings to maintain financial integrity
+                  </p>
+                )}
               </div>
             </div>
           </div>

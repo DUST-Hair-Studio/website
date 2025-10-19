@@ -31,7 +31,7 @@ export default function POSCallbackPage() {
           setStatus('success')
           setMessage('Payment completed successfully!')
         }
-      } catch (error) {
+      } catch {
         setStatus('error')
         setMessage('Invalid payment response')
       }
