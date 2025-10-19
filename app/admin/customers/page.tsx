@@ -146,6 +146,30 @@ export default function AdminCustomersPage() {
     }
   }, [activePhoneMenu])
 
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (showDetailsDialog || showBookingDetails) {
+      // Prevent scrolling on the body
+      document.body.style.overflow = 'hidden'
+      document.body.style.position = 'fixed'
+      document.body.style.width = '100%'
+      document.body.style.height = '100%'
+    } else {
+      // Restore scrolling
+      document.body.style.overflow = 'unset'
+      document.body.style.position = 'unset'
+      document.body.style.width = 'unset'
+      document.body.style.height = 'unset'
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset'
+      document.body.style.position = 'unset'
+      document.body.style.width = 'unset'
+      document.body.style.height = 'unset'
+    }
+  }, [showDetailsDialog, showBookingDetails])
+
   // const renderPhoneNumber = (phone: string, customerId: string, className: string = "text-blue-500 hover:text-blue-700 underline cursor-pointer") => {
   //   const isActive = activePhoneMenu === customerId
   //   
@@ -727,17 +751,18 @@ export default function AdminCustomersPage() {
 
       {/* Customer Details Modal - Proper Slide-up Implementation */}
       {showDetailsDialog && (
-        <div className="fixed inset-0 z-50">
+        <div className="fixed inset-0 z-50 overflow-hidden">
           {/* Backdrop */}
           <div 
-            className="fixed inset-0 bg-black/50 md:bg-black/20"
+            className="fixed inset-0 bg-black/50 md:bg-black/20 touch-none"
             onClick={() => setShowDetailsDialog(false)}
+            onTouchMove={(e) => e.preventDefault()}
           />
           
           {/* Modal Content */}
           <div className="fixed bottom-0 left-0 right-0 md:bottom-0 md:left-auto md:right-0 md:top-0 md:w-[500px] md:h-full bg-white rounded-t-3xl md:rounded-none md:rounded-l-xl shadow-xl md:shadow-2xl max-h-[90vh] md:max-h-none">
             {/* Mobile Slide-up Container */}
-            <div className="h-full flex flex-col md:flex md:flex-col md:h-full">
+            <div className="h-full flex flex-col md:flex md:flex-col md:h-full overflow-hidden">
               {/* Drag Handle for Mobile */}
               <div className="flex justify-center pt-3 pb-2 md:hidden">
                 <div className="w-12 h-1 bg-gray-300 rounded-full"></div>
@@ -786,7 +811,7 @@ export default function AdminCustomersPage() {
               </div>
           
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto px-6 md:px-6 md:py-4 md:max-h-[calc(100vh-200px)] min-h-0">
+            <div className="flex-1 overflow-y-auto px-6 md:px-6 md:py-4 md:max-h-[calc(100vh-200px)] min-h-0 overscroll-contain touch-pan-y">
               {selectedCustomer && (
                 <div className="space-y-4 md:space-y-6 pb-4 md:pb-6">
                   {/* Customer Info */}
@@ -1066,11 +1091,12 @@ export default function AdminCustomersPage() {
 
       {/* Booking Details Modal */}
       {showBookingDetails && selectedBooking && (
-        <div className="fixed inset-0 z-50">
+        <div className="fixed inset-0 z-50 overflow-hidden">
           {/* Backdrop */}
           <div 
-            className="fixed inset-0 bg-black/50 md:bg-black/20"
+            className="fixed inset-0 bg-black/50 md:bg-black/20 touch-none"
             onClick={() => setShowBookingDetails(false)}
+            onTouchMove={(e) => e.preventDefault()}
           />
           
           {/* Modal Content */}
