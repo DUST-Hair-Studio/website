@@ -43,8 +43,16 @@ export async function GET(
         id: booking.id,
         date: booking.booking_date,
         time: booking.booking_time,
-        service: booking.services?.name || 'Unknown Service',
-        duration: booking.services?.duration_minutes || 0,
+        service: Array.isArray(booking.services) && booking.services.length > 0 
+          ? booking.services[0].name 
+          : (typeof booking.services === 'object' && booking.services && 'name' in booking.services 
+              ? (booking.services as { name: string }).name 
+              : 'Unknown Service'),
+        duration: Array.isArray(booking.services) && booking.services.length > 0 
+          ? booking.services[0].duration_minutes 
+          : (typeof booking.services === 'object' && booking.services && 'duration_minutes' in booking.services 
+              ? (booking.services as { duration_minutes: number }).duration_minutes 
+              : 0),
         amount: booking.price_charged,
         paymentStatus: booking.payment_status,
         bookingStatus: booking.status,

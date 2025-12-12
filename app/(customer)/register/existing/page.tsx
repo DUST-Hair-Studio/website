@@ -1,0 +1,32 @@
+import { RegisterForm } from '@/components/customer/register-form'
+import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
+
+export default function ExistingCustomerRegisterPage() {
+  return (
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: '#FAFAFA' }}>
+      <div className="max-w-md w-full space-y-8">
+        <div className="flex items-center justify-between">
+          <Link 
+            href="/" 
+            className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Home
+          </Link>
+        </div>
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-gray-900">DUST</h1>
+          <p className="mt-2 text-gray-600">Studio</p>
+          <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <h2 className="text-lg font-semibold text-green-800">Existing Customer Registration</h2>
+            <p className="text-sm text-green-700 mt-1">
+              You&apos;ll be registered with existing customer pricing and benefits.
+            </p>
+          </div>
+        </div>
+        <RegisterForm isExistingCustomer={true} campaignId="existing_customer_2025" />
+      </div>
+    </div>
+  )
+}

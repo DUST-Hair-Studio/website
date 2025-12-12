@@ -7,8 +7,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useRouter } from 'next/navigation'
+import { getCampaignConfig } from '@/lib/campaign-config'
 
-export function RegisterForm() {
+interface RegisterFormProps {
+  isExistingCustomer?: boolean;
+  campaignId?: string;
+}
+
+export function RegisterForm({ isExistingCustomer = false, campaignId }: RegisterFormProps) {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -125,19 +131,43 @@ export function RegisterForm() {
         // Create customer record linked to auth user
         console.log('🔍 Creating customer record for user:', authData.user.id)
         
+        // Get campaign configuration if provided
+        const campaignConfig = campaignId ? getCampaignConfig(campaignId) : null
+        
+        const customerRecord: {
+          auth_user_id: string;
+          email: string;
+          name: string;
+          phone: string;
+          birth_month?: number;
+          birth_day?: number;
+          is_existing_customer: boolean;
+          allow_sms_notifications?: boolean;
+          allow_marketing_emails?: boolean;
+          campaign_source?: string;
+          campaign_registered_at?: string;
+        } = {
+          auth_user_id: authData.user.id,
+          email: formData.email,
+          name: formData.name,
+          phone: formData.phone,
+          birth_month: formData.birthMonth ? parseInt(formData.birthMonth, 10) : undefined,
+          birth_day: formData.birthDay ? parseInt(formData.birthDay, 10) : undefined,
+          is_existing_customer: isExistingCustomer,
+          allow_sms_notifications: formData.allowSmsNotifications,
+          allow_marketing_emails: formData.allowMarketingEmails
+        }
+
+        // Add campaign tracking if campaign is configured
+        if (campaignConfig) {
+          const recordWithTracking = customerRecord as typeof customerRecord & { [key: string]: unknown }
+          recordWithTracking[campaignConfig.tracking.sourceField] = campaignConfig.id
+          recordWithTracking[campaignConfig.tracking.registeredAtField] = new Date().toISOString()
+        }
+        
         const { data: customerData, error: customerError } = await supabase
           .from('customers')
-          .insert({
-            auth_user_id: authData.user.id,
-            email: formData.email,
-            name: formData.name,
-            phone: formData.phone,
-            birth_month: formData.birthMonth,
-            birth_day: formData.birthDay,
-            is_existing_customer: false,
-            allow_sms_notifications: formData.allowSmsNotifications,
-            allow_marketing_emails: formData.allowMarketingEmails
-          })
+          .insert(customerRecord)
           .select()
 
         if (customerError) {
@@ -145,6 +175,25 @@ export function RegisterForm() {
           setError(`Account created but customer record failed: ${customerError.message}`)
         } else {
           console.log('✅ Customer record created successfully:', customerData)
+          
+          // Track campaign registration if campaign is configured
+          if (campaignConfig) {
+            try {
+              await supabase
+                .from('campaign_registrations')
+                .insert({
+                  email: formData.email,
+                  campaign_id: campaignConfig.id,
+                  campaign_name: campaignConfig.name,
+                  registration_url: window.location.href,
+                  is_existing_customer: isExistingCustomer
+                })
+            } catch (trackingError) {
+              console.warn('Campaign tracking failed:', trackingError)
+              // Don't fail registration if tracking fails
+            }
+          }
+          
           setSuccess(true)
         }
       }
@@ -190,7 +239,10 @@ export function RegisterForm() {
       <CardHeader>
         <CardTitle>Create Account</CardTitle>
         <CardDescription>
-          Sign up to book appointments at DUST Studio
+          {isExistingCustomer 
+            ? "Create your account to access existing customer pricing and benefits"
+            : "Sign up to book appointments at DUST Studio"
+          }
         </CardDescription>
       </CardHeader>
       <CardContent>
