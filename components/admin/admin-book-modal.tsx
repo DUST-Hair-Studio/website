@@ -25,6 +25,8 @@ interface Service {
   new_customer_price: number
   existing_customer_price: number
   is_active: boolean
+  is_new_customer: boolean
+  is_existing_customer: boolean
 }
 
 interface ConflictingBooking {
@@ -157,6 +159,21 @@ export default function AdminBookModal({
       c.phone.includes(search)
     ).slice(0, 20)
   }, [customers, customerSearch])
+
+  // Filter services based on selected customer type
+  const filteredServices = useMemo(() => {
+    if (!selectedCustomer) return services
+    
+    return services.filter(service => {
+      if (selectedCustomer.is_existing_customer) {
+        // Existing customer: show services that allow existing customers
+        return service.is_existing_customer
+      } else {
+        // New customer: show services that allow new customers
+        return service.is_new_customer
+      }
+    })
+  }, [services, selectedCustomer])
 
   // Generate all time slots (6 AM - 10 PM)
   const generateAllTimeSlots = (): string[] => {
@@ -442,7 +459,11 @@ export default function AdminBookModal({
                   filteredCustomers.map(customer => (
                     <button
                       key={customer.id}
-                      onClick={() => setSelectedCustomer(customer)}
+                      onClick={() => {
+                        setSelectedCustomer(customer)
+                        // Clear selected service when customer changes (service availability may differ)
+                        setSelectedService(null)
+                      }}
                       className={`w-full text-left p-4 rounded-lg border-2 transition-colors ${
                         selectedCustomer?.id === customer.id
                           ? 'border-black bg-gray-50'
@@ -482,8 +503,12 @@ export default function AdminBookModal({
                   <Loader2 className="w-6 h-6 animate-spin inline mr-2" />
                   Loading services...
                 </div>
+              ) : filteredServices.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <p>No services available for {selectedCustomer?.is_existing_customer ? 'existing' : 'new'} customers.</p>
+                </div>
               ) : (
-                services.map(service => {
+                filteredServices.map(service => {
                   const price = selectedCustomer?.is_existing_customer
                     ? service.existing_customer_price
                     : service.new_customer_price
