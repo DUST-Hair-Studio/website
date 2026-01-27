@@ -46,16 +46,9 @@ export default function RescheduleModal({
   const [selectedTime, setSelectedTime] = useState<string>('')
   const [availableTimes, setAvailableTimes] = useState<string[]>([])
   const [loadingTimes, setLoadingTimes] = useState(false)
-  const [loadingCalendar, setLoadingCalendar] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [businessHours, setBusinessHours] = useState<{day_of_week: number; is_open: boolean; open_time: string; close_time: string; timezone: string}[]>([])
-  
-  // State to track dates with no availability
-  const [datesWithNoAvailability, setDatesWithNoAvailability] = useState<Set<string>>(new Set())
-  
-  // Cache for availability checks to avoid duplicate API calls
-  const [availabilityCache, setAvailabilityCache] = useState<Map<string, boolean>>(new Map())
 
   // Reset state when modal opens/closes
   useEffect(() => {
@@ -64,8 +57,6 @@ export default function RescheduleModal({
       setSelectedTime('')
       setAvailableTimes([])
       setError('')
-      setDatesWithNoAvailability(new Set())
-      setAvailabilityCache(new Map())
     }
   }, [isOpen, booking])
 
@@ -88,73 +79,9 @@ export default function RescheduleModal({
     }
   }, [isOpen])
 
-  // Efficient availability check for visible calendar days
-  const checkAvailabilityForVisibleDays = useCallback(async () => {
-    // Use booking.duration_minutes as fallback when service was deleted
-    const duration = booking?.services?.duration_minutes || booking?.duration_minutes || 60
-    if (!booking || businessHours.length === 0) return
-    
-    setLoadingCalendar(true)
-    
-    try {
-      const today = new Date()
-      const currentMonth = new Date(today.getFullYear(), today.getMonth(), 1)
-      const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1)
-      
-      const currentMonthBusinessDays: string[] = []
-      const currentDate = new Date(currentMonth)
-      
-      const isBusinessDayForCheck = (date: Date): boolean => {
-        if (businessHours.length === 0) return true
-        const dayOfWeek = date.getDay()
-        const dayHours = businessHours.find(hours => hours.day_of_week === dayOfWeek)
-        return !!(dayHours && dayHours.is_open)
-      }
-      
-      while (currentDate < nextMonth) {
-        if (isBusinessDayForCheck(currentDate)) {
-          const year = currentDate.getFullYear()
-          const month = String(currentDate.getMonth() + 1).padStart(2, '0')
-          const day = String(currentDate.getDate()).padStart(2, '0')
-          currentMonthBusinessDays.push(`${year}-${month}-${day}`)
-        }
-        currentDate.setDate(currentDate.getDate() + 1)
-      }
-      
-      for (const dateStr of currentMonthBusinessDays) {
-        if (availabilityCache.has(dateStr)) continue
-        
-        try {
-          const url = `/api/admin/availability?startDate=${dateStr}&endDate=${dateStr}&serviceDuration=${duration}`
-          const response = await fetch(url)
-          
-          if (response.ok) {
-            const data = await response.json()
-            const hasAvailability = data.availableSlots && data.availableSlots.length > 0
-            
-            setAvailabilityCache(prev => new Map(prev.set(dateStr, hasAvailability)))
-            
-            if (!hasAvailability) {
-              setDatesWithNoAvailability(prev => new Set(prev).add(dateStr))
-            }
-          }
-        } catch (error) {
-          console.error(`Error checking availability for ${dateStr}:`, error)
-        }
-      }
-    } catch (error) {
-      console.error('Error in checkAvailabilityForVisibleDays:', error)
-    } finally {
-      setLoadingCalendar(false)
-    }
-  }, [booking, businessHours, availabilityCache])
-
-  // Check availability for visible calendar days when booking and business hours are loaded
-  useEffect(() => {
-    if (booking && businessHours.length > 0 && isOpen) {
-      checkAvailabilityForVisibleDays()
-    }
-  }, [booking, businessHours, isOpen, checkAvailabilityForVisibleDays])
+  // NOTE: Removed slow pre-checking of availability for each calendar day
+  // Availability is now only fetched when a date is actually selected
+  // This makes the modal load instantly
 
   // Business day and availability checking functions
   const isBusinessDay = (date: Date): boolean => {
@@ -165,14 +92,6 @@ export default function RescheduleModal({
     const dayOfWeek = date.getDay()
     const dayHours = businessHours.find(hours => hours.day_of_week === dayOfWeek)
     return !!(dayHours && dayHours.is_open)
-  }
-
-  const hasNoAvailability = (date: Date) => {
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    const dateStr = `${year}-${month}-${day}`
-    return datesWithNoAvailability.has(dateStr)
   }
 
   const canReschedule = (booking: BookingWithDetails) => {
@@ -186,7 +105,7 @@ export default function RescheduleModal({
     setSelectedTime('')
     setAvailableTimes([])
     
-    if (date && booking?.services) {
+    if (date && booking) {
       await fetchAvailableTimes(date)
     }
   }
@@ -378,29 +297,22 @@ export default function RescheduleModal({
               <CardTitle>Select Date</CardTitle>
               <CardDescription>Choose your preferred date</CardDescription>
             </CardHeader>
-            <CardContent className="p-0 relative">
+            <CardContent className="p-0">
               <div className="w-full pb-12 px-2">
                 <Calendar
                   mode="single"
                   selected={selectedDate}
                   onSelect={handleDateSelect}
                   disabled={(date) => {
-                    const isPast = date < new Date()
+                    const today = new Date()
+                    today.setHours(0, 0, 0, 0)
+                    const isPast = date < today
                     const isBusinessDayResult = isBusinessDay(date)
-                    const hasNoAvail = hasNoAvailability(date)
-                    return isPast || !isBusinessDayResult || hasNoAvail
+                    return isPast || !isBusinessDayResult
                   }}
                   className="border-t border-b w-full"
                 />
               </div>
-              {loadingCalendar && (
-                <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10">
-                  <div className="flex items-center space-x-2">
-                    <Loader2 className="h-5 w-5 text-gray-900 animate-spin" />
-                    <span className="text-sm text-gray-600">Loading availability...</span>
-                  </div>
-                </div>
-              )}
             </CardContent>
           </Card>
 
