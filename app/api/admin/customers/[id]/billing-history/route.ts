@@ -21,6 +21,7 @@ export async function GET(
         status,
         paid_at,
         square_transaction_id,
+        public_notes,
         created_at,
         services (
           name,
@@ -58,6 +59,7 @@ export async function GET(
         bookingStatus: booking.status,
         paidAt: booking.paid_at,
         squareTransactionId: booking.square_transaction_id,
+        publicNotes: booking.public_notes,
         createdAt: booking.created_at
       }
     }) || []

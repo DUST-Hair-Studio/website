@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS campaigns (
   customer_type VARCHAR(20) NOT NULL DEFAULT 'existing', -- 'new', 'existing', 'both'
   subject VARCHAR(255) NOT NULL,
   message TEXT NOT NULL,
+  button_text VARCHAR(100) DEFAULT '',
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

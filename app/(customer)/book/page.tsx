@@ -589,13 +589,13 @@ function BookPageContent() {
                     onClick={() => handleServiceSelect(service)}
                     className="p-4 border-2 border-black rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
                   >
-                    <div className="flex justify-between items-start">
-                      <div>
+                    <div className="flex justify-between items-start gap-4">
+                      <div className="flex-1">
                         <h3 className="font-medium text-lg">{service.name}</h3>
                         <p className="text-gray-600 text-sm mt-1">{service.description}</p>
                         <p className="text-gray-500 text-sm mt-2">{formatDuration(service.duration_minutes)}</p>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right shrink-0">
                         <p className="font-medium">{formatPrice(servicePrice)}</p>
                         <Button variant="outline" size="sm" className="mt-2">
                           Select

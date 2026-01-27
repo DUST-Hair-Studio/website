@@ -110,10 +110,10 @@ export default function Home() {
                 </div>
                 
                 {/* Second text block - positioned lower */}
-                <div className="max-w-xl mt-16 lg:mt-120 xl:mt-140 2xl:mt-160">
+                <div className="max-w-xl mt-16 lg:mt-120 xl:mt-140 2xl:mt-150 mb-16">
                   <p className="dust-mono text-base text-gray-700 tracking-wide leading-relaxed uppercase">
-                    DUST WAS BORN FROM A DESIRE TO CREATE A PRIVATE AND PERSONALIZED SALON EXPERIENCE FOR EACH INDIVIDUAL CLIENT AND THE HAIR THEY WEAR.
-                  </p>
+                    DUST IS A HAIR CARE BRAND AND PRIVATE STUDIO FOUNDED BY LUCA TULLIO, CENTERED ON IDENTITY, PRECISION, AND INTENTIONALLY UNDERSTATED BEAUTY. LOCATED IN THE ELYSIAN HEIGHTS NEIGHBORHOOD OF LOS ANGELES, DUST WAS BORN FROM A DESIRE TO CREATE A MORE PERSONAL, CONSIDERED SALON EXPERIENCE—ONE TAILORED TO THE INDIVIDUAL AND THE HAIR THEY WEAR EVERY DAY.              
+                </p>
                 </div>
               </div>
             </div>
@@ -144,7 +144,7 @@ export default function Home() {
                 
                 <div className="mt-8 sm:mt-6 2xl:mt-[25rem]">
                   <p className="dust-mono text-sm md:text-base text-gray-700 tracking-wide leading-relaxed uppercase">
-                    DUST WAS BORN FROM A DESIRE TO CREATE A PRIVATE AND PERSONALIZED SALON EXPERIENCE FOR EACH INDIVIDUAL CLIENT AND THE HAIR THEY WEAR.
+                    DUST IS A HAIR CARE BRAND AND PRIVATE STUDIO FOUNDED BY LUCA TULLIO, CENTERED ON IDENTITY, PRECISION, AND INTENTIONALLY UNDERSTATED BEAUTY. LOCATED IN THE ELYSIAN HEIGHTS NEIGHBORHOOD OF LOS ANGELES, DUST WAS BORN FROM A DESIRE TO CREATE A MORE PERSONAL, CONSIDERED SALON EXPERIENCE—ONE TAILORED TO THE INDIVIDUAL AND THE HAIR THEY WEAR EVERY DAY.              
                   </p>
                 </div>
               </div>
@@ -159,13 +159,20 @@ export default function Home() {
               BOOK AN APPOINTMENT
             </h2>
             
-            <p className="dust-mono text-lg sm:text-base md:text-lg lg:text-xl xl:text-xl 2xl:text-2xl text-gray-700 mb-4 max-w-2xl mx-auto leading-relaxed">
-              If this is your first time here, welcome. It&apos;s important we have enough time together so please make sure you choose the appropriate appointment option. If you have any questions please don&apos;t hesitate to reach out through my booking page.
+            <p className="dust-mono text-lg sm:text-base md:text-md lg:text-lg xl:text-lg 2xl:text-xl text-gray-700 mb-8 max-w-2xl mx-auto leading-relaxed">
+Each appointment is approached as a collaboration, with time and space dedicated to understanding you and the hair you wear.
+If this is your first time here, welcome. To ensure we have enough time together for an extended consultation and haircut, please select the new client appointment, regardless of hair length.</p>
+            
+            <p className="dust-mono text-lg sm:text-base md:text-md lg:text-lg xl:text-lg 2xl:text-xl text-gray-700 mb-8 max-w-2xl mx-auto leading-relaxed">
+              Looking forward to seeing you soon
+            </p>
+
+                <p className="dust-mono text-lg sm:text-base md:text-lg lg:text-xl xl:text-xl 2xl:text-2xl text-gray-700 mb-12 max-w-2xl mx-auto leading-relaxed">
+              X
             </p>
             
-            <p className="dust-mono text-lg sm:text-base md:text-lg lg:text-xl xl:text-xl 2xl:text-2xl text-gray-700 mb-12 max-w-2xl mx-auto leading-relaxed">
-              See you soon x
-            </p>
+            <p className="dust-mono text-lg sm:text-base md:text-sm lg:text-md xl:text-lg 2xl:text-md text-gray-500 mb-12 max-w-2xl mx-auto leading-relaxed italic">
+            Please note: service charge and gratuity are included in all pricing for ease and transparency.                                      </p>
 
             {/* Services List */}
             <div className="max-w-2xl mx-auto">

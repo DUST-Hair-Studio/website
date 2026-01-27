@@ -68,6 +68,7 @@ export interface Booking {
   sms_followup_sent: boolean;
   customer_notes?: string;
   admin_notes?: string;
+  public_notes?: string; // Notes visible to customers (shown as "Appointment Notes" to customers, "Public Notes" to admins)
   created_at: string;
   updated_at: string;
 }

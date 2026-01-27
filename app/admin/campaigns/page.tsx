@@ -1,15 +1,27 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Loader2, Mail, Plus, Edit, Trash2, Eye, Send } from 'lucide-react'
+import { Loader2, Mail, Plus, Edit, Trash2, Send, BarChart3, X, Calendar, Users, CheckCircle, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { getActiveCampaigns, type CampaignConfig } from '@/lib/campaign-config'
+
+interface SendHistoryItem {
+  id: string
+  campaign_id: string
+  campaign_name: string
+  subject: string
+  total_recipients: number
+  successful_sends: number
+  failed_sends: number
+  recipient_emails: string[]
+  sent_at: string
+}
 
 export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<CampaignConfig[]>([])
@@ -19,6 +31,12 @@ export default function CampaignsPage() {
   const [isSending, setIsSending] = useState(false)
   const [sendResults, setSendResults] = useState<{total: number; successful: number; failed: number; details: Array<{success: boolean; email: string; error?: string}>} | null>(null)
   const [showCreateForm, setShowCreateForm] = useState(false)
+  
+  // Campaign details panel state
+  const [detailsCampaign, setDetailsCampaign] = useState<CampaignConfig | null>(null)
+  const [campaignHistory, setCampaignHistory] = useState<SendHistoryItem[]>([])
+  const [loadingCampaignHistory, setLoadingCampaignHistory] = useState(false)
+  
   const [newCampaign, setNewCampaign] = useState({
     id: '',
     name: '',
@@ -26,8 +44,44 @@ export default function CampaignsPage() {
     registrationUrl: '',
     customerType: 'existing' as 'new' | 'existing' | 'both',
     subject: '',
-    message: ''
+    message: '',
+    buttonText: ''
   })
+
+  const fetchCampaignHistory = useCallback(async (campaignId: string) => {
+    setLoadingCampaignHistory(true)
+    try {
+      const response = await fetch(`/api/admin/campaign-history?campaignId=${campaignId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setCampaignHistory(data.history || [])
+      }
+    } catch (error) {
+      console.error('Error fetching campaign history:', error)
+    } finally {
+      setLoadingCampaignHistory(false)
+    }
+  }, [])
+
+  const openCampaignDetails = (campaign: CampaignConfig) => {
+    setDetailsCampaign(campaign)
+    fetchCampaignHistory(campaign.id)
+  }
+
+  const closeCampaignDetails = () => {
+    setDetailsCampaign(null)
+    setCampaignHistory([])
+  }
+
+  // Calculate aggregate stats for a campaign
+  const getCampaignStats = (history: SendHistoryItem[]) => {
+    return history.reduce((acc, send) => ({
+      totalSends: acc.totalSends + 1,
+      totalRecipients: acc.totalRecipients + send.total_recipients,
+      successfulSends: acc.successfulSends + send.successful_sends,
+      failedSends: acc.failedSends + send.failed_sends
+    }), { totalSends: 0, totalRecipients: 0, successfulSends: 0, failedSends: 0 })
+  }
 
   useEffect(() => {
     const fetchCampaigns = async () => {
@@ -68,7 +122,8 @@ export default function CampaignsPage() {
           subject: campaign.emailTemplate.subject,
           message: emailMessage || campaign.emailTemplate.message,
           campaignName: campaign.id,
-          registrationUrl: campaign.registrationUrl
+          registrationUrl: campaign.registrationUrl,
+          buttonText: campaign.buttonText ?? ''
         })
       })
 
@@ -80,6 +135,10 @@ export default function CampaignsPage() {
 
       setSendResults(data.results)
       toast.success(`Campaign sent! ${data.results.successful} successful, ${data.results.failed} failed`)
+      // Refresh campaign history if viewing that campaign's details
+      if (detailsCampaign && detailsCampaign.id === campaign.id) {
+        fetchCampaignHistory(campaign.id)
+      }
     } catch (error) {
       console.error('Error sending campaign:', error)
       toast.error(error instanceof Error ? error.message : 'Failed to send campaign')
@@ -98,25 +157,29 @@ export default function CampaignsPage() {
       // Check if this is an update (campaign already exists) or create
       const isUpdate = campaigns.some(c => c.id === newCampaign.id)
       
+      const payload = {
+        id: newCampaign.id,
+        name: newCampaign.name,
+        description: newCampaign.description,
+        registrationUrl: newCampaign.registrationUrl,
+        customerType: newCampaign.customerType,
+        subject: newCampaign.subject,
+        message: newCampaign.message,
+        buttonText: newCampaign.buttonText
+      }
+      
       const response = await fetch(isUpdate ? `/api/admin/campaigns/${newCampaign.id}` : '/api/admin/campaigns', {
         method: isUpdate ? 'PATCH' : 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          id: newCampaign.id,
-          name: newCampaign.name,
-          description: newCampaign.description,
-          registrationUrl: newCampaign.registrationUrl,
-          customerType: newCampaign.customerType,
-          subject: newCampaign.subject,
-          message: newCampaign.message
-        })
+        body: JSON.stringify(payload)
       })
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || `Failed to ${isUpdate ? 'update' : 'create'} campaign`)
+        console.error('Campaign API error response:', error)
+        throw new Error(error.details || error.error || `Failed to ${isUpdate ? 'update' : 'create'} campaign`)
       }
 
       toast.success(`Campaign ${isUpdate ? 'updated' : 'created'} successfully!`)
@@ -129,7 +192,8 @@ export default function CampaignsPage() {
         registrationUrl: '',
         customerType: 'existing',
         subject: '',
-        message: ''
+        message: '',
+        buttonText: ''
       })
       // Refresh campaigns list
       const updatedCampaigns = await getActiveCampaigns()
@@ -194,16 +258,25 @@ export default function CampaignsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   {campaign.name}
-                  <div className="flex gap-2">
+                  <div className="flex gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openCampaignDetails(campaign)}
+                      title="View stats & history"
+                    >
+                      <BarChart3 className="h-4 w-4" />
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => {
                         setSelectedCampaign(campaign)
-                        setShowCreateForm(false) // Close create form when selecting campaign
+                        setShowCreateForm(false)
                       }}
+                      title="Send campaign"
                     >
-                      <Eye className="h-4 w-4" />
+                      <Send className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="outline"
@@ -216,27 +289,22 @@ export default function CampaignsPage() {
                           registrationUrl: campaign.registrationUrl || '',
                           customerType: campaign.customerType || 'existing',
                           subject: campaign.emailTemplate?.subject || '',
-                          message: campaign.emailTemplate?.message || ''
+                          message: campaign.emailTemplate?.message || '',
+                          buttonText: campaign.buttonText ?? ''
                         })
                         setShowCreateForm(true)
                         setSelectedCampaign(null)
                       }}
+                      title="Edit campaign"
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleSendCampaign(campaign)}
-                      disabled={isSending}
-                    >
-                      <Send className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
                       onClick={() => handleDeleteCampaign(campaign.id)}
                       className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      title="Delete campaign"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -308,8 +376,13 @@ export default function CampaignsPage() {
                 <p className="text-sm text-blue-800 mb-2">
                   <strong>Subject:</strong> {selectedCampaign.emailTemplate.subject}
                 </p>
+                {selectedCampaign.registrationUrl && selectedCampaign.buttonText && (
+                  <p className="text-sm text-blue-800 mb-2">
+                    <strong>Button:</strong> &quot;{selectedCampaign.buttonText}&quot; → <code>{selectedCampaign.registrationUrl}</code>
+                  </p>
+                )}
                 <p className="text-sm text-blue-800">
-                  Recipients will be directed to <code>{selectedCampaign.registrationUrl}</code> and registered as <strong>{selectedCampaign.customerType}</strong> customers.
+                  <strong>Target audience:</strong> {selectedCampaign.customerType === 'both' ? 'All customers' : `${selectedCampaign.customerType.charAt(0).toUpperCase() + selectedCampaign.customerType.slice(1)} customers`}
                 </p>
               </div>
 
@@ -434,34 +507,23 @@ export default function CampaignsPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="registrationUrl">Registration URL</Label>
-                  <Input
-                    id="registrationUrl"
-                    value={newCampaign.registrationUrl}
-                    onChange={(e) => setNewCampaign(prev => ({ ...prev, registrationUrl: e.target.value }))}
-                    placeholder="/register/special"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="customerType">Customer Type</Label>
-                  <Select
-                    value={newCampaign.customerType}
-                    onValueChange={(value: 'new' | 'existing' | 'both') => 
-                      setNewCampaign(prev => ({ ...prev, customerType: value }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="new">New Customers</SelectItem>
-                      <SelectItem value="existing">Existing Customers</SelectItem>
-                      <SelectItem value="both">Both</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="customerType">Recipients</Label>
+                <Select
+                  value={newCampaign.customerType}
+                  onValueChange={(value: 'new' | 'existing' | 'both') => 
+                    setNewCampaign(prev => ({ ...prev, customerType: value }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new">New Customers</SelectItem>
+                    <SelectItem value="existing">Existing Customers</SelectItem>
+                    <SelectItem value="both">Both</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
@@ -483,6 +545,29 @@ export default function CampaignsPage() {
                   rows={8}
                   placeholder="Email message content"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="registrationUrl">Button URL</Label>
+                  <Input
+                    id="registrationUrl"
+                    value={newCampaign.registrationUrl}
+                    onChange={(e) => setNewCampaign(prev => ({ ...prev, registrationUrl: e.target.value }))}
+                    placeholder="/register/existing"
+                  />
+                  <p className="text-xs text-gray-500">Link the button goes to (e.g., /register/existing)</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="buttonText">Button Text</Label>
+                  <Input
+                    id="buttonText"
+                    value={newCampaign.buttonText}
+                    onChange={(e) => setNewCampaign(prev => ({ ...prev, buttonText: e.target.value }))}
+                    placeholder="Create Your Account"
+                  />
+                  <p className="text-xs text-gray-500">Text displayed on the button</p>
+                </div>
               </div>
 
               {/* Available Variables */}
@@ -581,7 +666,195 @@ export default function CampaignsPage() {
             </CardContent>
           </Card>
         )}
+
       </div>
+
+      {/* Campaign Details Slide-out Panel */}
+      {detailsCampaign && (
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/50 z-40"
+            onClick={closeCampaignDetails}
+          />
+          
+          {/* Panel */}
+          <div className="fixed right-0 top-0 h-full w-full max-w-xl bg-white shadow-xl z-50 overflow-y-auto">
+            {/* Header */}
+            <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-start">
+              <div>
+                <h2 className="text-2xl font-bold">{detailsCampaign.name}</h2>
+                <p className="text-gray-600 text-sm mt-1">{detailsCampaign.description}</p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={closeCampaignDetails}
+                className="h-8 w-8 p-0"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Campaign Info */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-gray-600 text-sm mb-1">
+                    <Users className="h-4 w-4" />
+                    Recipients
+                  </div>
+                  <div className="font-semibold">
+                    {detailsCampaign.customerType === 'both' ? 'All customers' : `${detailsCampaign.customerType.charAt(0).toUpperCase() + detailsCampaign.customerType.slice(1)} customers`}
+                  </div>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-gray-600 text-sm mb-1">
+                    <Mail className="h-4 w-4" />
+                    Subject
+                  </div>
+                  <div className="font-semibold truncate" title={detailsCampaign.emailTemplate.subject}>
+                    {detailsCampaign.emailTemplate.subject}
+                  </div>
+                </div>
+              </div>
+
+              {/* Stats Summary */}
+              <div>
+                <h3 className="font-semibold text-lg mb-3">Campaign Statistics</h3>
+                {loadingCampaignHistory ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
+                ) : campaignHistory.length === 0 ? (
+                  <div className="bg-gray-50 rounded-lg p-6 text-center">
+                    <p className="text-gray-500">This campaign hasn&apos;t been sent yet.</p>
+                    <Button 
+                      className="mt-4"
+                      onClick={() => {
+                        closeCampaignDetails()
+                        setSelectedCampaign(detailsCampaign)
+                      }}
+                    >
+                      <Send className="h-4 w-4 mr-2" />
+                      Send Campaign
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    {(() => {
+                      const stats = getCampaignStats(campaignHistory)
+                      return (
+                        <div className="grid grid-cols-4 gap-3">
+                          <div className="bg-blue-50 rounded-lg p-4 text-center">
+                            <div className="text-2xl font-bold text-blue-600">{stats.totalSends}</div>
+                            <div className="text-xs text-blue-700">Times Sent</div>
+                          </div>
+                          <div className="bg-purple-50 rounded-lg p-4 text-center">
+                            <div className="text-2xl font-bold text-purple-600">{stats.totalRecipients}</div>
+                            <div className="text-xs text-purple-700">Total Recipients</div>
+                          </div>
+                          <div className="bg-green-50 rounded-lg p-4 text-center">
+                            <div className="text-2xl font-bold text-green-600">{stats.successfulSends}</div>
+                            <div className="text-xs text-green-700">Delivered</div>
+                          </div>
+                          <div className="bg-red-50 rounded-lg p-4 text-center">
+                            <div className="text-2xl font-bold text-red-600">{stats.failedSends}</div>
+                            <div className="text-xs text-red-700">Failed</div>
+                          </div>
+                        </div>
+                      )
+                    })()}
+                  </>
+                )}
+              </div>
+
+              {/* Send History */}
+              {campaignHistory.length > 0 && (
+                <div>
+                  <h3 className="font-semibold text-lg mb-3">Send History</h3>
+                  <div className="space-y-3">
+                    {campaignHistory.map((send) => (
+                      <div key={send.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Calendar className="h-4 w-4" />
+                            {new Date(send.sent_at).toLocaleDateString('en-US', {
+                              weekday: 'short',
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                              hour: 'numeric',
+                              minute: '2-digit'
+                            })}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-1.5">
+                            <Users className="h-4 w-4 text-gray-400" />
+                            <span className="text-sm"><strong>{send.total_recipients}</strong> recipients</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <CheckCircle className="h-4 w-4 text-green-500" />
+                            <span className="text-sm text-green-700"><strong>{send.successful_sends}</strong> sent</span>
+                          </div>
+                          {send.failed_sends > 0 && (
+                            <div className="flex items-center gap-1.5">
+                              <XCircle className="h-4 w-4 text-red-500" />
+                              <span className="text-sm text-red-700"><strong>{send.failed_sends}</strong> failed</span>
+                            </div>
+                          )}
+                        </div>
+                        {send.subject !== detailsCampaign.emailTemplate.subject && (
+                          <div className="mt-2 text-xs text-gray-500">
+                            Subject: {send.subject}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Quick Actions */}
+              <div className="border-t pt-6">
+                <h3 className="font-semibold text-lg mb-3">Quick Actions</h3>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => {
+                      closeCampaignDetails()
+                      setSelectedCampaign(detailsCampaign)
+                    }}
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    Send Campaign
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      closeCampaignDetails()
+                      setNewCampaign({
+                        id: detailsCampaign.id,
+                        name: detailsCampaign.name,
+                        description: detailsCampaign.description || '',
+                        registrationUrl: detailsCampaign.registrationUrl || '',
+                        customerType: detailsCampaign.customerType || 'existing',
+                        subject: detailsCampaign.emailTemplate?.subject || '',
+                        message: detailsCampaign.emailTemplate?.message || '',
+                        buttonText: detailsCampaign.buttonText ?? ''
+                      })
+                      setShowCreateForm(true)
+                    }}
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Campaign
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }

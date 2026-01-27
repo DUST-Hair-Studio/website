@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { id, name, description, registrationUrl, customerType, subject, message } = await request.json()
+    const { id, name, description, registrationUrl, customerType, subject, message, buttonText } = await request.json()
 
     if (!id || !name || !subject || !message) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
         customer_type: customerType,
         subject,
         message,
+        button_text: buttonText ?? '',
         is_active: true
       })
       .select()
@@ -70,9 +71,30 @@ export async function GET() {
       return NextResponse.json({ error: 'Failed to fetch campaigns' }, { status: 500 })
     }
 
+    // Transform database fields to match CampaignConfig interface
+    const transformedCampaigns = (campaigns || []).map(campaign => ({
+      id: campaign.id,
+      name: campaign.name,
+      description: campaign.description || '',
+      registrationUrl: campaign.registration_url || '',
+      customerType: campaign.customer_type || 'existing',
+      isActive: campaign.is_active,
+      buttonText: campaign.button_text ?? '',
+      emailTemplate: {
+        subject: campaign.subject || '',
+        message: campaign.message || ''
+      },
+      tracking: {
+        sourceField: 'campaign_source',
+        registeredAtField: 'campaign_registered_at'
+      },
+      createdAt: campaign.created_at,
+      updatedAt: campaign.updated_at
+    }))
+
     return NextResponse.json({
       success: true,
-      campaigns: campaigns || []
+      campaigns: transformedCampaigns
     })
 
   } catch (error) {

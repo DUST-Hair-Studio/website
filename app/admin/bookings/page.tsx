@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuPortal } from '@/components/ui/dropdown-menu'
-import { CheckCircle, Calendar, DollarSign, CalendarDays, RotateCcw, Search, Filter, Table, Phone, MessageSquare, Mail, ListChecks, CreditCard, MoreVertical, CheckSquare, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { CheckCircle, Calendar, DollarSign, CalendarDays, RotateCcw, Search, Filter, Table, Phone, MessageSquare, Mail, ListChecks, CreditCard, MoreVertical, CheckSquare, Loader2, ChevronLeft, ChevronRight, Edit } from 'lucide-react'
+import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 import RescheduleModal from '@/components/admin/reschedule-modal'
 
@@ -49,6 +50,9 @@ export default function AdminBookingsPage() {
   const [activePhoneMenu, setActivePhoneMenu] = useState<string | null>(null)
   const [processingPayment, setProcessingPayment] = useState<Set<string>>(new Set())
   const [waitlistCount, setWaitlistCount] = useState(0)
+  const [editingPublicNotes, setEditingPublicNotes] = useState(false)
+  const [publicNotesValue, setPublicNotesValue] = useState('')
+  const [savingPublicNotes, setSavingPublicNotes] = useState(false)
 
   // Close phone menu when clicking outside
   useEffect(() => {
@@ -61,6 +65,41 @@ export default function AdminBookingsPage() {
       return () => document.removeEventListener('click', handleClickOutside)
     }
   }, [activePhoneMenu])
+
+  // Save public notes for a booking
+  const savePublicNotes = async () => {
+    if (!selectedBooking) return
+
+    try {
+      setSavingPublicNotes(true)
+      const response = await fetch(`/api/admin/bookings/${selectedBooking.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ public_notes: publicNotesValue })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update public notes')
+      }
+
+      // Update local state
+      setBookings(prev => prev.map(b => 
+        b.id === selectedBooking.id 
+          ? { ...b, public_notes: publicNotesValue }
+          : b
+      ))
+      setSelectedBooking(prev => prev ? { ...prev, public_notes: publicNotesValue } : null)
+      setEditingPublicNotes(false)
+      toast.success('Public notes updated')
+    } catch (error) {
+      console.error('Error saving public notes:', error)
+      toast.error('Failed to save public notes')
+    } finally {
+      setSavingPublicNotes(false)
+    }
+  }
 
   // Fetch waitlist count (only notified and pending statuses)
   const fetchWaitlistCount = async () => {
@@ -328,6 +367,8 @@ export default function AdminBookingsPage() {
 
   const openBookingDetails = (booking: BookingWithDetails) => {
     setSelectedBooking(booking)
+    setPublicNotesValue(booking.public_notes || '')
+    setEditingPublicNotes(false)
     setShowBookingDetails(true)
   }
 
@@ -386,7 +427,7 @@ export default function AdminBookingsPage() {
 
   const getCustomerTypeColor = (customerType: string) => {
     switch (customerType) {
-      case 'new': return 'bg-purple-100 text-purple-800 border-purple-200'
+      case 'new': return 'bg-green-100 text-green-800 border-green-200'
       case 'existing': return 'bg-indigo-100 text-indigo-800 border-indigo-200'
       default: return 'bg-gray-100 text-gray-800 border-gray-200'
     }
@@ -394,7 +435,7 @@ export default function AdminBookingsPage() {
 
   const getCustomerTypeColorForCalendar = (customerType: string) => {
     switch (customerType) {
-      case 'new': return 'bg-purple-100 text-purple-800 hover:bg-purple-200'
+      case 'new': return 'bg-green-100 text-green-800 hover:bg-green-200'
       case 'existing': return 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200'
       default: return 'bg-gray-100 text-gray-800 hover:bg-gray-200'
     }
@@ -402,7 +443,7 @@ export default function AdminBookingsPage() {
 
   const getCustomerTypeDotColor = (customerType: string) => {
     switch (customerType) {
-      case 'new': return 'bg-purple-400'
+      case 'new': return 'bg-green-400'
       case 'existing': return 'bg-indigo-400'
       default: return 'bg-gray-400'
     }
@@ -435,7 +476,7 @@ export default function AdminBookingsPage() {
   //       </button>
   //       
   //       {isActive && (
-  //         <div className="absolute bg-white border border-gray-200 rounded-md shadow-xl z-[9999] min-w-[120px] overflow-visible" 
+  //         <div className="absolute bg-white border border-gray-200 rounded-md shadow-xl z-9999 min-w-[120px] overflow-visible" 
   //              style={{
   //                top: 'auto',
   //                bottom: '100%',
@@ -658,7 +699,7 @@ export default function AdminBookingsPage() {
 
       {/* Summary Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
+        <Card className="border-0 shadow-sm bg-linear-to-br from-white to-gray-50">
           <CardContent className="p-4 md:p-6">
             <div className="flex flex-col items-center text-center">
               <div className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{bookings.filter(b => b.status === 'confirmed').length}</div>
@@ -672,13 +713,13 @@ export default function AdminBookingsPage() {
           </CardContent>
         </Card>
         <Link href="/admin/waitlist" className="block">
-          <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50 hover:shadow-md transition-shadow cursor-pointer">
+          <Card className="border-0 shadow-sm bg-linear-to-br from-white to-gray-50 hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="p-4 md:p-6">
               <div className="flex flex-col items-center text-center">
                 <div className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{waitlistCount}</div>
                 <div className="flex items-center gap-2">
-                  <div className="h-5 w-5 md:h-6 md:w-6 bg-purple-50 rounded-lg flex items-center justify-center border border-purple-200">
-                    <ListChecks className="h-3 w-3 md:h-4 md:w-4 text-purple-600" strokeWidth={1.5} />
+                  <div className="h-5 w-5 md:h-6 md:w-6 bg-green-50 rounded-lg flex items-center justify-center border border-green-200">
+                    <ListChecks className="h-3 w-3 md:h-4 md:w-4 text-green-600" strokeWidth={1.5} />
                   </div>
                   <div className="text-xs md:text-sm text-gray-600 flex items-center gap-1">
                     Waitlist
@@ -691,7 +732,7 @@ export default function AdminBookingsPage() {
             </CardContent>
           </Card>
         </Link>
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
+        <Card className="border-0 shadow-sm bg-linear-to-br from-white to-gray-50">
           <CardContent className="p-4 md:p-6">
             <div className="flex flex-col items-center text-center">
               <div className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
@@ -714,7 +755,7 @@ export default function AdminBookingsPage() {
         </Card>
         
         {/* Revenue Card */}
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
+        <Card className="border-0 shadow-sm bg-linear-to-br from-white to-gray-50">
           <CardContent className="p-4 md:p-6">
             <div className="flex flex-col items-center text-center">
               <div className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
@@ -750,7 +791,7 @@ export default function AdminBookingsPage() {
         
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-gray-500 flex-shrink-0" />
+            <Filter className="w-4 h-4 text-gray-500 shrink-0" />
             <Select value={timeFilter} onValueChange={setTimeFilter}>
               <SelectTrigger className="w-full sm:w-36 md:w-40">
                 <SelectValue placeholder="Time" />
@@ -983,7 +1024,7 @@ export default function AdminBookingsPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuPortal>
-                            <DropdownMenuContent align="end" className="z-[9999]" side="bottom" alignOffset={0} sideOffset={8}>
+                            <DropdownMenuContent align="end" className="z-9999" side="bottom" alignOffset={0} sideOffset={8}>
                             <DropdownMenuItem 
                               onClick={(e: React.MouseEvent) => {
                                 e.stopPropagation()
@@ -1097,7 +1138,7 @@ export default function AdminBookingsPage() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuPortal>
-                            <DropdownMenuContent align="end" className="z-[9999]" side="bottom" alignOffset={0} sideOffset={8}>
+                            <DropdownMenuContent align="end" className="z-9999" side="bottom" alignOffset={0} sideOffset={8}>
                                 <DropdownMenuItem 
                                   onClick={(e: React.MouseEvent) => {
                                     e.stopPropagation()
@@ -1272,7 +1313,7 @@ export default function AdminBookingsPage() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuPortal>
-                            <DropdownMenuContent align="end" className="z-[9999]" side="bottom" alignOffset={0} sideOffset={8}>
+                            <DropdownMenuContent align="end" className="z-9999" side="bottom" alignOffset={0} sideOffset={8}>
                                 <DropdownMenuItem 
                                   onClick={(e: React.MouseEvent) => {
                                     e.stopPropagation()
@@ -1393,7 +1434,7 @@ export default function AdminBookingsPage() {
                   {/* Legend */}
                   <div className="flex flex-wrap gap-3 text-xs sm:text-sm">
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-purple-400 rounded-full"></div>
+                      <div className="w-3 h-3 bg-green-400 rounded-full"></div>
                       <span className="text-gray-600">New Customer</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -1757,7 +1798,7 @@ export default function AdminBookingsPage() {
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuPortal>
-                                    <DropdownMenuContent align="end" className="z-[9999]" side="bottom" alignOffset={0} sideOffset={8}>
+                                    <DropdownMenuContent align="end" className="z-9999" side="bottom" alignOffset={0} sideOffset={8}>
                                     <DropdownMenuItem 
                                       onClick={(e: React.MouseEvent) => {
                                         e.stopPropagation()
@@ -1889,7 +1930,7 @@ export default function AdminBookingsPage() {
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuPortal>
-                                      <DropdownMenuContent align="end" className="z-[9999]" side="bottom" alignOffset={0} sideOffset={8}>
+                                      <DropdownMenuContent align="end" className="z-9999" side="bottom" alignOffset={0} sideOffset={8}>
                                         <DropdownMenuItem 
                                           onClick={(e: React.MouseEvent) => {
                                             e.stopPropagation()
@@ -2059,7 +2100,7 @@ export default function AdminBookingsPage() {
                           </Link>
                           <Badge
                             variant={selectedBooking.customer_type_at_booking === 'existing' ? "default" : "secondary"}
-                            className={`${selectedBooking.customer_type_at_booking === 'existing' ? "bg-indigo-100 text-indigo-800" : "bg-purple-100 text-purple-800"}`}
+                            className={`${selectedBooking.customer_type_at_booking === 'existing' ? "bg-indigo-100 text-indigo-800" : "bg-green-100 text-green-800"}`}
                           >
                             {selectedBooking.customer_type_at_booking}
                           </Badge>
@@ -2128,6 +2169,78 @@ export default function AdminBookingsPage() {
                         <span className="font-medium text-gray-900">{new Date(selectedBooking.created_at).toLocaleDateString()}</span>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Public Notes Section */}
+                  <div className="border-t border-gray-200 pt-6">
+                    <div className="flex justify-between items-center mb-4">
+                      <h4 className="font-semibold text-gray-900 text-lg">Public Notes</h4>
+                      {!editingPublicNotes && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setPublicNotesValue(selectedBooking.public_notes || '')
+                            setEditingPublicNotes(true)
+                          }}
+                          className="h-8 px-2"
+                          title="Edit public notes (visible to customer)"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mb-3">
+                      These notes are visible to the customer as &quot;Appointment Notes&quot;
+                    </p>
+                    {editingPublicNotes ? (
+                      <div className="space-y-3">
+                        <Textarea
+                          value={publicNotesValue}
+                          onChange={(e) => setPublicNotesValue(e.target.value)}
+                          placeholder="Add public notes visible to the customer..."
+                          rows={3}
+                          className="w-full"
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setEditingPublicNotes(false)
+                              setPublicNotesValue(selectedBooking.public_notes || '')
+                            }}
+                            disabled={savingPublicNotes}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={savePublicNotes}
+                            disabled={savingPublicNotes}
+                            className="text-black border border-black"
+                            style={{ backgroundColor: '#a7f3d0' }}
+                          >
+                            {savingPublicNotes ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Saving...
+                              </>
+                            ) : (
+                              'Save Notes'
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg min-h-[60px]">
+                        {selectedBooking.public_notes ? (
+                          <p className="text-sm text-gray-700">{selectedBooking.public_notes}</p>
+                        ) : (
+                          <p className="text-sm text-gray-400 italic">No public notes added</p>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                 </div>

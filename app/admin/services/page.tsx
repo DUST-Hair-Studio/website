@@ -403,14 +403,14 @@ export default function AdminServicesPage() {
                 {/* Top row: Service name and status */}
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <CardTitle className="text-xl break-words">{service.name}</CardTitle>
+                    <CardTitle className="text-xl wrap-break-word">{service.name}</CardTitle>
                     {service.category && (
                       <Badge variant="secondary" className="mt-2 w-fit">
                         {service.category}
                       </Badge>
                     )}
                   </div>
-                  <div className="flex-shrink-0">
+                  <div className="shrink-0">
                     {service.is_active ? (
                       <Badge variant="default" className="bg-green-100 text-green-800 w-fit">
                         <Eye className="w-3 h-3 mr-1" />
@@ -497,7 +497,7 @@ export default function AdminServicesPage() {
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-gray-100">
                     <p className="text-sm font-medium text-gray-600">New Customer Price</p>
-                    <p className="text-lg font-bold text-purple-600">{formatPrice(service.new_customer_price)}</p>
+                    <p className="text-lg font-bold text-green-600">{formatPrice(service.new_customer_price)}</p>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-gray-100">
                     <p className="text-sm font-medium text-gray-600">Existing Customer Price</p>
@@ -507,7 +507,7 @@ export default function AdminServicesPage() {
                     <p className="text-sm font-medium text-gray-600 mb-2">Availability</p>
                     <div className="flex flex-wrap gap-2">
                       {service.is_new_customer && (
-                        <Badge className="bg-purple-100 text-purple-800">New Customers</Badge>
+                        <Badge className="bg-green-100 text-green-800">New Customers</Badge>
                       )}
                       {service.is_existing_customer && (
                         <Badge className="bg-indigo-100 text-indigo-800">Existing Customers</Badge>
@@ -524,7 +524,7 @@ export default function AdminServicesPage() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-600">New Customer Price</p>
-                    <p className="text-lg font-bold text-purple-600">{formatPrice(service.new_customer_price)}</p>
+                    <p className="text-lg font-bold text-green-600">{formatPrice(service.new_customer_price)}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-600">Existing Customer Price</p>
@@ -534,7 +534,7 @@ export default function AdminServicesPage() {
                     <p className="text-sm font-medium text-gray-600">Availability</p>
                     <div className="flex flex-col space-y-1">
                       {service.is_new_customer && (
-                        <Badge className="w-fit bg-purple-100 text-purple-800">New Customers</Badge>
+                        <Badge className="w-fit bg-green-100 text-green-800">New Customers</Badge>
                       )}
                       {service.is_existing_customer && (
                         <Badge className="w-fit bg-indigo-100 text-indigo-800">Existing Customers</Badge>
@@ -571,14 +571,14 @@ export default function AdminServicesPage() {
                     {/* Top row: Service name and status */}
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <CardTitle className="text-xl text-gray-600 break-words">{service.name}</CardTitle>
+                        <CardTitle className="text-xl text-gray-600 wrap-break-word">{service.name}</CardTitle>
                         {service.category && (
                           <Badge variant="secondary" className="mt-2 w-fit bg-gray-100 text-gray-600">
                             {service.category}
                           </Badge>
                         )}
                       </div>
-                      <div className="flex-shrink-0">
+                      <div className="shrink-0">
                         <Badge variant="secondary" className="bg-gray-100 text-gray-800 w-fit">
                           <Eye className="w-3 h-3 mr-1" />
                           Inactive
@@ -660,7 +660,7 @@ export default function AdminServicesPage() {
                         <p className="text-sm font-medium text-gray-600 mb-2">Availability</p>
                         <div className="flex flex-wrap gap-2">
                           {service.is_new_customer && (
-                            <Badge className="bg-purple-100 text-purple-800">New Customers</Badge>
+                            <Badge className="bg-green-100 text-green-800">New Customers</Badge>
                           )}
                           {service.is_existing_customer && (
                             <Badge className="bg-indigo-100 text-indigo-800">Existing Customers</Badge>
@@ -687,7 +687,7 @@ export default function AdminServicesPage() {
                         <p className="text-sm font-medium text-gray-600">Availability</p>
                         <div className="flex flex-col space-y-1">
                           {service.is_new_customer && (
-                            <Badge className="w-fit bg-purple-100 text-purple-800">New Customers</Badge>
+                            <Badge className="w-fit bg-green-100 text-green-800">New Customers</Badge>
                           )}
                           {service.is_existing_customer && (
                             <Badge className="w-fit bg-indigo-100 text-indigo-800">Existing Customers</Badge>

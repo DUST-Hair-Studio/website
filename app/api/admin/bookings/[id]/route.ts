@@ -211,12 +211,13 @@ export async function PATCH(
     const supabase = await createServerSupabaseClient()
     const { id } = await params
     const body = await request.json()
-    const { status, admin_notes, payment_status, square_transaction_id } = body
+    const { status, admin_notes, public_notes, payment_status, square_transaction_id } = body
 
     const updateData: { 
       updated_at: string; 
       status?: string; 
       admin_notes?: string;
+      public_notes?: string;
       payment_status?: string;
       square_transaction_id?: string;
       paid_at?: string;
@@ -230,6 +231,10 @@ export async function PATCH(
 
     if (admin_notes !== undefined) {
       updateData.admin_notes = admin_notes
+    }
+
+    if (public_notes !== undefined) {
+      updateData.public_notes = public_notes
     }
 
     if (payment_status) {

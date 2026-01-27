@@ -32,6 +32,7 @@ interface BillingHistoryItem {
   bookingStatus: 'pending' | 'confirmed' | 'completed' | 'cancelled'
   paidAt?: string
   squareTransactionId?: string
+  publicNotes?: string
   createdAt: string
 }
 
@@ -59,6 +60,9 @@ export default function AdminCustomersPage() {
   const [loadingBillingHistory, setLoadingBillingHistory] = useState(false)
   const [selectedBooking, setSelectedBooking] = useState<BillingHistoryItem | null>(null)
   const [showBookingDetails, setShowBookingDetails] = useState(false)
+  const [editingPortalNotes, setEditingPortalNotes] = useState(false)
+  const [portalNotesValue, setPortalNotesValue] = useState('')
+  const [savingPortalNotes, setSavingPortalNotes] = useState(false)
 
   // Fetch customers
   const fetchCustomers = async () => {
@@ -107,7 +111,44 @@ export default function AdminCustomersPage() {
   // Open booking details modal
   const openBookingDetails = (booking: BillingHistoryItem) => {
     setSelectedBooking(booking)
+    setPortalNotesValue(booking.publicNotes || '')
+    setEditingPortalNotes(false)
     setShowBookingDetails(true)
+  }
+
+  // Save portal notes
+  const savePortalNotes = async () => {
+    if (!selectedBooking) return
+
+    try {
+      setSavingPortalNotes(true)
+      const response = await fetch(`/api/admin/bookings/${selectedBooking.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ public_notes: portalNotesValue })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update portal notes')
+      }
+
+      // Update local state
+      setBillingHistory(prev => prev.map(b => 
+        b.id === selectedBooking.id 
+          ? { ...b, publicNotes: portalNotesValue }
+          : b
+      ))
+      setSelectedBooking(prev => prev ? { ...prev, publicNotes: portalNotesValue } : null)
+      setEditingPortalNotes(false)
+      toast.success('Public notes updated')
+    } catch (error) {
+      console.error('Error saving portal notes:', error)
+      toast.error('Failed to save public notes')
+    } finally {
+      setSavingPortalNotes(false)
+    }
   }
 
   // Handle URL parameters to auto-open customer details modal
@@ -424,7 +465,7 @@ export default function AdminCustomersPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
+        <Card className="border-0 shadow-sm bg-linear-to-br from-white to-gray-50">
           <CardContent className="p-4 sm:p-6">
             <div className="flex flex-col items-center text-center">
               <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{stats.total}</div>
@@ -437,7 +478,7 @@ export default function AdminCustomersPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
+        <Card className="border-0 shadow-sm bg-linear-to-br from-white to-gray-50">
           <CardContent className="p-4 sm:p-6">
             <div className="flex flex-col items-center text-center">
               <div className="text-lg sm:text-3xl font-bold text-gray-900 mb-2">{formatPrice(stats.totalRevenue)}</div>
@@ -450,7 +491,7 @@ export default function AdminCustomersPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
+        <Card className="border-0 shadow-sm bg-linear-to-br from-white to-gray-50">
           <CardContent className="p-4 sm:p-6">
             <div className="flex flex-col items-center text-center">
               <div className="text-xl sm:text-3xl font-bold text-gray-900 mb-2">{stats.new}</div>
@@ -464,7 +505,7 @@ export default function AdminCustomersPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
+        <Card className="border-0 shadow-sm bg-linear-to-br from-white to-gray-50">
           <CardContent className="p-4 sm:p-6">
             <div className="flex flex-col items-center text-center">
               <div className="text-xl sm:text-3xl font-bold text-gray-900 mb-2">{stats.existing}</div>
@@ -612,7 +653,7 @@ export default function AdminCustomersPage() {
                       </div>
                       <Badge 
                         variant={customer.is_existing_customer ? "default" : "secondary"}
-                        className={customer.is_existing_customer ? "bg-indigo-100 text-indigo-800" : "bg-purple-100 text-purple-800"}
+                        className={customer.is_existing_customer ? "bg-indigo-100 text-indigo-800" : "bg-green-100 text-green-800"}
                       >
                         {customer.is_existing_customer ? 'Existing' : 'New'}
                       </Badge>
@@ -719,7 +760,7 @@ export default function AdminCustomersPage() {
                         <td className="px-4 py-3 whitespace-nowrap">
                           <Badge 
                             variant={customer.is_existing_customer ? "default" : "secondary"}
-                            className={customer.is_existing_customer ? "bg-indigo-100 text-indigo-800" : "bg-purple-100 text-purple-800"}
+                            className={customer.is_existing_customer ? "bg-indigo-100 text-indigo-800" : "bg-green-100 text-green-800"}
                           >
                             {customer.is_existing_customer ? 'Existing' : 'New'}
                           </Badge>
@@ -835,7 +876,7 @@ export default function AdminCustomersPage() {
                               <span className="font-medium text-gray-900">{selectedCustomer.name}</span>
                               <Badge
                                 variant={selectedCustomer.is_existing_customer ? "default" : "secondary"}
-                                className={`${selectedCustomer.is_existing_customer ? "bg-indigo-100 text-indigo-800" : "bg-purple-100 text-purple-800"}`}
+                                className={`${selectedCustomer.is_existing_customer ? "bg-indigo-100 text-indigo-800" : "bg-green-100 text-green-800"}`}
                               >
                                 {selectedCustomer.is_existing_customer ? 'Existing' : 'New'}
                               </Badge>
@@ -852,13 +893,13 @@ export default function AdminCustomersPage() {
                         </div>
                       )}
                       <div className="flex justify-between items-start py-2 md:py-2">
-                        <span className="text-gray-600">Notes</span>
+                        <span className="text-gray-600">Private Notes</span>
                         <div className="flex items-start gap-3 flex-1 justify-end">
                           <div className="flex-1 max-w-[70%]">
                             {selectedCustomer.notes ? (
-                              <span className="font-medium text-gray-900 break-words">{selectedCustomer.notes}</span>
+                              <span className="font-medium text-gray-900 wrap-break-word">{selectedCustomer.notes}</span>
                             ) : (
-                              <span className="text-gray-400 text-sm">No notes</span>
+                              <span className="text-gray-400 text-sm">No private notes</span>
                             )}
                           </div>
                           <Button
@@ -870,8 +911,8 @@ export default function AdminCustomersPage() {
                                 openEditDialog(selectedCustomer)
                               }
                             }}
-                            className="h-6 w-6 p-0 hover:bg-gray-100 flex-shrink-0"
-                            title="Edit notes"
+                            className="h-6 w-6 p-0 hover:bg-gray-100 shrink-0"
+                            title="Edit private notes"
                           >
                             <Edit className="w-3 h-3" />
                           </Button>
@@ -942,6 +983,12 @@ export default function AdminCustomersPage() {
                                 {item.squareTransactionId && (
                                   <div className="text-xs text-gray-500 mt-1">
                                     Square ID: {item.squareTransactionId}
+                                  </div>
+                                )}
+                                {item.publicNotes && (
+                                  <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
+                                    <span className="font-medium text-blue-900">Public Notes:</span>
+                                    <span className="text-blue-800 ml-1">{item.publicNotes}</span>
                                   </div>
                                 )}
                               </div>
@@ -1051,12 +1098,12 @@ export default function AdminCustomersPage() {
             </div>
 
             <div>
-              <Label htmlFor="edit-notes">Notes</Label>
+              <Label htmlFor="edit-notes">Private Notes</Label>
               <Textarea
                 id="edit-notes"
                 value={editForm.notes}
                 onChange={(e) => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
-                placeholder="Customer notes..."
+                placeholder="Private notes (not visible to customer)..."
                 rows={3}
               />
             </div>
@@ -1148,7 +1195,7 @@ export default function AdminCustomersPage() {
                           <span className="font-medium text-gray-900">{selectedCustomer?.name || 'N/A'}</span>
                           <Badge
                             variant={selectedCustomer?.is_existing_customer ? "default" : "secondary"}
-                            className={`${selectedCustomer?.is_existing_customer ? "bg-indigo-100 text-indigo-800" : "bg-purple-100 text-purple-800"}`}
+                            className={`${selectedCustomer?.is_existing_customer ? "bg-indigo-100 text-indigo-800" : "bg-green-100 text-green-800"}`}
                           >
                             {selectedCustomer?.is_existing_customer ? 'existing' : 'new'}
                           </Badge>
@@ -1208,6 +1255,75 @@ export default function AdminCustomersPage() {
                         </div>
                       )}
                     </div>
+                  </div>
+
+                  {/* Portal Notes Section */}
+                  <div className="border-t border-gray-200 pt-6">
+                    <div className="flex justify-between items-center mb-4">
+                      <h4 className="font-semibold text-gray-900 text-lg">Public Notes</h4>
+                      {!editingPortalNotes && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingPortalNotes(true)}
+                          className="h-8 px-2"
+                          title="Edit public notes (visible to customer)"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mb-3">
+                      These notes are visible to the customer as &quot;Appointment Notes&quot;
+                    </p>
+                    {editingPortalNotes ? (
+                      <div className="space-y-3">
+                        <Textarea
+                          value={portalNotesValue}
+                          onChange={(e) => setPortalNotesValue(e.target.value)}
+                          placeholder="Add public notes visible to the customer..."
+                          rows={3}
+                          className="w-full"
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setEditingPortalNotes(false)
+                              setPortalNotesValue(selectedBooking.publicNotes || '')
+                            }}
+                            disabled={savingPortalNotes}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={savePortalNotes}
+                            disabled={savingPortalNotes}
+                            className="text-black border border-black"
+                            style={{ backgroundColor: '#a7f3d0' }}
+                          >
+                            {savingPortalNotes ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Saving...
+                              </>
+                            ) : (
+                              'Save Notes'
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg min-h-[60px]">
+                        {selectedBooking.publicNotes ? (
+                          <p className="text-sm text-gray-700">{selectedBooking.publicNotes}</p>
+                        ) : (
+                          <p className="text-sm text-gray-400 italic">No public notes added</p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

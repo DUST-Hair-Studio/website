@@ -5,6 +5,7 @@ export interface CampaignConfig {
   registrationUrl: string
   customerType: 'new' | 'existing' | 'both'
   isActive: boolean
+  buttonText?: string
   emailTemplate: {
     subject: string
     message: string

@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { emailList, subject, message, campaignName, registrationUrl } = await request.json()
+    const { emailList, subject, message, campaignName, registrationUrl, buttonText } = await request.json()
 
     if (!emailList || !Array.isArray(emailList) || emailList.length === 0) {
       return NextResponse.json({ error: 'Email list is required' }, { status: 400 })
@@ -46,7 +46,8 @@ export async function POST(request: NextRequest) {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
     const finalRegistrationUrl = registrationUrl ? `${baseUrl}${registrationUrl}` : `${baseUrl}/register/existing`
 
-    // Create dynamic HTML email template
+    // Create dynamic HTML email template with DUST branding
+    const finalButtonText = buttonText || ''
     const htmlTemplate = `
       <!DOCTYPE html>
       <html lang="en">
@@ -57,65 +58,101 @@ export async function POST(request: NextRequest) {
           <style>
               body {
                   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                  line-height: 1.6;
-                  color: #333;
+                  line-height: 1.7;
+                  color: #1C1C1D;
                   max-width: 600px;
                   margin: 0 auto;
                   padding: 20px;
+                  background-color: #FAFAFA;
+              }
+              .container {
+                  background: #FAFAFA;
+                  padding: 40px 20px;
               }
               .header {
                   text-align: center;
-                  margin-bottom: 30px;
+                  margin-bottom: 40px;
+                  padding-bottom: 20px;
+                  border-bottom: 1px solid #E5E5E5;
               }
               .logo {
-                  font-size: 24px;
+                  font-size: 32px;
                   font-weight: bold;
-                  color: #000;
+                  color: #1C1C1D;
+                  letter-spacing: 8px;
+                  text-transform: uppercase;
               }
               .content {
-                  background: #fff;
-                  padding: 30px;
-                  border-radius: 8px;
-                  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                  background: #FFFFFF;
+                  padding: 40px;
+                  border: 1px solid #E5E5E5;
+              }
+              .message {
+                  font-size: 15px;
+                  color: #1C1C1D;
+                  margin-bottom: 30px;
+              }
+              .cta-container {
+                  text-align: center;
+                  margin: 35px 0;
               }
               .cta-button {
                   display: inline-block;
-                  background: #000;
-                  color: #ffffff !important;
-                  padding: 15px 30px;
+                  background: #1C1C1D;
+                  color: #FFFFFF !important;
+                  padding: 16px 40px;
                   text-decoration: none;
-                  border-radius: 5px;
-                  font-weight: bold;
-                  margin: 20px 0;
-                  text-align: center;
+                  font-size: 14px;
+                  font-weight: 500;
+                  letter-spacing: 1px;
+                  text-transform: uppercase;
                   border: none;
+              }
+              .cta-button:hover {
+                  background: #333;
               }
               .footer {
                   text-align: center;
-                  margin-top: 30px;
+                  margin-top: 40px;
+                  padding-top: 20px;
+                  border-top: 1px solid #E5E5E5;
                   color: #666;
-                  font-size: 14px;
+                  font-size: 13px;
+              }
+              .footer-logo {
+                  font-size: 18px;
+                  font-weight: bold;
+                  color: #1C1C1D;
+                  letter-spacing: 4px;
+                  margin-bottom: 10px;
               }
           </style>
       </head>
       <body>
-          <div class="header">
-              <div class="logo">${businessSettings.business_name}</div>
-          </div>
-          
-          <div class="content">
-              ${message.replace(/\n/g, '<br>')}
-              
-              <div style="text-align: center;">
-                  <a href="${finalRegistrationUrl}" class="cta-button" style="color: #ffffff !important; text-decoration: none;">
-                      Create Your Account
-                  </a>
+          <div class="container">
+              <div class="header">
+                  <div class="logo">DUST</div>
               </div>
-          </div>
-          
-          <div class="footer">
-              <p>${businessSettings.business_name} | ${businessSettings.business_phone}</p>
-              <p>If you have any questions, please reply to this email.</p>
+              
+              <div class="content">
+                  <div class="message">
+                      ${message.replace(/\n/g, '<br>')}
+                  </div>
+                  
+                  ${finalButtonText && registrationUrl ? `
+                  <div class="cta-container">
+                      <a href="${finalRegistrationUrl}" class="cta-button" style="color: #FFFFFF !important; text-decoration: none;">
+                          ${finalButtonText}
+                      </a>
+                  </div>
+                  ` : ''}
+              </div>
+              
+              <div class="footer">
+                  <div class="footer-logo">DUST</div>
+                  <p>${businessSettings.business_address || '1942 Riverside Dr, Los Angeles, CA 90039'}</p>
+                  <p>Questions? Reply to this email.</p>
+              </div>
           </div>
       </body>
       </html>
@@ -168,15 +205,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Log campaign results
+    // Log campaign send to history
     try {
       await supabase
-        .from('campaign_registrations')
+        .from('campaign_send_history')
         .insert({
-          email: 'campaign_log',
-          campaign_name: campaignName || 'existing_customer_2024',
-          registration_url: 'bulk_send',
-          is_existing_customer: false
+          campaign_id: campaignName || 'unknown',
+          campaign_name: campaignName || 'Unknown Campaign',
+          subject: subject,
+          total_recipients: emailList.length,
+          successful_sends: successCount,
+          failed_sends: errorCount,
+          recipient_emails: emailList,
+          sent_by: user.id
         })
     } catch (logError) {
       console.warn('Failed to log campaign send:', logError)
