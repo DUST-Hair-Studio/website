@@ -14,6 +14,7 @@ import { CheckCircle, Calendar, DollarSign, CalendarDays, RotateCcw, Search, Fil
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 import RescheduleModal from '@/components/admin/reschedule-modal'
+import AdminBookModal from '@/components/admin/admin-book-modal'
 
 interface BookingWithDetails extends Booking {
   services: {
@@ -43,6 +44,7 @@ export default function AdminBookingsPage() {
   const [showBookingDetails, setShowBookingDetails] = useState(false)
   const [showRescheduleModal, setShowRescheduleModal] = useState(false)
   const [bookingToReschedule, setBookingToReschedule] = useState<BookingWithDetails | null>(null)
+  const [showAdminBookModal, setShowAdminBookModal] = useState(false)
   const [viewMode, setViewMode] = useState<'table' | 'calendar'>('table')
   const [calendarView, setCalendarView] = useState<'3day' | 'week' | 'month'>('month')
   const [calendarStartDate, setCalendarStartDate] = useState<Date>(new Date())
@@ -692,9 +694,18 @@ export default function AdminBookingsPage() {
 
   return (
     <div className="space-y-3 sm:space-y-4">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Bookings Management</h1>
-        <p className="text-gray-600 text-sm sm:text-base">Manage all customer bookings and appointments</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Bookings Management</h1>
+          <p className="text-gray-600 text-sm sm:text-base">Manage all customer bookings and appointments</p>
+        </div>
+        <Button 
+          onClick={() => setShowAdminBookModal(true)}
+          className="w-full sm:w-auto"
+        >
+          <Calendar className="w-4 h-4 mr-2" />
+          Book Appointment
+        </Button>
       </div>
 
       {/* Summary Stats */}
@@ -2293,6 +2304,23 @@ export default function AdminBookingsPage() {
         booking={bookingToReschedule}
         onRescheduleSuccess={handleRescheduleSuccess}
         apiEndpoint="/api/admin/bookings"
+      />
+
+      {/* Admin Book Appointment Modal */}
+      <AdminBookModal
+        isOpen={showAdminBookModal}
+        onClose={() => setShowAdminBookModal(false)}
+        onBookingSuccess={async () => {
+          // Refresh bookings list
+          try {
+            const response = await fetch('/api/admin/bookings')
+            const data = await response.json()
+            setBookings(data.bookings || [])
+          } catch (error) {
+            console.error('Error refreshing bookings:', error)
+          }
+          setShowAdminBookModal(false)
+        }}
       />
 
       {/* Delete Confirmation Dialog */}

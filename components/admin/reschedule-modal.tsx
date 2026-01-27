@@ -90,7 +90,9 @@ export default function RescheduleModal({
 
   // Efficient availability check for visible calendar days
   const checkAvailabilityForVisibleDays = useCallback(async () => {
-    if (!booking?.services || businessHours.length === 0) return
+    // Use booking.duration_minutes as fallback when service was deleted
+    const duration = booking?.services?.duration_minutes || booking?.duration_minutes || 60
+    if (!booking || businessHours.length === 0) return
     
     setLoadingCalendar(true)
     
@@ -123,7 +125,7 @@ export default function RescheduleModal({
         if (availabilityCache.has(dateStr)) continue
         
         try {
-          const url = `/api/admin/availability?startDate=${dateStr}&endDate=${dateStr}&serviceDuration=${booking.services.duration_minutes}`
+          const url = `/api/admin/availability?startDate=${dateStr}&endDate=${dateStr}&serviceDuration=${duration}`
           const response = await fetch(url)
           
           if (response.ok) {
@@ -190,7 +192,10 @@ export default function RescheduleModal({
   }
 
   const fetchAvailableTimes = async (date: Date): Promise<string[]> => {
-    if (!booking?.services) return []
+    if (!booking) return []
+    
+    // Use booking.duration_minutes as fallback when service was deleted
+    const duration = booking.services?.duration_minutes || booking.duration_minutes || 60
 
     try {
       setLoadingTimes(true)
@@ -200,7 +205,7 @@ export default function RescheduleModal({
       const day = String(date.getDate()).padStart(2, '0')
       const dateStr = `${year}-${month}-${day}`
 
-      const url = `/api/admin/availability?startDate=${dateStr}&endDate=${dateStr}&serviceDuration=${booking.services.duration_minutes}`
+      const url = `/api/admin/availability?startDate=${dateStr}&endDate=${dateStr}&serviceDuration=${duration}`
       
       const response = await fetch(url)
       
@@ -357,7 +362,7 @@ export default function RescheduleModal({
                 </div>
                 <div className="flex items-center">
                   <Clock className="w-4 h-4 mr-2 text-gray-500" />
-                  <span>{booking.services?.duration_minutes} minutes</span>
+                  <span>{booking.services?.duration_minutes || booking.duration_minutes} minutes</span>
                 </div>
               </div>
               
