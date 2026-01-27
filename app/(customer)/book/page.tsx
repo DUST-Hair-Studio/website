@@ -198,25 +198,13 @@ function BookPageContent() {
   }, [selectedService])
 
   // Refetch availability when service changes and a date is already selected
+  // This handles the case where user changes service after already selecting a date
   useEffect(() => {
-    console.log('🔄 useEffect triggered at:', new Date().toISOString(), {
-      selectedService: selectedService ? selectedService.name : 'null',
-      selectedDate: selectedDate ? selectedDate.toDateString() : 'null',
-      hasService: !!selectedService,
-      hasDate: !!selectedDate
-    })
-    
     if (selectedService && selectedDate) {
-      console.log('🔄 Service changed, refetching availability for:', {
-        serviceName: selectedService.name,
-        serviceDuration: selectedService.duration_minutes,
-        selectedDate: selectedDate.toDateString()
-      })
+      setAvailableTimes([]) // Clear old times
       fetchAvailableTimes(selectedDate)
-    } else {
-      console.log('🔄 useEffect: Not fetching - missing service or date')
     }
-  }, [selectedService, selectedDate, fetchAvailableTimes])
+  }, [selectedService]) // Only re-run when service changes, not when date changes (handled in handleDateSelect)
 
 
   const handleServiceSelect = (service: Service) => {
@@ -236,8 +224,12 @@ function BookPageContent() {
   const handleDateSelect = async (date: Date | undefined) => {
     setSelectedDate(date)
     setSelectedTime('') // Reset time when date changes
+    setAvailableTimes([]) // Clear old times immediately
     
-    // Don't fetch here - let the useEffect handle it to avoid race conditions
+    // Fetch availability directly when date is selected
+    if (date && selectedService) {
+      fetchAvailableTimes(date)
+    }
   }
 
   const handleTimeSelect = (time: string) => {
