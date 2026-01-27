@@ -576,7 +576,7 @@ Booking ID: ${booking.id}`
     }
   }
 
-  // Check if Google Calendar is connected
+  // Check if Google Calendar is connected (just checks the flag)
   async isConnected(): Promise<boolean> {
     try {
       const { data } = await this.supabase
@@ -588,6 +588,57 @@ Booking ID: ${booking.id}`
       return Boolean(data?.value)
     } catch {
       return false
+    }
+  }
+
+  // Verify that Google Calendar connection actually works (tests the tokens)
+  async verifyConnection(): Promise<{ connected: boolean; healthy: boolean; error?: string }> {
+    try {
+      const isConnected = await this.isConnected()
+      
+      if (!isConnected) {
+        return { connected: false, healthy: true } // Not connected is valid
+      }
+
+      const accessToken = await this.getAccessToken()
+      if (!accessToken) {
+        return { connected: true, healthy: false, error: 'No access token available' }
+      }
+
+      const { data: calendarData } = await this.supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'google_calendar_id')
+        .single()
+
+      const calendarId = calendarData?.value
+      if (!calendarId) {
+        return { connected: true, healthy: false, error: 'No calendar ID configured' }
+      }
+
+      // Make a simple API call to verify the token works
+      const response = await fetch(
+        `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`
+          }
+        }
+      )
+
+      if (response.ok) {
+        return { connected: true, healthy: true }
+      } else if (response.status === 401) {
+        console.error('🔴 Google Calendar token is invalid/expired')
+        return { connected: true, healthy: false, error: 'Token expired - please reconnect Google Calendar' }
+      } else {
+        const errorText = await response.text()
+        console.error('🔴 Google Calendar API error:', response.status, errorText)
+        return { connected: true, healthy: false, error: `API error: ${response.status}` }
+      }
+    } catch (error) {
+      console.error('🔴 Error verifying Google Calendar connection:', error)
+      return { connected: true, healthy: false, error: 'Connection verification failed' }
     }
   }
 }

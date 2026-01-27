@@ -32,6 +32,26 @@ Add these variables:
 4. Google Calendar Variables (if using):
    - GOOGLE_CLIENT_ID
    - GOOGLE_CLIENT_SECRET
+   
+   ⚠️  IMPORTANT: Google OAuth App Must Be Published!
+   
+   If your Google Cloud app is in "Testing" mode, refresh tokens expire after 7 days,
+   which will break the Google Calendar integration silently.
+   
+   To fix this:
+   1. Go to Google Cloud Console: https://console.cloud.google.com
+   2. Select your project
+   3. Go to APIs & Services → OAuth consent screen
+   4. Under "Publishing status", click "PUBLISH APP"
+   5. Confirm the change
+   
+   This will:
+   - Keep the "Google hasn't verified this app" warning (admin clicks "Continue" to proceed)
+   - But refresh tokens will NOT expire after 7 days
+   - No verification process needed for internal use
+   
+   Note: The warning only appears during initial Google Calendar connection in admin settings,
+   so it doesn't affect customer experience.
 
 5. App URL Variable:
    - NEXT_PUBLIC_APP_URL
