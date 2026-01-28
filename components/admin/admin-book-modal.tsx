@@ -463,6 +463,8 @@ export default function AdminBookModal({
                         setSelectedCustomer(customer)
                         // Clear selected service when customer changes (service availability may differ)
                         setSelectedService(null)
+                        // Auto-advance to next step
+                        setCurrentStep('service')
                       }}
                       className={`w-full text-left p-4 rounded-lg border-2 transition-colors ${
                         selectedCustomer?.id === customer.id
@@ -515,7 +517,11 @@ export default function AdminBookModal({
                   return (
                     <button
                       key={service.id}
-                      onClick={() => setSelectedService(service)}
+                      onClick={() => {
+                        setSelectedService(service)
+                        // Auto-advance to next step
+                        setCurrentStep('datetime')
+                      }}
                       className={`w-full text-left p-4 rounded-lg border-2 transition-colors ${
                         selectedService?.id === service.id
                           ? 'border-black bg-gray-50'
@@ -581,7 +587,11 @@ export default function AdminBookModal({
                             key={`${slot.time}-${index}`}
                             variant="outline"
                             size="sm"
-                            onClick={() => setSelectedTime(slot.time)}
+                            onClick={() => {
+                              setSelectedTime(slot.time)
+                              // Auto-advance to review step
+                              setCurrentStep('review')
+                            }}
                             className={`${
                               isSelected 
                                 ? 'bg-black text-white border-black hover:bg-black hover:text-white' 
