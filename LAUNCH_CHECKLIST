@@ -1,204 +1,122 @@
 🚀 DUST Hair Studio - Production Launch Checklist
 
-Environment Variables Setup (Vercel)
+================================================================================
+CURRENT STATUS: Soft Launch on dusthair.vercel.app
+================================================================================
 
-Required Environment Variables in Vercel Dashboard:
-Go to Vercel Dashboard → Your Project → Settings → Environment Variables
+✅ COMPLETED (Soft Launch)
+─────────────────────────────────────────────────────────────────────────────────
+- [x] Vercel environment variables set for production
+- [x] Square credentials configured in Admin Settings (Production mode)
+- [x] Square webhook configured for production: https://dusthair.vercel.app/api/webhooks/square
+- [x] Square POS API callback URL: https://dusthair.vercel.app/api/webhooks/square
+- [x] Square OAuth redirect URL: https://dusthair.vercel.app/booking/confirmation
+- [x] NEXT_PUBLIC_APP_URL = https://dusthair.vercel.app
 
-Add these variables:
+================================================================================
+🎯 PRODUCTION LAUNCH (dusthairstudio.com) - DO TOMORROW
+================================================================================
 
-1. Supabase Variables:
-   - NEXT_PUBLIC_SUPABASE_URL (your production Supabase URL)
-   - NEXT_PUBLIC_SUPABASE_ANON_KEY (your production Supabase anon key)
+STEP 1: Configure Custom Domain in Vercel
+─────────────────────────────────────────────────────────────────────────────────
+1. Go to: Vercel Dashboard → Settings → Domains
+2. Add domain: www.dusthairstudio.com
+3. Add domain: dusthairstudio.com (redirect to www)
+4. Configure DNS per Vercel instructions
+5. Wait for SSL certificate (usually instant, can take up to 1 hour)
 
-2. Resend Email Variables:
-   - RESEND_API_KEY (your production Resend API key)
+STEP 2: Update Vercel Environment Variable
+─────────────────────────────────────────────────────────────────────────────────
+Change NEXT_PUBLIC_APP_URL:
+  FROM: https://dusthair.vercel.app
+  TO:   https://www.dusthairstudio.com
 
-3. Square Payment Variables (Optional - Fallback Only):
-   - SQUARE_ACCESS_TOKEN (your PRODUCTION Square Access Token)
-   - SQUARE_ENVIRONMENT (set to "production")
-   - SQUARE_LOCATION_ID (your Square location ID)
-   
-   ⚠️  IMPORTANT: Square credentials are now managed through the Admin Settings page!
-   Environment variables are kept as fallback only. Configure Square in:
-   Admin Panel → Settings → Payments Tab
-   
-   Square Payment Configuration:
-   - Enable Square Payment Processing toggle
-   - Set Environment: Sandbox (for soft launch) or Production (for live)
-   - Add Square Application ID, Access Token, and Location ID
-   - All settings are stored in database and can be changed without redeploying
+STEP 3: Update Square Developer Dashboard (Production Tab)
+─────────────────────────────────────────────────────────────────────────────────
+Go to: https://developer.squareup.com/apps → Select your app → Production tab
 
-4. Google Calendar Variables (if using):
-   - GOOGLE_CLIENT_ID
-   - GOOGLE_CLIENT_SECRET
-   
-   ⚠️  IMPORTANT: Google OAuth App Must Be Published!
-   
-   If your Google Cloud app is in "Testing" mode, refresh tokens expire after 7 days,
-   which will break the Google Calendar integration silently.
-   
-   To fix this:
-   1. Go to Google Cloud Console: https://console.cloud.google.com
-   2. Select your project
-   3. Go to APIs & Services → OAuth consent screen
-   4. Under "Publishing status", click "PUBLISH APP"
-   5. Confirm the change
-   
-   This will:
-   - Keep the "Google hasn't verified this app" warning (admin clicks "Continue" to proceed)
-   - But refresh tokens will NOT expire after 7 days
-   - No verification process needed for internal use
-   
-   Note: The warning only appears during initial Google Calendar connection in admin settings,
-   so it doesn't affect customer experience.
+A) Webhook URL:
+   FROM: https://dusthair.vercel.app/api/webhooks/square
+   TO:   https://www.dusthairstudio.com/api/webhooks/square
 
-5. App URL Variable:
-   - NEXT_PUBLIC_APP_URL
-   
-   ⚠️  CRITICAL FOR PAYMENT LINKS!
-   
-   For Soft Launch (Current):
-   - Value: https://website-sigma-steel-43.vercel.app
-   
-   For Production Launch:
-   - ⚠️  MUST UPDATE to: https://www.dusthairstudio.com
-   - This is required for Square payment redirect URLs
-   - After updating, MUST redeploy the project
-   - Also update Square Developer Dashboard redirect URLs to match
+B) Point of Sale API → Web Callback URL:
+   FROM: https://dusthair.vercel.app/api/webhooks/square
+   TO:   https://www.dusthairstudio.com/api/webhooks/square
 
-Set Environment: Select "Production" for all variables
-Redeploy: Trigger a new deployment after adding variables
+C) OAuth → Redirect URL:
+   FROM: https://dusthair.vercel.app/booking/confirmation
+   TO:   https://www.dusthairstudio.com/booking/confirmation
 
-Database Migration (Supabase)
+STEP 4: Redeploy on Vercel
+─────────────────────────────────────────────────────────────────────────────────
+1. Go to Vercel Dashboard → Deployments
+2. Click "Redeploy" on latest deployment
+3. Wait for deployment to complete
 
-Run this SQL in Supabase SQL Editor:
+STEP 5: Test Everything on New Domain
+─────────────────────────────────────────────────────────────────────────────────
+- [ ] Visit https://www.dusthairstudio.com - site loads
+- [ ] Test customer booking flow
+- [ ] Test "Pay Now (POS)" - payment completes and status updates
+- [ ] Test email links point to correct domain
+- [ ] Test admin portal: https://www.dusthairstudio.com/admin
 
-For Square payment tracking fields:
-See: database-migrations/square-payment-fields.sql
+================================================================================
+📋 REFERENCE: Environment Variables (Already Set in Vercel)
+================================================================================
 
-Square Payment Settings Configuration
+Supabase:
+  - NEXT_PUBLIC_SUPABASE_URL
+  - NEXT_PUBLIC_SUPABASE_ANON_KEY
+  - SUPABASE_SERVICE_ROLE_KEY
 
-1. Access Admin Settings:
-   - Go to your site: https://website-sigma-steel-43.vercel.app/admin
-   - Navigate to Settings → Payments Tab
+Square (fallback - primary config is in Admin Settings):
+  - SQUARE_ACCESS_TOKEN (production token)
+  - SQUARE_ENVIRONMENT=production
+  - SQUARE_LOCATION_ID
+  - SQUARE_WEBHOOK_SIGNATURE_KEY (optional, for signature verification)
 
-2. Configure Square Settings:
-   - ✅ Enable "Square Payment Processing" toggle
-   - 🔧 Set Environment: "Sandbox (Testing)" for soft launch
-   - 📝 Add Square Application ID (starts with sq0idp-...)
-   - 🔑 Add Square Access Token (starts with EAAA...)
-   - 📍 Add Square Location ID
-   - 💾 Click "Save Payment Settings"
+Email:
+  - RESEND_API_KEY
 
-3. For Soft Launch (Recommended):
-   - Use Sandbox environment
-   - Test with Square's test card numbers
-   - Verify payment links are generated correctly
+Google Calendar:
+  - GOOGLE_CLIENT_ID
+  - GOOGLE_CLIENT_SECRET
 
-4. For Production Launch:
-   - Switch Environment to "Production (Live)"
-   - Update credentials with production values
-   - Test with real (small) transactions first
+App URL (⚠️ UPDATE FOR PRODUCTION LAUNCH):
+  - NEXT_PUBLIC_APP_URL=https://dusthair.vercel.app
+    → Change to: https://www.dusthairstudio.com
 
-Production Domain Switch (When Moving from Soft Launch to Full Launch)
+================================================================================
+⚠️  GOOGLE CALENDAR NOTE
+================================================================================
 
-When ready to launch on https://www.dusthairstudio.com:
+If Google Cloud app is in "Testing" mode, refresh tokens expire after 7 days.
 
-1. Update Vercel Environment Variable:
-   - Go to Vercel Dashboard → Settings → Environment Variables
-   - Find NEXT_PUBLIC_APP_URL
-   - Change value from: https://website-sigma-steel-43.vercel.app
-   - To: https://www.dusthairstudio.com
-   - Save changes
+To fix (one-time):
+1. Go to: https://console.cloud.google.com
+2. APIs & Services → OAuth consent screen
+3. Click "PUBLISH APP"
 
-2. Update Square Developer Dashboard:
-   - Go to: https://developer.squareup.com/apps
-   - Select your application
-   - Go to OAuth settings
-   - Update redirect URL from: https://website-sigma-steel-43.vercel.app/booking/confirmation
-   - To: https://www.dusthairstudio.com/booking/confirmation
-   - Save changes
-   
-   - Go to Point of Sale API settings
-   - Update Web callback URL from: https://website-sigma-steel-43.vercel.app/api/webhooks/square
-   - To: https://www.dusthairstudio.com/api/webhooks/square
-   - Save changes
+This keeps the "unverified app" warning during admin setup but tokens won't expire.
 
-3. Configure Custom Domain in Vercel:
-   - Go to Vercel Dashboard → Settings → Domains
-   - Add domain: www.dusthairstudio.com
-   - Add domain: dusthairstudio.com (redirect to www)
-   - Follow Vercel's DNS configuration instructions
-   - Wait for DNS propagation (can take up to 48 hours)
+================================================================================
+📧 POST-LAUNCH: Email Domain Authentication (Optional but Recommended)
+================================================================================
 
-4. Redeploy Project:
-   - Go to Deployments tab
-   - Click "Redeploy" on latest deployment
-   - Wait for deployment to complete
+For better email deliverability from @dusthairstudio.com:
+1. Add SPF record to DNS
+2. Add DKIM records from Resend dashboard
+3. Verify domain in Resend
 
-5. Test Everything on New Domain:
-   - Visit https://www.dusthairstudio.com
-   - Test customer booking flow
-   - Test payment link generation
-   - Verify emails have correct links
-   - Test admin portal access
+================================================================================
+🧪 QUICK TEST CHECKLIST
+================================================================================
 
-Email Templates Verification
-Check if templates exist:
-If missing, create them:
-Code Deployment Status
-✅ Already Deployed:
-Email service with cancellation/reschedule methods
-API routes updated to trigger emails
-Frontend UI updated for new template types
-TypeScript build errors fixed
-🔍 Verify Deployment:
-Check Vercel deployment logs for successful build
-Confirm all commits are pushed to main branch
-Test that admin panel shows "Cancellation" and "Reschedule" template types
-Testing Checklist
-Production Testing:
-Create a test booking
-Reschedule the booking → Should send reschedule email
-Cancel the booking → Should send cancellation email
-Check email delivery in Resend dashboard
-Verify appointment links work correctly
-
-Square Payment Testing (if enabled):
-✅ Test payment link generation in admin panel
-✅ Test Square POS integration:
-   - Click "Pay Now (POS)" on a booking
-   - Verify Square POS app opens with payment details
-   - Test successful payment flow
-   - Test payment cancellation flow
-   - Verify callback page shows correct status
-✅ Verify Square credentials are working (check browser console for errors)
-✅ Test with Square's test card numbers:
-   - Visa: 4111 1111 1111 1111
-   - Mastercard: 5555 5555 5555 4444
-   - Expiry: Any future date, CVV: Any 3 digits
-✅ Confirm payment webhooks are received
-✅ Verify booking status updates to "paid" after successful payment
-MX Records (Separate Chat)
-Email deliverability configuration
-SPF/DKIM records for Resend
-Domain authentication
-🎯 Priority Order:
-
-SOFT LAUNCH (Current - website-sigma-steel-43.vercel.app):
-1. Environment Variables (Vercel) - Add NEXT_PUBLIC_APP_URL with soft launch URL
-2. Database Migration (Supabase)
-3. Square Payment Settings Configuration (Admin Panel)
-4. Test Email Functionality
-5. Test Square Payment Integration (if enabled)
-
-PRODUCTION LAUNCH (dusthairstudio.com):
-1. Configure Custom Domain in Vercel
-2. Update NEXT_PUBLIC_APP_URL to https://www.dusthairstudio.com
-3. Update Square redirect URLs in Developer Dashboard
-4. Redeploy Project
-5. Test Everything on Production Domain
-6. MX Records & Domain Authentication (separate chat)
-
-⚠️ IMPORTANT: Do not update NEXT_PUBLIC_APP_URL until custom domain is fully configured in Vercel and DNS has propagated!
+Before going live, verify:
+- [ ] Booking flow works end-to-end
+- [ ] Payment via POS updates booking to "paid"
+- [ ] Confirmation emails are sent
+- [ ] Reminder emails are scheduled
+- [ ] Admin can view/manage bookings
+- [ ] Google Calendar sync works (if enabled)
