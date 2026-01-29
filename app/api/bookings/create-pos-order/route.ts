@@ -15,12 +15,18 @@ function generateSquarePOSUrl(params: {
   // Square POS API URL format from documentation
   // square-commerce-v1://payment/create?data={JSON_encoded_data}
   
+  // Get base URL and remove any trailing slash
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://dusthair.vercel.app').replace(/\/+$/, '');
+  const callbackUrl = `${baseUrl}/api/webhooks/square`;
+  
+  console.log('🔗 POS Callback URL being used:', callbackUrl);
+  
   const posData = {
     amount_money: {
       amount: params.amount,
       currency_code: 'USD'
     },
-    callback_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://dusthair.vercel.app'}/api/webhooks/square`,
+    callback_url: callbackUrl,
     client_id: params.applicationId,
     version: '1.3',
     notes: `Booking: ${params.serviceName} - ${params.customerName}`,
