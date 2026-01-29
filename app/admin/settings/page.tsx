@@ -47,6 +47,14 @@ interface PaymentSettings {
   square_location_id: string
 }
 
+interface SavedCredentialInfo {
+  application_id_prefix: string
+  access_token_prefix: string
+  access_token_length: number
+  has_application_id: boolean
+  has_access_token: boolean
+}
+
 interface ScheduleSettings {
   buffer_time_minutes: number
 }
@@ -121,6 +129,19 @@ function AdminSettingsContent() {
     square_location_id: ''
   })
   
+  // Track saved credential info for display
+  const [savedCredentials, setSavedCredentials] = useState<SavedCredentialInfo>({
+    application_id_prefix: '',
+    access_token_prefix: '',
+    access_token_length: 0,
+    has_application_id: false,
+    has_access_token: false
+  })
+  
+  // Show/hide credential fields
+  const [showAppId, setShowAppId] = useState(false)
+  const [showAccessToken, setShowAccessToken] = useState(false)
+  
   // Schedule Settings State
   const [scheduleSettings, setScheduleSettings] = useState<ScheduleSettings>({
     buffer_time_minutes: 0
@@ -173,6 +194,23 @@ function AdminSettingsContent() {
         setPaymentSettings(prev => ({ ...prev, ...settingsData.payments }))
         setScheduleSettings(prev => ({ ...prev, ...settingsData.schedule }))
         setWaitlistSettings(prev => ({ ...prev, ...settingsData.waitlist }))
+      }
+      
+      // Fetch saved credential info for display
+      try {
+        const configResponse = await fetch('/api/debug/test-square-config')
+        if (configResponse.ok) {
+          const configData = await configResponse.json()
+          setSavedCredentials({
+            application_id_prefix: configData.application_id_prefix || '',
+            access_token_prefix: configData.access_token_prefix || '',
+            access_token_length: configData.access_token_length || 0,
+            has_application_id: configData.has_application_id || false,
+            has_access_token: configData.has_access_token || false
+          })
+        }
+      } catch (e) {
+        console.error('Failed to fetch credential info:', e)
       }
     } catch (error) {
       console.error('Error fetching settings:', error)
@@ -663,26 +701,134 @@ function AdminSettingsContent() {
                         Use Sandbox for testing, Production for live payments
                       </p>
                     </div>
+                    
+                    {/* Square Application ID */}
                     <div className="space-y-2">
                       <Label htmlFor="square_application_id">Square Application ID</Label>
-                      <Input
-                        id="square_application_id"
-                        type="password"
-                        value={paymentSettings.square_application_id}
-                        onChange={(e) => setPaymentSettings(prev => ({ ...prev, square_application_id: e.target.value }))}
-                        placeholder="sq0idp-..."
-                      />
+                      {savedCredentials.has_application_id && (
+                        <div className="flex items-center gap-2 p-2 bg-white border rounded text-sm">
+                          <span className="text-gray-500">Currently saved:</span>
+                          <code className="font-mono bg-gray-100 px-2 py-0.5 rounded">
+                            {savedCredentials.application_id_prefix}
+                          </code>
+                          {savedCredentials.application_id_prefix.startsWith('sq0idp-') ? (
+                            <span className="text-green-600 text-xs font-medium">✓ Production format</span>
+                          ) : savedCredentials.application_id_prefix.startsWith('sandbox-') ? (
+                            <span className="text-yellow-600 text-xs font-medium">⚠ Sandbox format</span>
+                          ) : (
+                            <span className="text-red-600 text-xs font-medium">⚠ Unknown format</span>
+                          )}
+                        </div>
+                      )}
+                      <div className="flex gap-2">
+                        <Input
+                          id="square_application_id"
+                          type={showAppId ? "text" : "password"}
+                          value={paymentSettings.square_application_id}
+                          onChange={(e) => setPaymentSettings(prev => ({ ...prev, square_application_id: e.target.value }))}
+                          placeholder={savedCredentials.has_application_id ? "Enter new ID to replace..." : "sq0idp-..."}
+                          className="flex-1"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowAppId(!showAppId)}
+                          className="px-3"
+                        >
+                          {showAppId ? 'Hide' : 'Show'}
+                        </Button>
+                      </div>
+                      {paymentSettings.square_application_id && (
+                        <p className="text-sm">
+                          {paymentSettings.square_application_id.startsWith('sq0idp-') ? (
+                            <span className="text-green-600">✓ Production format detected</span>
+                          ) : paymentSettings.square_application_id.startsWith('sandbox-') ? (
+                            <span className="text-yellow-600">⚠ Sandbox format - use for testing only</span>
+                          ) : (
+                            <span className="text-red-600">⚠ Unrecognized format - check your Square Dashboard</span>
+                          )}
+                        </p>
+                      )}
+                      <p className="text-xs text-gray-500">
+                        Production IDs start with <code className="bg-gray-100 px-1 rounded">sq0idp-</code>, 
+                        Sandbox IDs start with <code className="bg-gray-100 px-1 rounded">sandbox-sq0idb-</code>
+                      </p>
                     </div>
+                    
+                    {/* Square Access Token */}
                     <div className="space-y-2">
                       <Label htmlFor="square_access_token">Square Access Token</Label>
-                      <Input
-                        id="square_access_token"
-                        type="password"
-                        value={paymentSettings.square_access_token}
-                        onChange={(e) => setPaymentSettings(prev => ({ ...prev, square_access_token: e.target.value }))}
-                        placeholder="EAAA..."
-                      />
+                      {savedCredentials.has_access_token && (
+                        <div className="flex items-center gap-2 p-2 bg-white border rounded text-sm">
+                          <span className="text-gray-500">Currently saved:</span>
+                          <code className="font-mono bg-gray-100 px-2 py-0.5 rounded">
+                            {savedCredentials.access_token_prefix}
+                          </code>
+                          <span className="text-gray-400">({savedCredentials.access_token_length} chars)</span>
+                          {savedCredentials.access_token_prefix.startsWith('EAAA') ? (
+                            <span className="text-green-600 text-xs font-medium">✓ Valid format</span>
+                          ) : (
+                            <span className="text-red-600 text-xs font-medium">⚠ Check format</span>
+                          )}
+                        </div>
+                      )}
+                      <div className="flex gap-2">
+                        <Input
+                          id="square_access_token"
+                          type={showAccessToken ? "text" : "password"}
+                          value={paymentSettings.square_access_token}
+                          onChange={(e) => setPaymentSettings(prev => ({ ...prev, square_access_token: e.target.value }))}
+                          placeholder={savedCredentials.has_access_token ? "Enter new token to replace..." : "EAAA..."}
+                          className="flex-1"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowAccessToken(!showAccessToken)}
+                          className="px-3"
+                        >
+                          {showAccessToken ? 'Hide' : 'Show'}
+                        </Button>
+                      </div>
+                      {paymentSettings.square_access_token && (
+                        <p className="text-sm">
+                          {paymentSettings.square_access_token.startsWith('EAAA') ? (
+                            <span className="text-green-600">✓ Valid token format ({paymentSettings.square_access_token.length} chars)</span>
+                          ) : (
+                            <span className="text-red-600">⚠ Token should start with EAAA</span>
+                          )}
+                        </p>
+                      )}
                     </div>
+                    
+                    {/* Environment mismatch warning */}
+                    {paymentSettings.square_environment === 'production' && savedCredentials.application_id_prefix.startsWith('sandbox-') && (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="text-red-700 text-sm font-medium">
+                          ⚠️ Environment Mismatch Detected
+                        </p>
+                        <p className="text-red-600 text-sm">
+                          You have Production mode selected but your Application ID appears to be a Sandbox ID.
+                          Update your Application ID with your Production credentials from Square Dashboard.
+                        </p>
+                      </div>
+                    )}
+                    
+                    {paymentSettings.square_environment === 'sandbox' && savedCredentials.application_id_prefix.startsWith('sq0idp-') && (
+                      <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <p className="text-yellow-700 text-sm font-medium">
+                          ⚠️ Environment Mismatch
+                        </p>
+                        <p className="text-yellow-600 text-sm">
+                          You have Sandbox mode selected but your Application ID appears to be a Production ID.
+                          Either switch to Production mode or update with Sandbox credentials.
+                        </p>
+                      </div>
+                    )}
+                    
+                    {/* Square Location ID */}
                     <div className="space-y-2">
                       <Label htmlFor="square_location_id">Square Location ID</Label>
                       <Input
