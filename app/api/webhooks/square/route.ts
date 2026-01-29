@@ -9,14 +9,13 @@ export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);
     const data = url.searchParams.get('data');
-    const bookingId = url.searchParams.get('booking_id');
     
     let paymentSucceeded = false;
     let transactionId: string | null = null;
     let amountCents: number | null = null;
     
     if (data) {
-      console.log('Square POS callback received, booking_id:', bookingId);
+      console.log('Square POS callback received');
       
       try {
         const transactionInfo = JSON.parse(decodeURIComponent(data));
@@ -35,43 +34,72 @@ export async function GET(request: NextRequest) {
       }
     }
     
-    // If we have a booking_id and payment succeeded, update the booking
-    if (bookingId && paymentSucceeded && transactionId) {
+    let bookingIdToUpdate: string | null = null;
+    
+    if (paymentSucceeded && transactionId && amountCents != null) {
       const supabase = createAdminSupabaseClient();
-      const { data: booking, error: fetchError } = await supabase
-        .from('bookings')
-        .select('id, customer_id')
-        .eq('id', bookingId)
+      
+      // Square doesn't allow query params on callback URL, so we match by "last POS initiated" (stored when Pay Now was clicked)
+      const { data: pendingRow } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'pos_pending_booking')
         .single();
 
-      if (!fetchError && booking) {
-        const { error: updateError } = await supabase
-          .from('bookings')
-          .update({
-            payment_status: 'paid',
-            square_transaction_id: transactionId,
-            paid_at: new Date().toISOString(),
-            status: 'confirmed',
-          })
-          .eq('id', bookingId);
+      if (pendingRow?.value) {
+        try {
+          const pending = JSON.parse(String(pendingRow.value)) as { bookingId: string; amountCents: number; at: string };
+          const pendingAt = new Date(pending.at).getTime();
+          const fifteenMinutesAgo = Date.now() - 15 * 60 * 1000;
+          if (pending.amountCents === amountCents && pendingAt > fifteenMinutesAgo) {
+            bookingIdToUpdate = pending.bookingId;
+            console.log('✅ POS callback: Matched pending booking', pending.bookingId);
+          }
+          // Clear so we don't reuse
+          await supabase.from('settings').update({ value: '', updated_at: new Date().toISOString() }).eq('key', 'pos_pending_booking');
+        } catch (e) {
+          console.error('Error reading pos_pending_booking:', e);
+        }
+      }
 
-        if (!updateError) {
-          console.log(`✅ POS callback: Updated booking ${bookingId} to paid`);
-          if (booking.customer_id && amountCents != null) {
-            try {
-              await supabase.rpc('increment_customer_spent', {
-                customer_id: booking.customer_id,
-                amount: amountCents,
-              });
-            } catch (e) {
-              console.error('Error updating customer spent:', e);
+      if (bookingIdToUpdate) {
+        const { data: booking, error: fetchError } = await supabase
+          .from('bookings')
+          .select('id, customer_id')
+          .eq('id', bookingIdToUpdate)
+          .single();
+
+        if (!fetchError && booking) {
+          const { error: updateError } = await supabase
+            .from('bookings')
+            .update({
+              payment_status: 'paid',
+              square_transaction_id: transactionId,
+              paid_at: new Date().toISOString(),
+              status: 'confirmed',
+            })
+            .eq('id', bookingIdToUpdate);
+
+          if (!updateError) {
+            console.log(`✅ POS callback: Updated booking ${bookingIdToUpdate} to paid`);
+            if (booking.customer_id) {
+              try {
+                await supabase.rpc('increment_customer_spent', {
+                  customer_id: booking.customer_id,
+                  amount: amountCents,
+                });
+              } catch (e) {
+                console.error('Error updating customer spent:', e);
+              }
             }
+          } else {
+            console.error('❌ Error updating booking:', updateError);
           }
         } else {
-          console.error('❌ Error updating booking:', updateError);
+          console.log('⚠️ POS callback: No booking found for id', bookingIdToUpdate);
         }
       } else {
-        console.log('⚠️ POS callback: No booking found for id', bookingId);
+        console.log('⚠️ POS callback: No matching pending POS booking (amount or time window)');
       }
     }
     

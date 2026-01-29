@@ -15,9 +15,9 @@ function generateSquarePOSUrl(params: {
   // Square POS API URL format from documentation
   // square-commerce-v1://payment/create?data={JSON_encoded_data}
   
-  // Get base URL and remove any trailing slash. Include booking_id so redirect can update the right booking.
+  // Must match Square Dashboard exactly - no query params or Square rejects with "callback URL does not match"
   const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://dusthair.vercel.app').replace(/\/+$/, '');
-  const callbackUrl = `${baseUrl}/api/webhooks/square?booking_id=${params.bookingId}`;
+  const callbackUrl = `${baseUrl}/api/webhooks/square`;
   
   console.log('🔗 POS Callback URL being used:', callbackUrl);
   
@@ -101,14 +101,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const amountCents = booking.price_charged || service?.price || 0;
+
     // Generate Square POS URL for automatic app opening
     const { posUrl, callbackUrl } = generateSquarePOSUrl({
-      amount: booking.price_charged || service?.price || 0,
+      amount: amountCents,
       customerName: customer?.name || '',
       serviceName: service?.name || '',
       applicationId: appIdSetting.value,
       bookingId: booking.id
     });
+
+    // Store "last POS initiated" so callback (which has no booking_id) can find this booking
+    await supabase.from('settings').upsert(
+      { key: 'pos_pending_booking', value: JSON.stringify({ bookingId: booking.id, amountCents, at: new Date().toISOString() }), updated_at: new Date().toISOString() },
+      { onConflict: 'key' }
+    );
 
     console.log(`✅ Generated Square POS URL for booking ${bookingId}`);
 
