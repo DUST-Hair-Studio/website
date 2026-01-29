@@ -23,7 +23,7 @@ export function RegisterForm({ isExistingCustomer = false, campaignId }: Registe
     phone: '',
     birthMonth: '',
     birthDay: '',
-    allowSmsNotifications: false,
+    notificationPreference: 'both' as 'text' | 'email' | 'both',
     allowMarketingEmails: false
   })
   const [loading, setLoading] = useState(false)
@@ -42,6 +42,11 @@ export function RegisterForm({ isExistingCustomer = false, campaignId }: Registe
       setFormData(prev => ({
         ...prev,
         [name]: formattedPhone
+      }))
+    } else if (name === 'notificationPreference') {
+      setFormData(prev => ({
+        ...prev,
+        notificationPreference: value as 'text' | 'email' | 'both'
       }))
     } else {
       setFormData(prev => ({
@@ -115,7 +120,7 @@ export function RegisterForm({ isExistingCustomer = false, campaignId }: Registe
             phone: formData.phone,
             birth_month: formData.birthMonth,
             birth_day: formData.birthDay,
-            allow_sms_notifications: formData.allowSmsNotifications,
+            notification_preference: formData.notificationPreference,
             allow_marketing_emails: formData.allowMarketingEmails
           }
         }
@@ -134,6 +139,7 @@ export function RegisterForm({ isExistingCustomer = false, campaignId }: Registe
         // Get campaign configuration if provided
         const campaignConfig = campaignId ? getCampaignConfig(campaignId) : null
         
+        const allowSms = formData.notificationPreference === 'text' || formData.notificationPreference === 'both'
         const customerRecord: {
           auth_user_id: string;
           email: string;
@@ -143,6 +149,7 @@ export function RegisterForm({ isExistingCustomer = false, campaignId }: Registe
           birth_day?: number;
           is_existing_customer: boolean;
           allow_sms_notifications?: boolean;
+          notification_preference?: string;
           allow_marketing_emails?: boolean;
           campaign_source?: string;
           campaign_registered_at?: string;
@@ -154,7 +161,8 @@ export function RegisterForm({ isExistingCustomer = false, campaignId }: Registe
           birth_month: formData.birthMonth ? parseInt(formData.birthMonth, 10) : undefined,
           birth_day: formData.birthDay ? parseInt(formData.birthDay, 10) : undefined,
           is_existing_customer: isExistingCustomer,
-          allow_sms_notifications: formData.allowSmsNotifications,
+          allow_sms_notifications: allowSms,
+          notification_preference: formData.notificationPreference,
           allow_marketing_emails: formData.allowMarketingEmails
         }
 
@@ -342,24 +350,49 @@ export function RegisterForm({ isExistingCustomer = false, campaignId }: Registe
                 />
               </div>
           
-          <div className="flex items-start space-x-3">
-            <input
-              id="allowSmsNotifications"
-              name="allowSmsNotifications"
-              type="checkbox"
-              checked={formData.allowSmsNotifications}
-              onChange={handleInputChange}
-              disabled={loading}
-              className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-            />
-            <div className="text-sm">
-              <Label htmlFor="allowSmsNotifications" className="font-normal cursor-pointer">
-                I agree to receive appointment reminders and updates via SMS
-              </Label>
-              <p className="text-gray-500 mt-1">
-                You can opt out at any time. Standard message rates may apply.
-              </p>
+          <div className="space-y-3">
+            <Label>How would you like to receive appointment reminders and updates?</Label>
+            <div className="space-y-2">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="notificationPreference"
+                  value="text"
+                  checked={formData.notificationPreference === 'text'}
+                  onChange={handleInputChange}
+                  disabled={loading}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                />
+                <span className="text-sm">Text (SMS) only</span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="notificationPreference"
+                  value="email"
+                  checked={formData.notificationPreference === 'email'}
+                  onChange={handleInputChange}
+                  disabled={loading}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                />
+                <span className="text-sm">Email only</span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="notificationPreference"
+                  value="both"
+                  checked={formData.notificationPreference === 'both'}
+                  onChange={handleInputChange}
+                  disabled={loading}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                />
+                <span className="text-sm">Both text and email</span>
+              </label>
             </div>
+            <p className="text-gray-500 text-xs">
+              You can change this anytime. Standard message rates may apply for SMS.
+            </p>
           </div>
 
           <div className="flex items-start space-x-3">
