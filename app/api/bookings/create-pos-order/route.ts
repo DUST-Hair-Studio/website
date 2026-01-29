@@ -11,13 +11,13 @@ function generateSquarePOSUrl(params: {
   serviceName: string;
   applicationId: string;
   bookingId: string;
-}): string {
+}): { posUrl: string; callbackUrl: string } {
   // Square POS API URL format from documentation
   // square-commerce-v1://payment/create?data={JSON_encoded_data}
   
-  // Get base URL and remove any trailing slash
+  // Get base URL and remove any trailing slash. Include booking_id so redirect can update the right booking.
   const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://dusthair.vercel.app').replace(/\/+$/, '');
-  const callbackUrl = `${baseUrl}/api/webhooks/square`;
+  const callbackUrl = `${baseUrl}/api/webhooks/square?booking_id=${params.bookingId}`;
   
   console.log('🔗 POS Callback URL being used:', callbackUrl);
   
@@ -35,8 +35,9 @@ function generateSquarePOSUrl(params: {
     }
   };
 
-  // Return the Square POS URL with properly encoded data
-  return `square-commerce-v1://payment/create?data=${encodeURIComponent(JSON.stringify(posData))}`;
+  // Return the Square POS URL with properly encoded data, plus callbackUrl for debugging
+  const posUrl = `square-commerce-v1://payment/create?data=${encodeURIComponent(JSON.stringify(posData))}`;
+  return { posUrl, callbackUrl };
 }
 
 export async function POST(request: NextRequest) {
@@ -101,7 +102,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate Square POS URL for automatic app opening
-    const posUrl = generateSquarePOSUrl({
+    const { posUrl, callbackUrl } = generateSquarePOSUrl({
       amount: booking.price_charged || service?.price || 0,
       customerName: customer?.name || '',
       serviceName: service?.name || '',
@@ -113,7 +114,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      posUrl: posUrl,
+      posUrl,
+      callbackUrl, // So you can verify it matches Square Dashboard → POS API → Web Callback URL
       message: 'Square POS URL generated successfully'
     });
 

@@ -7,31 +7,104 @@ export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
   try {
-    const url = new URL(request.url)
-    const data = url.searchParams.get('data')
+    const url = new URL(request.url);
+    const data = url.searchParams.get('data');
+    const bookingId = url.searchParams.get('booking_id');
+    
+    let paymentSucceeded = false;
+    let transactionId: string | null = null;
+    let amountCents: number | null = null;
     
     if (data) {
-      console.log('Square POS callback received:', data)
+      console.log('Square POS callback received, booking_id:', bookingId);
       
       try {
-        const transactionInfo = JSON.parse(decodeURIComponent(data))
-        console.log('Transaction info:', transactionInfo)
+        const transactionInfo = JSON.parse(decodeURIComponent(data));
+        console.log('Transaction info:', transactionInfo);
         
-        // Handle successful payment
         if (transactionInfo.transaction_id && !transactionInfo.error_code) {
-          console.log('✅ Payment successful:', transactionInfo.transaction_id)
-          // The webhook will handle the actual payment processing
-          // This is just for logging the callback
+          paymentSucceeded = true;
+          transactionId = transactionInfo.transaction_id;
+          amountCents = transactionInfo.amount_money?.amount ?? null;
+          console.log('✅ Payment successful:', transactionId);
         } else if (transactionInfo.error_code) {
-          console.log('❌ Payment failed or canceled:', transactionInfo.error_code)
+          console.log('❌ Payment failed or canceled:', transactionInfo.error_code);
         }
       } catch (error) {
-        console.error('Error parsing transaction data:', error)
+        console.error('Error parsing transaction data:', error);
       }
     }
     
-    // Return a simple HTML page instead of JSON
-    const html = `
+    // If we have a booking_id and payment succeeded, update the booking
+    if (bookingId && paymentSucceeded && transactionId) {
+      const supabase = createAdminSupabaseClient();
+      const { data: booking, error: fetchError } = await supabase
+        .from('bookings')
+        .select('id, customer_id')
+        .eq('id', bookingId)
+        .single();
+
+      if (!fetchError && booking) {
+        const { error: updateError } = await supabase
+          .from('bookings')
+          .update({
+            payment_status: 'paid',
+            square_transaction_id: transactionId,
+            paid_at: new Date().toISOString(),
+            status: 'confirmed',
+          })
+          .eq('id', bookingId);
+
+        if (!updateError) {
+          console.log(`✅ POS callback: Updated booking ${bookingId} to paid`);
+          if (booking.customer_id && amountCents != null) {
+            try {
+              await supabase.rpc('increment_customer_spent', {
+                customer_id: booking.customer_id,
+                amount: amountCents,
+              });
+            } catch (e) {
+              console.error('Error updating customer spent:', e);
+            }
+          }
+        } else {
+          console.error('❌ Error updating booking:', updateError);
+        }
+      } else {
+        console.log('⚠️ POS callback: No booking found for id', bookingId);
+      }
+    }
+    
+    // Show success or canceled page
+    const html = paymentSucceeded
+      ? `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Payment Complete - DUST Hair Studio</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <meta charset="UTF-8">
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; margin: 0; padding: 20px; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+            .container { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); text-align: center; max-width: 400px; width: 100%; }
+            .icon { font-size: 48px; margin-bottom: 16px; color: #22c55e; }
+            h1 { margin: 0 0 16px 0; font-size: 24px; color: #1f2937; }
+            p { margin: 0 0 24px 0; color: #6b7280; }
+            .button { background: #3b82f6; color: white; padding: 12px 24px; border: none; border-radius: 6px; text-decoration: none; display: inline-block; font-weight: 500; }
+            .button:hover { background: #2563eb; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="icon">✓</div>
+            <h1>Payment Complete</h1>
+            <p>The booking has been marked as paid. You can return to the admin panel.</p>
+            <a href="/admin/bookings" class="button">Return to Admin Panel</a>
+          </div>
+        </body>
+      </html>
+    `
+      : `
       <!DOCTYPE html>
       <html>
         <head>
@@ -39,42 +112,12 @@ export async function GET(request: NextRequest) {
           <meta name="viewport" content="width=device-width, initial-scale=1">
           <meta charset="UTF-8">
           <style>
-            body { 
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-              background: #f8fafc;
-              margin: 0;
-              padding: 20px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              min-height: 100vh;
-            }
-            .container {
-              background: white;
-              padding: 40px;
-              border-radius: 12px;
-              box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-              text-align: center;
-              max-width: 400px;
-              width: 100%;
-            }
-            .icon { 
-              font-size: 48px; 
-              margin-bottom: 16px; 
-              color: #f59e0b;
-            }
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; margin: 0; padding: 20px; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+            .container { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); text-align: center; max-width: 400px; width: 100%; }
+            .icon { font-size: 48px; margin-bottom: 16px; color: #f59e0b; }
             h1 { margin: 0 0 16px 0; font-size: 24px; color: #1f2937; }
             p { margin: 0 0 24px 0; color: #6b7280; }
-            .button {
-              background: #3b82f6;
-              color: white;
-              padding: 12px 24px;
-              border: none;
-              border-radius: 6px;
-              text-decoration: none;
-              display: inline-block;
-              font-weight: 500;
-            }
+            .button { background: #3b82f6; color: white; padding: 12px 24px; border: none; border-radius: 6px; text-decoration: none; display: inline-block; font-weight: 500; }
             .button:hover { background: #2563eb; }
           </style>
         </head>
@@ -87,16 +130,14 @@ export async function GET(request: NextRequest) {
           </div>
         </body>
       </html>
-    `
+    `;
     
     return new NextResponse(html, {
-      headers: { 
-        'Content-Type': 'text/html; charset=UTF-8'
-      }
-    })
+      headers: { 'Content-Type': 'text/html; charset=UTF-8' },
+    });
   } catch (error) {
-    console.error('Callback processing error:', error)
-    return NextResponse.json({ error: 'Callback processing failed' }, { status: 500 })
+    console.error('Callback processing error:', error);
+    return NextResponse.json({ error: 'Callback processing failed' }, { status: 500 });
   }
 }
 
