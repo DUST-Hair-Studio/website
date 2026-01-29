@@ -706,7 +706,7 @@ function AdminSettingsContent() {
                     <div className="space-y-2">
                       <Label htmlFor="square_application_id">Square Application ID</Label>
                       {savedCredentials.has_application_id && (
-                        <div className="flex items-center gap-2 p-2 bg-white border rounded text-sm">
+                        <div className="flex flex-wrap items-center gap-2 p-2 bg-white border rounded text-sm">
                           <span className="text-gray-500">Currently saved:</span>
                           <code className="font-mono bg-gray-100 px-2 py-0.5 rounded">
                             {savedCredentials.application_id_prefix}
@@ -723,7 +723,7 @@ function AdminSettingsContent() {
                       <div className="flex gap-2">
                         <Input
                           id="square_application_id"
-                          type={showAppId ? "text" : "password"}
+                          type="password"
                           value={paymentSettings.square_application_id}
                           onChange={(e) => setPaymentSettings(prev => ({ ...prev, square_application_id: e.target.value }))}
                           placeholder={savedCredentials.has_application_id ? "Enter new ID to replace..." : "sq0idp-..."}
@@ -736,9 +736,20 @@ function AdminSettingsContent() {
                           onClick={() => setShowAppId(!showAppId)}
                           className="px-3"
                         >
-                          {showAppId ? 'Hide' : 'Show'}
+                          {showAppId ? 'Hide' : 'Verify'}
                         </Button>
                       </div>
+                      {showAppId && paymentSettings.square_application_id && (
+                        <div className="p-2 bg-blue-50 border border-blue-200 rounded text-sm">
+                          <span className="text-gray-600">Preview: </span>
+                          <code className="font-mono">
+                            {paymentSettings.square_application_id.length > 20 
+                              ? `${paymentSettings.square_application_id.substring(0, 12)}...${paymentSettings.square_application_id.slice(-4)}`
+                              : paymentSettings.square_application_id.substring(0, 12) + '...'}
+                          </code>
+                          <span className="text-gray-500 ml-2">({paymentSettings.square_application_id.length} chars)</span>
+                        </div>
+                      )}
                       {paymentSettings.square_application_id && (
                         <p className="text-sm">
                           {paymentSettings.square_application_id.startsWith('sq0idp-') ? (
@@ -760,7 +771,7 @@ function AdminSettingsContent() {
                     <div className="space-y-2">
                       <Label htmlFor="square_access_token">Square Access Token</Label>
                       {savedCredentials.has_access_token && (
-                        <div className="flex items-center gap-2 p-2 bg-white border rounded text-sm">
+                        <div className="flex flex-wrap items-center gap-2 p-2 bg-white border rounded text-sm">
                           <span className="text-gray-500">Currently saved:</span>
                           <code className="font-mono bg-gray-100 px-2 py-0.5 rounded">
                             {savedCredentials.access_token_prefix}
@@ -776,7 +787,7 @@ function AdminSettingsContent() {
                       <div className="flex gap-2">
                         <Input
                           id="square_access_token"
-                          type={showAccessToken ? "text" : "password"}
+                          type="password"
                           value={paymentSettings.square_access_token}
                           onChange={(e) => setPaymentSettings(prev => ({ ...prev, square_access_token: e.target.value }))}
                           placeholder={savedCredentials.has_access_token ? "Enter new token to replace..." : "EAAA..."}
@@ -789,9 +800,20 @@ function AdminSettingsContent() {
                           onClick={() => setShowAccessToken(!showAccessToken)}
                           className="px-3"
                         >
-                          {showAccessToken ? 'Hide' : 'Show'}
+                          {showAccessToken ? 'Hide' : 'Verify'}
                         </Button>
                       </div>
+                      {showAccessToken && paymentSettings.square_access_token && (
+                        <div className="p-2 bg-blue-50 border border-blue-200 rounded text-sm">
+                          <span className="text-gray-600">Preview: </span>
+                          <code className="font-mono">
+                            {paymentSettings.square_access_token.length > 16 
+                              ? `${paymentSettings.square_access_token.substring(0, 8)}...${paymentSettings.square_access_token.slice(-4)}`
+                              : paymentSettings.square_access_token.substring(0, 8) + '...'}
+                          </code>
+                          <span className="text-gray-500 ml-2">({paymentSettings.square_access_token.length} chars)</span>
+                        </div>
+                      )}
                       {paymentSettings.square_access_token && (
                         <p className="text-sm">
                           {paymentSettings.square_access_token.startsWith('EAAA') ? (
