@@ -36,7 +36,8 @@ export async function GET(request: NextRequest) {
     
     let bookingIdToUpdate: string | null = null;
     
-    if (paymentSucceeded && transactionId && amountCents != null) {
+    // Match even when Square doesn't send amount (amountCents can be null)
+    if (paymentSucceeded && transactionId) {
       const supabase = createAdminSupabaseClient();
       
       // Square doesn't allow query params on callback URL, so we match by "last POS initiated" (stored when Pay Now was clicked)
@@ -51,21 +52,26 @@ export async function GET(request: NextRequest) {
           const pending = JSON.parse(String(pendingRow.value)) as { bookingId: string; amountCents: number; at: string };
           const pendingAt = new Date(pending.at).getTime();
           const fifteenMinutesAgo = Date.now() - 15 * 60 * 1000;
-          if (pending.amountCents === amountCents && pendingAt > fifteenMinutesAgo) {
+          const amountMatch = amountCents == null || Number(pending.amountCents) === Number(amountCents);
+          const withinWindow = pendingAt > fifteenMinutesAgo;
+          if (amountMatch && withinWindow) {
             bookingIdToUpdate = pending.bookingId;
-            console.log('✅ POS callback: Matched pending booking', pending.bookingId);
+            console.log('✅ POS callback: Matched pending booking', pending.bookingId, { amountCents, pendingAmount: pending.amountCents });
+          } else {
+            console.log('⚠️ POS callback: Pending did not match', { amountMatch, withinWindow, amountCents, pendingAmount: pending.amountCents, pendingAt });
           }
-          // Clear so we don't reuse
-          await supabase.from('settings').update({ value: '', updated_at: new Date().toISOString() }).eq('key', 'pos_pending_booking');
+          // Only clear after we've decided - we clear below after successful update so we don't wipe a valid pending
         } catch (e) {
           console.error('Error reading pos_pending_booking:', e);
         }
+      } else {
+        console.log('⚠️ POS callback: No pos_pending_booking in settings');
       }
 
       if (bookingIdToUpdate) {
         const { data: booking, error: fetchError } = await supabase
           .from('bookings')
-          .select('id, customer_id')
+          .select('id, customer_id, price_charged')
           .eq('id', bookingIdToUpdate)
           .single();
 
@@ -82,12 +88,17 @@ export async function GET(request: NextRequest) {
 
           if (!updateError) {
             console.log(`✅ POS callback: Updated booking ${bookingIdToUpdate} to paid`);
+            // Clear pending only after successful update so we don't wipe a valid pending on mismatch
+            await supabase.from('settings').update({ value: '', updated_at: new Date().toISOString() }).eq('key', 'pos_pending_booking');
             if (booking.customer_id) {
               try {
-                await supabase.rpc('increment_customer_spent', {
-                  customer_id: booking.customer_id,
-                  amount: amountCents,
-                });
+                const amountForSpent = amountCents ?? (booking as { price_charged?: number }).price_charged ?? 0;
+                if (amountForSpent > 0) {
+                  await supabase.rpc('increment_customer_spent', {
+                    customer_id: booking.customer_id,
+                    amount: amountForSpent,
+                  });
+                }
               } catch (e) {
                 console.error('Error updating customer spent:', e);
               }
