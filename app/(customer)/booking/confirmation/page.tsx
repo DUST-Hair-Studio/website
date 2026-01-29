@@ -167,26 +167,6 @@ function BookingConfirmationContent() {
               </Badge>
             </div>
 
-            {/* Next Steps */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-semibold text-blue-900 mb-2">What&apos;s Next?</h4>
-              <ul className="text-sm text-blue-800 space-y-1">
-                <li>• You&apos;ll receive a confirmation email with your appointment details</li>
-                <li>• We&apos;ll send you a reminder before your appointment</li>
-                <li>• If you need to reschedule, please contact us at least 24 hours in advance</li>
-                <li>• See you at your appointment!</li>
-              </ul>
-            </div>
-
-            {/* Actions */}
-            <div className="text-center pt-4 border-t">
-              <a
-                href="/admin"
-                className="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors"
-              >
-                Return to Admin
-              </a>
-            </div>
           </CardContent>
         </Card>
       </div>
