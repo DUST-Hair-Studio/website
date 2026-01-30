@@ -68,8 +68,9 @@ export async function POST(
       return NextResponse.json({ error: 'No payment required for this appointment' }, { status: 400 });
     }
 
-    const serviceName = (booking.services as { name: string } | null)?.name ?? 'Appointment';
-    const customers = booking.customers as { name: string; email: string; phone?: string } | null;
+    const services = booking.services as unknown;
+    const serviceName = (Array.isArray(services) ? services[0] : services)?.name ?? 'Appointment';
+    const customers = booking.customers as unknown as { name: string; email: string; phone?: string } | null;
     const customerName = customers?.name ?? '';
     const customerEmail = customers?.email ?? user.email ?? '';
     const customerPhone = customers?.phone ?? '';
