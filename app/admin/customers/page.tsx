@@ -892,31 +892,26 @@ export default function AdminCustomersPage() {
                           <span className="font-medium text-gray-900">{formatDate(selectedCustomer.birthday)}</span>
                         </div>
                       )}
-                      <div className="flex justify-between items-start py-2 md:py-2">
-                        <span className="text-gray-600">Private Notes</span>
-                        <div className="flex items-start gap-3 flex-1 justify-end">
-                          <div className="flex-1 max-w-[70%]">
-                            {selectedCustomer.notes ? (
-                              <span className="font-medium text-gray-900 wrap-break-word">{selectedCustomer.notes}</span>
-                            ) : (
-                              <span className="text-gray-400 text-sm">No private notes</span>
-                            )}
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setShowDetailsDialog(false)
-                              if (selectedCustomer) {
-                                openEditDialog(selectedCustomer)
-                              }
-                            }}
-                            className="h-6 w-6 p-0 hover:bg-gray-100 shrink-0"
-                            title="Edit private notes"
-                          >
-                            <Edit className="w-3 h-3" />
-                          </Button>
-                        </div>
+                      <div className="flex justify-between items-start py-2 md:py-2 gap-3">
+                        <span className="text-gray-600 shrink-0">Private Notes</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowDetailsDialog(false)
+                            if (selectedCustomer) {
+                              openEditDialog(selectedCustomer)
+                            }
+                          }}
+                          className="flex-1 max-w-[70%] text-left p-3 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-blue-50/50 hover:border-blue-400 transition-colors cursor-pointer group"
+                          title="Click to edit private notes"
+                        >
+                          {selectedCustomer.notes ? (
+                            <span className="font-medium text-gray-900 wrap-break-word">{selectedCustomer.notes}</span>
+                          ) : (
+                            <span className="text-gray-400 text-sm">No private notes</span>
+                          )}
+                          <span className="block mt-1 text-xs text-gray-400 group-hover:text-blue-600">Click to edit</span>
+                        </button>
                       </div>
                     </div>
                   </div>

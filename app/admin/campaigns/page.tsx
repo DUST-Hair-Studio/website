@@ -236,29 +236,31 @@ export default function CampaignsPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="max-w-6xl mx-auto space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold">Campaign Management</h1>
-            <p className="text-gray-600 mt-2">
+    <div className="container mx-auto py-4 sm:py-6 lg:py-8 px-3 sm:px-4">
+      <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold truncate">Campaign Management</h1>
+            <p className="text-gray-600 mt-1 sm:mt-2 text-sm sm:text-base">
               Manage and send email campaigns to your customers
             </p>
           </div>
-          <Button onClick={handleNewCampaignClick}>
+          <Button onClick={handleNewCampaignClick} className="w-full sm:w-auto shrink-0">
             <Plus className="h-4 w-4 mr-2" />
             New Campaign
           </Button>
         </div>
 
         {/* Campaign List */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {campaigns.map((campaign) => (
-            <Card key={campaign.id} className="relative">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  {campaign.name}
-                  <div className="flex gap-1">
+            <Card key={campaign.id} className="relative min-w-0">
+              <CardHeader className="pb-2 sm:pb-6">
+                <CardTitle className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between min-w-0">
+                  <span className="font-semibold text-base sm:text-lg truncate pr-2" title={campaign.name}>
+                    {campaign.name}
+                  </span>
+                  <div className="flex gap-1 shrink-0">
                     <Button
                       variant="outline"
                       size="sm"
@@ -312,12 +314,12 @@ export default function CampaignsPage() {
                 </CardTitle>
                 <CardDescription>{campaign.description}</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-2 text-sm">
-                  <div><strong>Type:</strong> {campaign.customerType}</div>
-                  <div><strong>URL:</strong> {campaign.registrationUrl}</div>
-                  <div><strong>Status:</strong> 
-                    <span className={`ml-2 px-2 py-1 rounded text-xs ${
+              <CardContent className="pt-0 sm:pt-0">
+                <div className="space-y-2 text-sm min-w-0">
+                  <div className="wrap-break-word"><strong>Type:</strong> {campaign.customerType}</div>
+                  <div className="break-all"><strong>URL:</strong> {campaign.registrationUrl}</div>
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1"><strong>Status:</strong>
+                    <span className={`inline-flex px-2 py-1 rounded text-xs ${
                       campaign.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                     }`}>
                       {campaign.isActive ? 'Active' : 'Inactive'}
@@ -331,11 +333,11 @@ export default function CampaignsPage() {
 
         {/* Campaign Sender */}
         {selectedCampaign && (
-          <Card>
+          <Card className="min-w-0">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Mail className="h-5 w-5" />
-                Send Campaign: {selectedCampaign.name}
+              <CardTitle className="flex flex-wrap items-center gap-2 text-base sm:text-lg">
+                <Mail className="h-5 w-5 shrink-0" />
+                <span className="wrap-break-word">Send Campaign: {selectedCampaign.name}</span>
               </CardTitle>
               <CardDescription>
                 {selectedCampaign.description}
@@ -387,49 +389,49 @@ export default function CampaignsPage() {
               </div>
 
               {/* Available Variables for Campaign */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-semibold text-gray-900 mb-3">Available Variables</h4>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="bg-gray-50 p-3 sm:p-4 rounded-lg min-w-0">
+                <h4 className="font-semibold text-gray-900 mb-3 text-sm sm:text-base">Available Variables</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{business_name}'}</code>
                       <span className="text-gray-600">Your business name</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{business_phone}'}</code>
                       <span className="text-gray-600">Your business phone</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{business_address}'}</code>
                       <span className="text-gray-600">Your business address</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{registration_url}'}</code>
                       <span className="text-gray-600">Campaign registration link</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{campaign_name}'}</code>
                       <span className="text-gray-600">Campaign name</span>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{customer_name}'}</code>
                       <span className="text-gray-600">Customer&apos;s full name</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{customer_email}'}</code>
                       <span className="text-gray-600">Customer&apos;s email</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{current_date}'}</code>
                       <span className="text-gray-600">Today&apos;s date</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{campaign_id}'}</code>
                       <span className="text-gray-600">Campaign ID</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{your_name}'}</code>
                       <span className="text-gray-600">Your name (from settings)</span>
                     </div>
@@ -475,8 +477,8 @@ export default function CampaignsPage() {
                 }
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <CardContent className="space-y-4 min-w-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="campaignId">Campaign ID</Label>
                   <Input
@@ -547,7 +549,7 @@ export default function CampaignsPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="registrationUrl">Button URL</Label>
                   <Input
@@ -571,49 +573,49 @@ export default function CampaignsPage() {
               </div>
 
               {/* Available Variables */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-semibold text-gray-900 mb-3">Available Variables</h4>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="bg-gray-50 p-3 sm:p-4 rounded-lg min-w-0">
+                <h4 className="font-semibold text-gray-900 mb-3 text-sm sm:text-base">Available Variables</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{business_name}'}</code>
                       <span className="text-gray-600">Your business name</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{business_phone}'}</code>
                       <span className="text-gray-600">Your business phone</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{business_address}'}</code>
                       <span className="text-gray-600">Your business address</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{registration_url}'}</code>
                       <span className="text-gray-600">Campaign registration link</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{campaign_name}'}</code>
                       <span className="text-gray-600">Campaign name</span>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{customer_name}'}</code>
                       <span className="text-gray-600">Customer&apos;s full name</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{customer_email}'}</code>
                       <span className="text-gray-600">Customer&apos;s email</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{current_date}'}</code>
                       <span className="text-gray-600">Today&apos;s date</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{campaign_id}'}</code>
                       <span className="text-gray-600">Campaign ID</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{your_name}'}</code>
                       <span className="text-gray-600">Your name (from settings)</span>
                     </div>
@@ -644,12 +646,12 @@ export default function CampaignsPage() {
 
         {/* Send Results */}
         {sendResults && (
-          <Card>
+          <Card className="min-w-0">
             <CardHeader>
-              <CardTitle>Send Results</CardTitle>
+              <CardTitle className="text-base sm:text-lg">Send Results</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-4">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-gray-900">{sendResults.total}</div>
                   <div className="text-sm text-gray-600">Total</div>
@@ -681,10 +683,10 @@ export default function CampaignsPage() {
           {/* Panel */}
           <div className="fixed right-0 top-0 h-full w-full max-w-xl bg-white shadow-xl z-50 overflow-y-auto">
             {/* Header */}
-            <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-start">
-              <div>
-                <h2 className="text-2xl font-bold">{detailsCampaign.name}</h2>
-                <p className="text-gray-600 text-sm mt-1">{detailsCampaign.description}</p>
+            <div className="sticky top-0 bg-white border-b px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-start gap-2 min-w-0">
+              <div className="min-w-0 flex-1">
+                <h2 className="text-xl sm:text-2xl font-bold wrap-break-word">{detailsCampaign.name}</h2>
+                <p className="text-gray-600 text-sm mt-1 wrap-break-word">{detailsCampaign.description}</p>
               </div>
               <Button
                 variant="ghost"
@@ -696,9 +698,9 @@ export default function CampaignsPage() {
               </Button>
             </div>
 
-            <div className="p-6 space-y-6">
+            <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 min-w-0">
               {/* Campaign Info */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="bg-gray-50 rounded-lg p-4">
                   <div className="flex items-center gap-2 text-gray-600 text-sm mb-1">
                     <Users className="h-4 w-4" />
@@ -745,7 +747,7 @@ export default function CampaignsPage() {
                     {(() => {
                       const stats = getCampaignStats(campaignHistory)
                       return (
-                        <div className="grid grid-cols-4 gap-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                           <div className="bg-blue-50 rounded-lg p-4 text-center">
                             <div className="text-2xl font-bold text-blue-600">{stats.totalSends}</div>
                             <div className="text-xs text-blue-700">Times Sent</div>
@@ -789,18 +791,18 @@ export default function CampaignsPage() {
                             })}
                           </div>
                         </div>
-                        <div className="flex items-center gap-4">
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                           <div className="flex items-center gap-1.5">
-                            <Users className="h-4 w-4 text-gray-400" />
+                            <Users className="h-4 w-4 text-gray-400 shrink-0" />
                             <span className="text-sm"><strong>{send.total_recipients}</strong> recipients</span>
                           </div>
                           <div className="flex items-center gap-1.5">
-                            <CheckCircle className="h-4 w-4 text-green-500" />
+                            <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
                             <span className="text-sm text-green-700"><strong>{send.successful_sends}</strong> sent</span>
                           </div>
                           {send.failed_sends > 0 && (
                             <div className="flex items-center gap-1.5">
-                              <XCircle className="h-4 w-4 text-red-500" />
+                              <XCircle className="h-4 w-4 text-red-500 shrink-0" />
                               <span className="text-sm text-red-700"><strong>{send.failed_sends}</strong> failed</span>
                             </div>
                           )}
@@ -817,9 +819,9 @@ export default function CampaignsPage() {
               )}
 
               {/* Quick Actions */}
-              <div className="border-t pt-6">
-                <h3 className="font-semibold text-lg mb-3">Quick Actions</h3>
-                <div className="flex gap-2">
+              <div className="border-t pt-4 sm:pt-6">
+                <h3 className="font-semibold text-base sm:text-lg mb-3">Quick Actions</h3>
+                <div className="flex flex-wrap gap-2">
                   <Button
                     onClick={() => {
                       closeCampaignDetails()

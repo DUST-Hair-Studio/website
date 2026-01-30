@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuPortal } from '@/components/ui/dropdown-menu'
-import { CheckCircle, Calendar, DollarSign, CalendarDays, RotateCcw, Search, Filter, Table, Phone, MessageSquare, Mail, ListChecks, CreditCard, MoreVertical, CheckSquare, Loader2, ChevronLeft, ChevronRight, Edit } from 'lucide-react'
+import { CheckCircle, Calendar, DollarSign, CalendarDays, RotateCcw, Search, Filter, Table, Phone, MessageSquare, Mail, ListChecks, CreditCard, MoreVertical, CheckSquare, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 import RescheduleModal from '@/components/admin/reschedule-modal'
@@ -67,6 +67,15 @@ export default function AdminBookingsPage() {
       return () => document.removeEventListener('click', handleClickOutside)
     }
   }, [activePhoneMenu])
+
+  // Lock body scroll when booking modal is open (fixes mobile scroll-through)
+  useEffect(() => {
+    if (showBookingDetails) {
+      const prev = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
+      return () => { document.body.style.overflow = prev }
+    }
+  }, [showBookingDetails])
 
   // Save public notes for a booking
   const savePublicNotes = async () => {
@@ -446,7 +455,7 @@ export default function AdminBookingsPage() {
   const getCustomerTypeDotColor = (customerType: string) => {
     switch (customerType) {
       case 'new': return 'bg-green-400'
-      case 'existing': return 'bg-indigo-400'
+      case 'existing': return 'bg-blue-500'
       default: return 'bg-gray-400'
     }
   }
@@ -1449,7 +1458,7 @@ export default function AdminBookingsPage() {
                       <span className="text-gray-600">New Customer</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-indigo-400 rounded-full"></div>
+                      <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                       <span className="text-gray-600">Existing Customer</span>
                     </div>
                   </div>
@@ -2075,9 +2084,9 @@ export default function AdminBookingsPage() {
           />
           
           {/* Modal Content */}
-          <div className="fixed bottom-0 left-0 right-0 md:bottom-0 md:left-auto md:right-0 md:top-0 md:w-[500px] md:h-full bg-white rounded-t-3xl md:rounded-none md:rounded-l-xl shadow-xl md:shadow-2xl max-h-[90vh] md:max-h-none">
+          <div className="fixed bottom-0 left-0 right-0 h-[90vh] max-h-[90vh] md:bottom-0 md:left-auto md:right-0 md:top-0 md:w-[500px] md:h-full md:max-h-none bg-white rounded-t-3xl md:rounded-none md:rounded-l-xl shadow-xl md:shadow-2xl flex flex-col">
             {/* Mobile Slide-up Container */}
-            <div className="h-full flex flex-col md:flex md:flex-col md:h-full">
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
               {/* Drag Handle for Mobile */}
               <div className="flex justify-center pt-3 pb-2 md:hidden">
                 <div className="w-12 h-1 bg-gray-300 rounded-full"></div>
@@ -2138,7 +2147,7 @@ export default function AdminBookingsPage() {
               </div>
           
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto px-6 md:px-6 md:py-4 md:max-h-[calc(100vh-200px)] min-h-0">
+            <div className="flex-1 overflow-y-auto overscroll-contain touch-pan-y min-h-0 px-6 md:px-6 md:py-4">
               {selectedBooking && (
                 <div className="space-y-4 md:space-y-6 pb-4 md:pb-6">
                   {/* Customer Info */}
@@ -2251,23 +2260,7 @@ export default function AdminBookingsPage() {
 
                   {/* Public Notes Section */}
                   <div className="border-t border-gray-200 pt-6">
-                    <div className="flex justify-between items-center mb-4">
-                      <h4 className="font-semibold text-gray-900 text-lg">Public Notes</h4>
-                      {!editingPublicNotes && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setPublicNotesValue(selectedBooking.public_notes || '')
-                            setEditingPublicNotes(true)
-                          }}
-                          className="h-8 px-2"
-                          title="Edit public notes (visible to customer)"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
+                    <h4 className="font-semibold text-gray-900 text-lg mb-1">Public Notes</h4>
                     <p className="text-xs text-gray-500 mb-3">
                       These notes are visible to the customer as &quot;Appointment Notes&quot;
                     </p>
@@ -2311,13 +2304,22 @@ export default function AdminBookingsPage() {
                         </div>
                       </div>
                     ) : (
-                      <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg min-h-[60px]">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPublicNotesValue(selectedBooking.public_notes || '')
+                          setEditingPublicNotes(true)
+                        }}
+                        className="w-full text-left p-3 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg min-h-[60px] hover:bg-blue-50/50 hover:border-blue-400 transition-colors cursor-pointer group"
+                        title="Click to edit public notes"
+                      >
                         {selectedBooking.public_notes ? (
                           <p className="text-sm text-gray-700">{selectedBooking.public_notes}</p>
                         ) : (
                           <p className="text-sm text-gray-400 italic">No public notes added</p>
                         )}
-                      </div>
+                        <span className="block mt-2 text-xs text-gray-400 group-hover:text-blue-600">Click to edit</span>
+                      </button>
                     )}
                   </div>
 

@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Calendar, Clock, DollarSign, RefreshCw, Eye, ArrowLeft, X, Bell, Loader2 } from 'lucide-react'
+import { Calendar, Clock, DollarSign, RefreshCw, ArrowLeft, X, Bell, Loader2, CreditCard } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import RescheduleModal from '@/components/admin/reschedule-modal'
@@ -41,6 +41,7 @@ export default function MyAppointmentsPage() {
   const [showCancelDialog, setShowCancelDialog] = useState(false)
   const [bookingToCancel, setBookingToCancel] = useState<BookingWithDetails | null>(null)
   const [cancelling, setCancelling] = useState(false)
+  const [processingPayment, setProcessingPayment] = useState<Set<string>>(new Set())
 
   // Waitlist state
   const [waitlistRequests, setWaitlistRequests] = useState<WaitlistRequestWithDetails[]>([])
@@ -222,6 +223,34 @@ export default function MyAppointmentsPage() {
     }
   }
 
+  const openPaymentLink = async (booking: BookingWithDetails) => {
+    if (booking.payment_status === 'paid' || !booking.price_charged || booking.price_charged <= 0) return
+    try {
+      setProcessingPayment(prev => new Set(prev).add(booking.id))
+      const response = await fetch(`/api/customer/bookings/${booking.id}/payment-link`, {
+        method: 'POST',
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create payment link')
+      }
+      if (data.paymentUrl) {
+        window.open(data.paymentUrl, '_blank')
+        toast.success('Payment page opened in a new tab')
+        fetchBookings()
+      }
+    } catch (error) {
+      console.error('Error opening payment link:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to open payment link')
+    } finally {
+      setProcessingPayment(prev => {
+        const next = new Set(prev)
+        next.delete(booking.id)
+        return next
+      })
+    }
+  }
+
   const handleCancelWaitlistRequest = async (id: string) => {
     setDeletingId(id)
 
@@ -332,7 +361,10 @@ export default function MyAppointmentsPage() {
               {upcomingBookings.length === 0 ? (
                 <Card>
                   <CardContent className="p-8 text-center">
-                    <p className="text-gray-500">No upcoming appointments</p>
+                    <p className="text-gray-500 mb-4">No upcoming appointments</p>
+                    <Button onClick={() => router.push('/book')}>
+                      Book appointment
+                    </Button>
                   </CardContent>
                 </Card>
               ) : (
@@ -349,6 +381,18 @@ export default function MyAppointmentsPage() {
                               <Badge className={getStatusColor(booking.status)}>
                                 {booking.status}
                               </Badge>
+                              {booking.price_charged > 0 && (
+                                <Badge
+                                  variant="secondary"
+                                  className={
+                                    booking.payment_status === 'paid'
+                                      ? 'bg-green-100 text-green-800'
+                                      : 'bg-yellow-100 text-yellow-800'
+                                  }
+                                >
+                                  {booking.payment_status}
+                                </Badge>
+                              )}
                             </div>
                             
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-600">
@@ -380,6 +424,22 @@ export default function MyAppointmentsPage() {
                           </div>
                           
                           <div className="flex flex-col gap-2">
+                            {booking.payment_status === 'pending' && booking.price_charged > 0 && (
+                              <Button
+                                onClick={() => openPaymentLink(booking)}
+                                disabled={processingPayment.has(booking.id)}
+                                variant="outline"
+                                size="sm"
+                                className="flex items-center"
+                              >
+                                {processingPayment.has(booking.id) ? (
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                ) : (
+                                  <CreditCard className="w-4 h-4 mr-2" />
+                                )}
+                                {processingPayment.has(booking.id) ? 'Opening…' : 'Pay Now'}
+                              </Button>
+                            )}
                             {canReschedule(booking) && (
                               <Button 
                                 onClick={() => openRescheduleModal(booking)}
@@ -438,6 +498,18 @@ export default function MyAppointmentsPage() {
                               <Badge className={getStatusColor(booking.status)}>
                                 {booking.status}
                               </Badge>
+                              {booking.price_charged > 0 && (
+                                <Badge
+                                  variant="secondary"
+                                  className={
+                                    booking.payment_status === 'paid'
+                                      ? 'bg-green-100 text-green-800'
+                                      : 'bg-yellow-100 text-yellow-800'
+                                  }
+                                >
+                                  {booking.payment_status}
+                                </Badge>
+                              )}
                             </div>
                             
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-600">
@@ -468,16 +540,24 @@ export default function MyAppointmentsPage() {
                             )}
                           </div>
                           
-                          <div className="flex flex-col gap-2">
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              className="flex items-center"
-                            >
-                              <Eye className="w-4 h-4 mr-2" />
-                              View Details
-                            </Button>
-                          </div>
+                          {(booking.payment_status === 'pending' && booking.price_charged > 0) && (
+                            <div className="flex flex-col gap-2">
+                              <Button
+                                onClick={() => openPaymentLink(booking)}
+                                disabled={processingPayment.has(booking.id)}
+                                variant="outline"
+                                size="sm"
+                                className="flex items-center"
+                              >
+                                {processingPayment.has(booking.id) ? (
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                ) : (
+                                  <CreditCard className="w-4 h-4 mr-2" />
+                                )}
+                                {processingPayment.has(booking.id) ? 'Opening…' : 'Pay Now'}
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
