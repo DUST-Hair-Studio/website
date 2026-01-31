@@ -380,25 +380,24 @@ export default function AdminBookModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader className="text-center sm:text-center">
-          <DialogTitle>
+      <DialogContent className="w-[calc(100vw-1rem)] max-w-[600px] max-h-[90dvh] sm:max-h-[90vh] overflow-hidden flex flex-col p-4 sm:p-6">
+        <DialogHeader className="text-center">
+          <DialogTitle className="text-base sm:text-lg">
             Book Appointment
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-xs sm:text-sm">
             Create a new appointment on behalf of a customer
           </DialogDescription>
         </DialogHeader>
 
-        {/* Step Indicator - Clean progress style */}
-        <div className="py-4">
-          <div className="flex items-center justify-between">
+        {/* Step Indicator - Compact on mobile */}
+        <div className="py-2 sm:py-4">
+          <div className="flex items-center justify-between gap-0 sm:gap-2">
             {steps.map((step, index) => (
-              <div key={step.id} className="flex items-center flex-1">
-                {/* Step circle and label */}
-                <div className="flex flex-col items-center">
+              <div key={step.id} className="flex items-center flex-1 min-w-0">
+                <div className="flex flex-col items-center w-full">
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
+                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium shrink-0 transition-colors ${
                       index < currentStepIndex
                         ? 'bg-green-500 text-white'
                         : index === currentStepIndex
@@ -407,21 +406,19 @@ export default function AdminBookModal({
                     }`}
                   >
                     {index < currentStepIndex ? (
-                      <Check className="w-4 h-4" />
+                      <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     ) : (
                       index + 1
                     )}
                   </div>
-                  <span className={`text-xs mt-1 ${
+                  <span className={`text-[10px] sm:text-xs mt-0.5 sm:mt-1 truncate w-full text-center ${
                     index <= currentStepIndex ? 'text-gray-900' : 'text-gray-400'
                   }`}>
                     {step.label}
                   </span>
                 </div>
-                
-                {/* Connecting line */}
                 {index < steps.length - 1 && (
-                  <div className="flex-1 mx-2 mb-5">
+                  <div className="flex-1 mx-0.5 sm:mx-2 mb-5 min-w-2">
                     <div className={`h-0.5 ${
                       index < currentStepIndex ? 'bg-green-500' : 'bg-gray-200'
                     }`} />
@@ -433,22 +430,22 @@ export default function AdminBookModal({
         </div>
 
         {/* Step Content */}
-        <div className="flex-1 overflow-y-auto py-4 px-1">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden py-2 sm:py-4 px-0 sm:px-1 min-h-0">
           {/* Step 1: Customer Selection */}
           {currentStep === 'customer' && (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
                   placeholder="Search by name, email, or phone..."
                   value={customerSearch}
                   onChange={(e) => setCustomerSearch(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 min-h-10"
                   autoFocus
                 />
               </div>
 
-              <div className="space-y-2 max-h-[350px] overflow-y-auto">
+              <div className="space-y-2 max-h-[min(350px,50vh)] sm:max-h-[350px] overflow-y-auto -mx-0.5 px-0.5">
                 {loadingCustomers ? (
                   <div className="text-center py-8 text-gray-500">
                     <Loader2 className="w-6 h-6 animate-spin inline mr-2" />
@@ -460,12 +457,10 @@ export default function AdminBookModal({
                       key={customer.id}
                       onClick={() => {
                         setSelectedCustomer(customer)
-                        // Clear selected service when customer changes (service availability may differ)
                         setSelectedService(null)
-                        // Auto-advance to next step
                         setCurrentStep('service')
                       }}
-                      className={`w-full text-left p-4 rounded-lg border-2 transition-colors ${
+                      className={`w-full text-left p-3 sm:p-4 rounded-lg border-2 transition-colors min-h-[52px] touch-manipulation ${
                         selectedCustomer?.id === customer.id
                           ? 'border-black bg-gray-50'
                           : 'border-gray-200 hover:border-gray-300'
@@ -498,7 +493,7 @@ export default function AdminBookModal({
 
           {/* Step 2: Service Selection */}
           {currentStep === 'service' && (
-            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+            <div className="space-y-2 max-h-[min(400px,55vh)] sm:max-h-[400px] overflow-y-auto -mx-0.5 px-0.5">
               {loadingServices ? (
                 <div className="text-center py-8 text-gray-500">
                   <Loader2 className="w-6 h-6 animate-spin inline mr-2" />
@@ -518,10 +513,9 @@ export default function AdminBookModal({
                       key={service.id}
                       onClick={() => {
                         setSelectedService(service)
-                        // Auto-advance to next step
                         setCurrentStep('datetime')
                       }}
-                      className={`w-full text-left p-4 rounded-lg border-2 transition-colors ${
+                      className={`w-full text-left p-3 sm:p-4 rounded-lg border-2 transition-colors min-h-[52px] touch-manipulation ${
                         selectedService?.id === service.id
                           ? 'border-black bg-gray-50'
                           : 'border-gray-200 hover:border-gray-300'
@@ -545,13 +539,13 @@ export default function AdminBookModal({
 
           {/* Step 3: Date & Time Selection */}
           {currentStep === 'datetime' && (
-            <div className="space-y-6">
-              <div>
-                <h3 className="font-medium mb-3 flex items-center">
-                  <CalendarIcon className="w-4 h-4 mr-2" />
+            <div className="space-y-4 sm:space-y-6">
+              <div className="overflow-x-auto -mx-1">
+                <h3 className="font-medium mb-2 sm:mb-3 flex items-center text-sm sm:text-base">
+                  <CalendarIcon className="w-4 h-4 mr-2 shrink-0" />
                   Select Date
                 </h3>
-                <div className="flex justify-center">
+                <div className="flex justify-center min-w-0">
                   <Calendar
                     mode="single"
                     selected={selectedDate}
@@ -567,18 +561,18 @@ export default function AdminBookModal({
               </div>
 
               {selectedDate && (
-                <div>
-                  <h3 className="font-medium mb-3 flex items-center">
-                    <Clock className="w-4 h-4 mr-2" />
-                    Select Time - {formatDate(selectedDate)}
+                <div className="min-w-0">
+                  <h3 className="font-medium mb-2 sm:mb-3 flex items-center text-sm sm:text-base wrap-break-word">
+                    <Clock className="w-4 h-4 mr-2 shrink-0" />
+                    <span className="min-w-0">Select Time – {formatDate(selectedDate)}</span>
                   </h3>
                   {loadingTimes ? (
-                    <div className="text-center py-4 text-gray-500">
+                    <div className="text-center py-4 text-gray-500 text-sm">
                       <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
                       Loading time slots...
                     </div>
                   ) : (
-                    <div className="grid grid-cols-4 gap-2 max-h-[200px] overflow-y-auto">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-[220px] sm:max-h-[200px] overflow-y-auto overflow-x-hidden overscroll-contain pr-0.5">
                       {timeSlotsWithConflicts.map((slot, index) => {
                         const isSelected = selectedTime === slot.time
                         return (
@@ -588,10 +582,9 @@ export default function AdminBookModal({
                             size="sm"
                             onClick={() => {
                               setSelectedTime(slot.time)
-                              // Auto-advance to review step
                               setCurrentStep('review')
                             }}
-                            className={`${
+                            className={`min-h-9 sm:min-h-8 text-xs sm:text-sm ${
                               isSelected 
                                 ? 'bg-black text-white border-black hover:bg-black hover:text-white' 
                                 : slot.hasConflict 
@@ -599,9 +592,9 @@ export default function AdminBookModal({
                                   : 'hover:bg-gray-50'
                             }`}
                           >
-                            {slot.time}
+                            <span className="truncate">{slot.time}</span>
                             {slot.hasConflict && !isSelected && (
-                              <AlertCircle className="w-3 h-3 ml-1" />
+                              <AlertCircle className="w-3 h-3 ml-1 shrink-0" />
                             )}
                           </Button>
                         )
@@ -620,11 +613,11 @@ export default function AdminBookModal({
 
           {/* Step 4: Review */}
           {currentStep === 'review' && (
-            <div className="space-y-6">
-              <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                <h3 className="font-semibold text-lg">Booking Summary</h3>
+            <div className="space-y-4 sm:space-y-6">
+              <div className="bg-gray-50 rounded-lg p-3 sm:p-4 space-y-3">
+                <h3 className="font-semibold text-base sm:text-lg">Booking Summary</h3>
                 
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
                   <div>
                     <div className="text-gray-500">Customer</div>
                     <div className="font-medium">{selectedCustomer?.name}</div>
@@ -665,18 +658,20 @@ export default function AdminBookModal({
                   value={publicNotes}
                   onChange={(e) => setPublicNotes(e.target.value)}
                   rows={3}
+                  className="text-base"
                 />
               </div>
             </div>
           )}
         </div>
 
-        {/* Navigation Buttons */}
-        <div className="flex justify-between pt-4 border-t">
+        {/* Navigation Buttons - full-width touch targets on mobile */}
+        <div className="flex gap-2 justify-between pt-3 sm:pt-4 border-t shrink-0">
           <Button
             variant="outline"
             onClick={currentStepIndex === 0 ? onClose : goBack}
             disabled={isSubmitting}
+            className="flex-1 sm:flex-initial min-h-10 sm:min-h-9 touch-manipulation"
           >
             <ChevronLeft className="w-4 h-4 mr-1" />
             {currentStepIndex === 0 ? 'Cancel' : 'Back'}
@@ -686,6 +681,7 @@ export default function AdminBookModal({
             <Button
               onClick={handleSubmit}
               disabled={isSubmitting}
+              className="flex-1 sm:flex-initial min-h-10 sm:min-h-9 touch-manipulation"
             >
               {isSubmitting ? (
                 <>
@@ -703,6 +699,7 @@ export default function AdminBookModal({
             <Button
               onClick={goNext}
               disabled={!canProceed()}
+              className="flex-1 sm:flex-initial min-h-10 sm:min-h-9 touch-manipulation"
             >
               Next
               <ChevronRight className="w-4 h-4 ml-1" />

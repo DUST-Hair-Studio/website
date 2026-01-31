@@ -1278,7 +1278,7 @@ export default function AdminCustomersPage() {
                           onChange={(e) => setPortalNotesValue(e.target.value)}
                           placeholder="Add public notes visible to the customer..."
                           rows={3}
-                          className="w-full"
+                          className="w-full text-base"
                         />
                         <div className="flex gap-2">
                           <Button
