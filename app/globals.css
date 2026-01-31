@@ -76,34 +76,51 @@
     background: #f3f4f6 !important;
   }
 
-  /* Fix calendar horizontal dividing line on mobile */
+  /* Fix calendar horizontal dividing line cutting off last week */
   .rdp-table,
   .rdp-table tbody,
   .rdp-table tr,
   .rdp-table td {
     border: none !important;
     border-collapse: separate !important;
+    border-bottom: none !important;
+    box-shadow: none !important;
   }
   
-  .rdp-week {
+  .rdp-week,
+  .rdp-week_row,
+  [class*="rdp-week"] {
     border: none !important;
+    border-bottom: none !important;
+    box-shadow: none !important;
   }
   
-  .rdp-week::after {
+  .rdp-week::after,
+  .rdp-week::before,
+  .rdp-week_row::after,
+  .rdp-week_row::before,
+  [class*="rdp-week"]::after,
+  [class*="rdp-week"]::before {
     content: none !important;
+    display: none !important;
   }
 
   /* Fix calendar cutoff on mobile */
   .rdp {
-    margin-bottom: 1rem !important;
+    margin-bottom: 0 !important;
+    padding-bottom: 1.5rem !important;
   }
   
-  .rdp-month {
-    margin-bottom: 1rem !important;
+  .rdp-month,
+  .rdp-month_grid {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+    border: none !important;
   }
   
-  /* Ensure calendar has proper spacing in modals */
-  [data-radix-dialog-content] .rdp {
+  /* Ensure calendar has proper spacing in modals and cards */
+  [data-radix-dialog-content] .rdp,
+  [data-slot="card-content"] .rdp {
     padding-bottom: 2rem !important;
   }
   
@@ -118,7 +135,12 @@
       min-height: 2rem !important;
     }
     
-    [data-radix-dialog-content] .rdp {
+    .rdp {
+      padding-bottom: 2rem !important;
+    }
+    
+    [data-radix-dialog-content] .rdp,
+    [data-slot="card-content"] .rdp {
       padding-bottom: 3rem !important;
     }
   }

@@ -299,9 +299,15 @@ If this is your first time here, welcome. To ensure we have enough time together
               </div>
             </div>
 
-            {/* Bottom Logo */}
-            <div className="text-center overflow-hidden">
-              <div className="dust-heading text-[9.5rem] xs:text-[10rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[38rem]" style={{ color: '#FAFAFA' }}>
+            {/* Bottom Logo - viewport-relative so it never overflows on mobile */}
+            <div className="text-center overflow-hidden min-w-0">
+              <div
+                className="dust-heading whitespace-nowrap"
+                style={{
+                  color: '#FAFAFA',
+                  fontSize: 'clamp(4rem, 18vw, 24rem)',
+                }}
+              >
                 DUST
               </div>
             </div>

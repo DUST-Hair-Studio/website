@@ -411,7 +411,7 @@ export default function ReschedulePage() {
               <CardDescription>Choose your preferred date</CardDescription>
             </CardHeader>
             <CardContent className="p-0 relative">
-              <div className="w-full pb-8 px-2">
+              <div className="w-full pb-16 pt-2 px-2 sm:pb-10 sm:pt-0 overflow-hidden">
                 <Calendar
                   mode="single"
                   selected={selectedDate}
@@ -432,7 +432,7 @@ export default function ReschedulePage() {
                     
                     return isDisabled
                   }}
-                  className="border-t border-b w-full"
+                  className="w-full [&_.rdp-week]:border-none! [&_.rdp-week]:shadow-none!"
                 />
               </div>
               {loadingCalendar && (

@@ -430,7 +430,7 @@ function BookPageContent() {
                 <CardDescription>Choose your preferred date</CardDescription>
               </CardHeader>
               <CardContent className="p-0 overflow-x-hidden">
-                <div className="w-full pb-12 px-4 sm:pb-8 overflow-hidden">
+                <div className="w-full pb-16 pt-2 px-4 sm:pb-10 sm:pt-0 overflow-hidden">
                   <Calendar
                     mode="single"
                     selected={selectedDate}
@@ -444,7 +444,7 @@ function BookPageContent() {
                       // Availability is checked when date is selected
                       return isPast || !isBusinessDayResult
                     }}
-                    className="border-t border-b w-full"
+                    className="w-full [&_.rdp-week]:border-none! [&_.rdp-week]:shadow-none!"
                   />
                 </div>
               </CardContent>
