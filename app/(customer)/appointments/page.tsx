@@ -131,19 +131,6 @@ export default function MyAppointmentsPage() {
     return `$${Math.round(priceInCents / 100)}`
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'confirmed':
-        return 'bg-blue-100 text-blue-800 border-blue-200'
-      case 'completed':
-        return 'bg-green-100 text-green-800 border-green-200'
-      case 'cancelled':
-        return 'bg-red-100 text-red-800 border-red-200'
-      default:
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-    }
-  }
-
   const getWaitlistStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
@@ -374,26 +361,9 @@ export default function MyAppointmentsPage() {
                       <CardContent className="p-6">
                         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
                           <div className="flex-1">
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3">
-                              <h3 className="font-semibold text-lg">
-                                {booking.services?.name || 'Service'}
-                              </h3>
-                              <Badge className={getStatusColor(booking.status)}>
-                                {booking.status}
-                              </Badge>
-                              {booking.price_charged > 0 && (
-                                <Badge
-                                  variant="secondary"
-                                  className={
-                                    booking.payment_status === 'paid'
-                                      ? 'bg-green-100 text-green-800'
-                                      : 'bg-yellow-100 text-yellow-800'
-                                  }
-                                >
-                                  {booking.payment_status}
-                                </Badge>
-                              )}
-                            </div>
+                            <h3 className="font-semibold text-lg mb-3">
+                              {booking.services?.name || 'Service'}
+                            </h3>
                             
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-600">
                               <div className="flex items-center">
@@ -491,26 +461,9 @@ export default function MyAppointmentsPage() {
                       <CardContent className="p-6">
                         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
                           <div className="flex-1">
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3">
-                              <h3 className="font-semibold text-lg">
-                                {booking.services?.name || 'Service'}
-                              </h3>
-                              <Badge className={getStatusColor(booking.status)}>
-                                {booking.status}
-                              </Badge>
-                              {booking.price_charged > 0 && (
-                                <Badge
-                                  variant="secondary"
-                                  className={
-                                    booking.payment_status === 'paid'
-                                      ? 'bg-green-100 text-green-800'
-                                      : 'bg-yellow-100 text-yellow-800'
-                                  }
-                                >
-                                  {booking.payment_status}
-                                </Badge>
-                              )}
-                            </div>
+                            <h3 className="font-semibold text-lg mb-3">
+                              {booking.services?.name || 'Service'}
+                            </h3>
                             
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-600">
                               <div className="flex items-center">
