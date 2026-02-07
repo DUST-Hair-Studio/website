@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     const { data: authData, error: inviteError } = await adminSupabase.auth.admin.inviteUserByEmail(
       normalizedEmail,
       {
-        redirectTo: `${appUrl}/admin`,
+        redirectTo: `${appUrl.replace(/\/$/, '')}/admin/accept-invite`,
         data: { name: name || email.split('@')[0] }
       }
     )

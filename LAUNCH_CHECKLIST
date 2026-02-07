@@ -155,7 +155,27 @@ Add to .env.local and Vercel env vars:
 This uses Resend's default sender so emails work before domain verification.
 Remove once domain is verified; then emails will send from business_email.
 
-STEP X: Configure Supabase Auth SMTP (Resend) ................................. ⬜
+STEP X: Supabase Auth URL Configuration (REQUIRED for admin invites) ........... ⬜
+─────────────────────────────────────────────────────────────────────────────────
+If invite links send users to login instead of "Set Your Password", fix this first.
+
+Supabase Dashboard → Authentication → URL Configuration
+
+1. Site URL
+   • Local:   http://localhost:3000
+   • Prod:    https://www.dusthairstudio.com
+   • NOT /admin/login — Site URL must be your app root.
+
+2. Redirect URLs — add these exact URLs (wildcards can fail for invites):
+   • http://localhost:3000/admin/accept-invite
+   • https://www.dusthairstudio.com/admin/accept-invite
+   (Wildcards like http://localhost:3000/** are fine for other flows; add the explicit
+    accept-invite URL to be safe.)
+
+When redirect_to isn’t in the list, Supabase falls back to Site URL and the invite
+flow breaks (user ends up on login without tokens).
+
+STEP X+1: Configure Supabase Auth SMTP (Resend) ............................... ⬜
 ─────────────────────────────────────────────────────────────────────────────────
 Required for admin invite emails, password reset, and other Auth emails to send.
 

@@ -2,7 +2,7 @@
 
 import { AdminSidebar } from '@/components/admin/admin-sidebar'
 import { useAuth } from '@/lib/auth-context'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Toaster } from '@/components/ui/sonner'
 import Link from 'next/link'
@@ -16,6 +16,8 @@ export default function AdminLayout({
   
   const { user, loading } = useAuth()
   const router = useRouter()
+  const pathname = usePathname()
+  const isAcceptInvitePage = pathname === '/admin/accept-invite'
   const [isAdmin, setIsAdmin] = useState(false)
   const [checkingAdmin, setCheckingAdmin] = useState(true)
   const [gcalWarning, setGcalWarning] = useState<string | null>(null)
@@ -49,7 +51,13 @@ export default function AdminLayout({
   useEffect(() => {
     const checkAdminAccess = async () => {
       if (loading) return
-      
+      // Allow accept-invite page without auth - user gets session from invite link hash
+      if (isAcceptInvitePage) {
+        setCheckingAdmin(false)
+        setIsAdmin(true) // Allow render
+        return
+      }
+
       if (!user) {
         setCheckingAdmin(false)
         router.push('/admin/login')
@@ -76,7 +84,7 @@ export default function AdminLayout({
     }
 
     checkAdminAccess()
-  }, [user, loading, router])
+  }, [user, loading, router, isAcceptInvitePage])
 
   // Temporary bypass for debugging
   const forceShowContent = true
@@ -106,6 +114,16 @@ export default function AdminLayout({
   if (!isAdmin && !forceShowContent) {
     console.log('🔍 AdminLayout: User is not admin, returning null')
     return null
+  }
+
+  // Accept-invite page: minimal layout, no sidebar (user may not be logged in yet)
+  if (isAcceptInvitePage) {
+    return (
+      <div className="min-h-screen" style={{ backgroundColor: '#FAFAFA' }}>
+        {children}
+        <Toaster />
+      </div>
+    )
   }
 
   return (

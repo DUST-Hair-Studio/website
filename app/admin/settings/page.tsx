@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Loader2, Calendar, Clock, Link, Unlink, CheckCircle, XCircle, CreditCard, Building, ListChecks, UserPlus, Users, Mail } from 'lucide-react'
 import { toast } from 'sonner'
+import { useAuth } from '@/lib/auth-context'
 
 interface BusinessHours {
   day_of_week: number
@@ -168,6 +169,8 @@ function AdminSettingsContent() {
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteName, setInviteName] = useState('')
   const [inviting, setInviting] = useState(false)
+  const [togglingAdminId, setTogglingAdminId] = useState<string | null>(null)
+  const { user } = useAuth()
 
   // Initialize business hours with default values
   useEffect(() => {
@@ -245,6 +248,29 @@ function AdminSettingsContent() {
       toast.error('Failed to load settings')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleToggleAdminActive = async (admin: AdminUser, newActive: boolean) => {
+    if (user?.email?.toLowerCase() === admin.email.toLowerCase() && !newActive) {
+      toast.error('You cannot deactivate your own account')
+      return
+    }
+    try {
+      setTogglingAdminId(admin.id)
+      const response = await fetch(`/api/admin/admins/${admin.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: newActive })
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Failed to update')
+      toast.success(newActive ? 'Admin activated' : 'Admin deactivated')
+      fetchSettings() // Refresh admin list
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update admin')
+    } finally {
+      setTogglingAdminId(null)
     }
   }
 
@@ -1089,27 +1115,43 @@ function AdminSettingsContent() {
                 <p className="text-sm text-gray-500">No admin users yet.</p>
               ) : (
                 <ul className="divide-y divide-gray-200">
-                  {admins.map((admin) => (
-                    <li key={admin.id} className="py-4 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100">
-                          <Mail className="h-5 w-5 text-gray-500" />
+                  {admins.map((admin) => {
+                    const isCurrentUser = user?.email?.toLowerCase() === admin.email.toLowerCase()
+                    return (
+                      <li key={admin.id} className="py-4 flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-100">
+                            <Mail className="h-5 w-5 text-gray-500" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium text-gray-900">{admin.name || admin.email}</p>
+                            <p className="text-sm text-gray-500 truncate">{admin.email}</p>
+                            {admin.last_login && (
+                              <p className="text-xs text-gray-400">
+                                Last login: {new Date(admin.last_login).toLocaleDateString()}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-gray-900">{admin.name || admin.email}</p>
-                          <p className="text-sm text-gray-500">{admin.email}</p>
-                          {admin.last_login && (
-                            <p className="text-xs text-gray-400">
-                              Last login: {new Date(admin.last_login).toLocaleDateString()}
-                            </p>
-                          )}
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className={`text-xs font-medium px-2 py-1 rounded-full ${admin.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                            {admin.is_active ? 'Active' : 'Inactive'}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`admin-${admin.id}`} className="text-sm text-gray-600 sr-only">
+                              {admin.is_active ? 'Deactivate' : 'Activate'}
+                            </Label>
+                            <Switch
+                              id={`admin-${admin.id}`}
+                              checked={admin.is_active}
+                              onCheckedChange={(checked) => handleToggleAdminActive(admin, checked)}
+                              disabled={togglingAdminId === admin.id || (isCurrentUser && admin.is_active)}
+                            />
+                          </div>
                         </div>
-                      </div>
-                      <span className={`text-xs font-medium px-2 py-1 rounded-full ${admin.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-                        {admin.is_active ? 'Active' : 'Inactive'}
-                      </span>
-                    </li>
-                  ))}
+                      </li>
+                    )
+                  })}
                 </ul>
               )}
             </CardContent>

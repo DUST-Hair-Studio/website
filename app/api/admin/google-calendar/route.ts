@@ -144,11 +144,12 @@ export async function DELETE() {
 }
 
 function generateGoogleAuthUrl(): string {
+  // Minimal scopes for 2-way sync: calendar list (read-only) to find primary calendar, events to create/read/update/delete
   const params = new URLSearchParams({
     client_id: process.env.GOOGLE_CLIENT_ID!,
     redirect_uri: getRedirectUri(),
     response_type: 'code',
-    scope: 'https://www.googleapis.com/auth/calendar',
+    scope: 'https://www.googleapis.com/auth/calendar.calendarlist.readonly https://www.googleapis.com/auth/calendar.events',
     access_type: 'offline',
     prompt: 'consent'
   })
