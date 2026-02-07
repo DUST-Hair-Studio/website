@@ -41,14 +41,15 @@ export async function POST(request: NextRequest) {
     }
 
     const adminSupabase = createAdminSupabaseClient()
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/+$/, '')
+    const redirectTo = `${baseUrl}/admin/accept-invite`
     const normalizedEmail = email.toLowerCase().trim()
 
     // Invite user via Supabase Auth - creates auth user and sends invite email
     const { data: authData, error: inviteError } = await adminSupabase.auth.admin.inviteUserByEmail(
       normalizedEmail,
       {
-        redirectTo: `${appUrl.replace(/\/$/, '')}/admin/accept-invite`,
+        redirectTo,
         data: { name: name || email.split('@')[0] }
       }
     )
