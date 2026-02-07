@@ -299,6 +299,13 @@ If this is your first time here, welcome. To ensure we have enough time together
               </div>
             </div>
 
+            {/* Legal links */}
+            <div className="text-center text-sm text-white/80 mb-8">
+              <a href="/privacy" className="underline hover:no-underline">Privacy Policy</a>
+              {' · '}
+              <a href="/terms" className="underline hover:no-underline">Terms of Service</a>
+            </div>
+
             {/* Bottom Logo - viewport-relative so it never overflows on mobile */}
             <div className="text-center overflow-hidden min-w-0">
               <div
