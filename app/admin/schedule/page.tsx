@@ -15,18 +15,32 @@ function AdminScheduleContent() {
     isConnected: false,
     calendarId: null
   })
+  const [fixedSchedule, setFixedSchedule] = useState<{
+    businessHours: Array<{ day_of_week: number; day_name: string; is_open: boolean; open_time: string; close_time: string }>
+    booking_available_from_date: string | null
+  } | null>(null)
 
-  // Fetch Google Calendar status
-  const fetchGoogleCalendarStatus = async () => {
+  // Fetch Google Calendar status and fixed schedule (business hours + booking start date)
+  const fetchScheduleData = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/admin/google-calendar')
-      if (response.ok) {
-        const data = await response.json()
+      const [calResponse, hoursResponse] = await Promise.all([
+        fetch('/api/admin/google-calendar'),
+        fetch('/api/admin/business-hours')
+      ])
+      if (calResponse.ok) {
+        const data = await calResponse.json()
         setGoogleCalendar(data)
       }
+      if (hoursResponse.ok) {
+        const data = await hoursResponse.json()
+        setFixedSchedule({
+          businessHours: data.businessHours || [],
+          booking_available_from_date: data.booking_available_from_date || null
+        })
+      }
     } catch (error) {
-      console.error('Error fetching Google Calendar status:', error)
+      console.error('Error fetching schedule data:', error)
     } finally {
       setLoading(false)
     }
@@ -61,7 +75,7 @@ function AdminScheduleContent() {
         toast.success('Google Calendar connected successfully!')
         
         // Refresh the calendar status
-        await fetchGoogleCalendarStatus()
+        await fetchScheduleData()
       } catch (error) {
         console.error('Google Calendar callback error:', error)
         toast.error(error instanceof Error ? error.message : 'Failed to connect Google Calendar')
@@ -70,7 +84,7 @@ function AdminScheduleContent() {
   }, [searchParams])
 
   useEffect(() => {
-    fetchGoogleCalendarStatus()
+    fetchScheduleData()
   }, [])
 
   useEffect(() => {
@@ -97,35 +111,45 @@ function AdminScheduleContent() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
-        {/* Schedule Status */}
+        {/* Fixed Schedule (business hours + booking start date) - works without Google */}
         <Card>
           <CardHeader className="pb-3 sm:pb-6">
             <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
               <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span>Schedule Status</span>
+              <span>Fixed Schedule</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 sm:space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="font-medium text-sm sm:text-base text-green-800">Schedule Active</span>
-                </div>
-                <span className="text-xs sm:text-sm text-green-600">Live</span>
+            <p className="text-xs sm:text-sm text-gray-600">
+              Set your weekly hours and when booking opens. This works even if Google Calendar is not connected.
+            </p>
+            {fixedSchedule && (
+              <div className="space-y-2 text-sm">
+                <div className="font-medium text-gray-700">Open days</div>
+                {fixedSchedule.businessHours
+                  .filter(h => h.is_open)
+                  .map(h => (
+                    <div key={h.day_of_week} className="text-gray-600">
+                      {h.day_name}: {h.open_time} – {h.close_time}
+                    </div>
+                  ))}
+                {fixedSchedule.businessHours.filter(h => h.is_open).length === 0 && (
+                  <p className="text-amber-600">No days set. Add hours in Settings → Schedule.</p>
+                )}
+                {fixedSchedule.booking_available_from_date ? (
+                  <p className="text-gray-600 mt-2">
+                    Booking opens from: <strong>{new Date(fixedSchedule.booking_available_from_date + 'T00:00:00').toLocaleDateString()}</strong>
+                  </p>
+                ) : (
+                  <p className="text-gray-500 mt-2">Booking from today (no start date set)</p>
+                )}
               </div>
-              
-              <div className="text-xs sm:text-sm text-gray-600 space-y-1">
-                <p>Your booking system is currently active and accepting appointments.</p>
-                <p>Customers can book during your configured business hours.</p>
-              </div>
-            </div>
-            
+            )}
             <div className="pt-3 sm:pt-4 border-t">
-              <Link href="/admin/settings">
+              <Link href="/admin/settings?tab=schedule">
                 <Button variant="outline" className="w-full text-sm sm:text-base">
                   <Settings className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                  Manage Schedule Settings
+                  Set business hours &amp; booking start date
                 </Button>
               </Link>
             </div>

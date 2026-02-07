@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
-import { Loader2, Calendar, Clock, Link, Unlink, CheckCircle, XCircle, CreditCard, Building, ListChecks } from 'lucide-react'
+import { Loader2, Calendar, Clock, Link, Unlink, CheckCircle, XCircle, CreditCard, Building, ListChecks, UserPlus, Users, Mail } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface BusinessHours {
@@ -57,10 +57,20 @@ interface SavedCredentialInfo {
 
 interface ScheduleSettings {
   buffer_time_minutes: number
+  booking_available_from_date: string | null
 }
 
 interface WaitlistSettings {
   enabled: boolean
+}
+
+interface AdminUser {
+  id: string
+  email: string
+  name: string
+  is_active: boolean
+  last_login?: string
+  created_at: string
 }
 
 const DAYS = [
@@ -144,13 +154,20 @@ function AdminSettingsContent() {
   
   // Schedule Settings State
   const [scheduleSettings, setScheduleSettings] = useState<ScheduleSettings>({
-    buffer_time_minutes: 0
+    buffer_time_minutes: 0,
+    booking_available_from_date: null
   })
   
   // Waitlist Settings State
   const [waitlistSettings, setWaitlistSettings] = useState<WaitlistSettings>({
     enabled: true
   })
+
+  // Admin Users State
+  const [admins, setAdmins] = useState<AdminUser[]>([])
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteName, setInviteName] = useState('')
+  const [inviting, setInviting] = useState(false)
 
   // Initialize business hours with default values
   useEffect(() => {
@@ -212,6 +229,17 @@ function AdminSettingsContent() {
       } catch (e) {
         console.error('Failed to fetch credential info:', e)
       }
+
+      // Fetch admin users
+      try {
+        const adminsResponse = await fetch('/api/admin/admins')
+        if (adminsResponse.ok) {
+          const adminsData = await adminsResponse.json()
+          setAdmins(adminsData.admins || [])
+        }
+      } catch (e) {
+        console.error('Failed to fetch admins:', e)
+      }
     } catch (error) {
       console.error('Error fetching settings:', error)
       toast.error('Failed to load settings')
@@ -220,12 +248,41 @@ function AdminSettingsContent() {
     }
   }
 
+  const handleInviteAdmin = async () => {
+    const email = inviteEmail.trim()
+    if (!email) {
+      toast.error('Please enter an email address')
+      return
+    }
+    try {
+      setInviting(true)
+      const response = await fetch('/api/admin/invite-admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, name: inviteName.trim() || undefined })
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send invite')
+      }
+      toast.success(data.message || 'Invite sent successfully')
+      setInviteEmail('')
+      setInviteName('')
+      fetchSettings() // Refresh admin list
+    } catch (error) {
+      console.error('Invite admin error:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to send invite')
+    } finally {
+      setInviting(false)
+    }
+  }
+
   useEffect(() => {
     fetchSettings()
     
     // Check for tab parameter in URL
     const tab = searchParams.get('tab')
-    if (tab && ['business', 'payments', 'integrations'].includes(tab)) {
+    if (tab && ['business', 'schedule', 'payments', 'integrations', 'admins'].includes(tab)) {
       setActiveTab(tab)
     }
   }, [searchParams])
@@ -413,7 +470,7 @@ function AdminSettingsContent() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 mb-6 h-auto p-1">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 mb-6 h-auto p-1">
           <TabsTrigger value="business" className="flex items-center justify-center gap-2 text-sm py-3 px-2 data-[state=active]:bg-black data-[state=active]:text-white">
             <Building className="hidden sm:block h-4 w-4" />
             <span className="hidden sm:inline">Business</span>
@@ -433,6 +490,11 @@ function AdminSettingsContent() {
             <Link className="hidden sm:block h-4 w-4" />
             <span className="hidden sm:inline">Integrations</span>
             <span className="sm:hidden">Apps</span>
+          </TabsTrigger>
+          <TabsTrigger value="admins" className="flex items-center justify-center gap-2 text-sm py-3 px-2 data-[state=active]:bg-black data-[state=active]:text-white">
+            <Users className="hidden sm:block h-4 w-4" />
+            <span className="hidden sm:inline">Admins</span>
+            <span className="sm:hidden">Admins</span>
           </TabsTrigger>
         </TabsList>
 
@@ -579,6 +641,41 @@ function AdminSettingsContent() {
               <Button onClick={saveBusinessHours} disabled={saving}>
                 {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Save Business Hours
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Booking Start Date */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Booking Start Date
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 p-4 sm:p-6">
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="booking_available_from_date">First date customers can book</Label>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Leave empty to allow booking from today. Set a date (e.g. 3/1) to open booking only from that day onward.
+                  </p>
+                </div>
+                <Input
+                  id="booking_available_from_date"
+                  type="date"
+                  value={scheduleSettings.booking_available_from_date || ''}
+                  onChange={(e) => setScheduleSettings(prev => ({ 
+                    ...prev, 
+                    booking_available_from_date: e.target.value || null 
+                  }))}
+                  className="w-full sm:w-48"
+                />
+              </div>
+              
+              <Button onClick={saveBusinessHours} disabled={saving}>
+                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Save Booking Start Date
               </Button>
             </CardContent>
           </Card>
@@ -932,6 +1029,89 @@ function AdminSettingsContent() {
                   <li>Receive calendar notifications</li>
                 </ul>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Admins Tab */}
+        <TabsContent value="admins" className="space-y-6 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <UserPlus className="h-5 w-5" />
+                Invite Admin
+              </CardTitle>
+              <p className="text-sm text-gray-600">
+                Invite a new admin user by email. They will receive an email to set their password and access the admin portal.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4 p-4 sm:p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="invite_email">Email</Label>
+                  <Input
+                    id="invite_email"
+                    type="email"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    placeholder="admin@example.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="invite_name">Name (optional)</Label>
+                  <Input
+                    id="invite_name"
+                    value={inviteName}
+                    onChange={(e) => setInviteName(e.target.value)}
+                    placeholder="Display name"
+                  />
+                </div>
+              </div>
+              <Button onClick={handleInviteAdmin} disabled={inviting}>
+                {inviting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <UserPlus className="h-4 w-4 mr-2" />}
+                Send Invite
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Admin Users
+              </CardTitle>
+              <p className="text-sm text-gray-600">
+                Users who have access to the admin portal.
+              </p>
+            </CardHeader>
+            <CardContent className="p-4 sm:p-6">
+              {admins.length === 0 ? (
+                <p className="text-sm text-gray-500">No admin users yet.</p>
+              ) : (
+                <ul className="divide-y divide-gray-200">
+                  {admins.map((admin) => (
+                    <li key={admin.id} className="py-4 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100">
+                          <Mail className="h-5 w-5 text-gray-500" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">{admin.name || admin.email}</p>
+                          <p className="text-sm text-gray-500">{admin.email}</p>
+                          {admin.last_login && (
+                            <p className="text-xs text-gray-400">
+                              Last login: {new Date(admin.last_login).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <span className={`text-xs font-medium px-2 py-1 rounded-full ${admin.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                        {admin.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

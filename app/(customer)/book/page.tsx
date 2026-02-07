@@ -42,6 +42,7 @@ function BookPageContent() {
   const [availableTimes, setAvailableTimes] = useState<string[]>([])
   const [loadingTimes, setLoadingTimes] = useState(false)
   const [businessHours, setBusinessHours] = useState<{day_of_week: number; is_open: boolean; open_time: string; close_time: string; timezone: string}[]>([])
+  const [bookingAvailableFromDate, setBookingAvailableFromDate] = useState<string | null>(null)
   const [waitlistEnabled, setWaitlistEnabled] = useState(true)
   
   const [step, setStep] = useState(1) // 1: Service, 2: Date/Time, 3: Details, 4: Confirmation
@@ -133,6 +134,7 @@ function BookPageContent() {
           console.log('Business hours loaded:', data.businessHours)
           console.log('Open days:', data.businessHours?.filter((h: { is_open: boolean }) => h.is_open))
           setBusinessHours(data.businessHours || [])
+          setBookingAvailableFromDate(data.booking_available_from_date || null)
         }
       } catch (error) {
         console.error('Error fetching business hours:', error)
@@ -440,9 +442,13 @@ function BookPageContent() {
                       today.setHours(0, 0, 0, 0)
                       const isPast = date < today
                       const isBusinessDayResult = isBusinessDay(date)
-                      // Only disable past dates and non-business days
-                      // Availability is checked when date is selected
-                      return isPast || !isBusinessDayResult
+                      // If booking start date is set, disable dates before it
+                      let beforeBookingStart = false
+                      if (bookingAvailableFromDate) {
+                        const minDate = new Date(bookingAvailableFromDate + 'T00:00:00')
+                        beforeBookingStart = date < minDate
+                      }
+                      return isPast || !isBusinessDayResult || beforeBookingStart
                     }}
                     className="w-full [&_.rdp-week]:border-none! [&_.rdp-week]:shadow-none!"
                   />

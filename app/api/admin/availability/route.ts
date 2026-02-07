@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     const { data: settings, error: settingsError } = await supabase
       .from('settings')
       .select('key, value')
-      .in('key', ['business_hours', 'business_hours_timezone', 'buffer_time_minutes'])
+      .in('key', ['business_hours', 'business_hours_timezone', 'buffer_time_minutes', 'booking_available_from_date'])
 
     if (settingsError) {
       console.error('Error fetching settings:', settingsError)
@@ -35,6 +35,19 @@ export async function GET(request: NextRequest) {
     const businessHoursData = (settingsMap.business_hours as Record<string, { start?: string; end?: string; is_open?: boolean }>) || {}
     const timezone = (settingsMap.business_hours_timezone as string) || 'America/Los_Angeles'
     const bufferTime = (settingsMap.buffer_time_minutes as number) || 0
+    const bookingAvailableFromDate = (settingsMap.booking_available_from_date as string) || null
+
+    // If booking start date is set, don't offer slots before that date
+    let effectiveStartDate = startDate
+    let effectiveEndDate = endDate
+    if (bookingAvailableFromDate) {
+      if (endDate < bookingAvailableFromDate) {
+        return NextResponse.json({ availableSlots: [] })
+      }
+      if (startDate < bookingAvailableFromDate) {
+        effectiveStartDate = bookingAvailableFromDate
+      }
+    }
 
     // Convert to array format
     const DAYS = [
@@ -125,8 +138,8 @@ export async function GET(request: NextRequest) {
 
     // Generate available time slots
     const availableSlots = generateAvailableSlots(
-      startDate,
-      endDate,
+      effectiveStartDate,
+      effectiveEndDate,
       businessHours,
       transformedBookings,
       blockedTimeSlots,

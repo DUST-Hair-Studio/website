@@ -14,24 +14,55 @@ CURRENT STATUS: Soft Launch on dusthair.vercel.app
 - [x] NEXT_PUBLIC_APP_URL = https://dusthair.vercel.app
 
 ================================================================================
-🎯 PRODUCTION LAUNCH (dusthairstudio.com) - DO TOMORROW
+🎯 PRODUCTION LAUNCH (dusthairstudio.com)
 ================================================================================
 
-STEP 1: Configure Custom Domain in Vercel
+STEP 0: GoDaddy Nameservers (do this first) ................................. ✅ DONE
 ─────────────────────────────────────────────────────────────────────────────────
-1. Go to: Vercel Dashboard → Settings → Domains
-2. Add domain: www.dusthairstudio.com
-3. Add domain: dusthairstudio.com (redirect to www)
-4. Configure DNS per Vercel instructions
-5. Wait for SSL certificate (usually instant, can take up to 1 hour)
+Before adding any DNS records, set nameservers so DNS is managed in GoDaddy:
+• Go to GoDaddy → your domain (dusthairstudio.com) → DNS or Nameservers
+• Choose "I'll use GoDaddy nameservers" (default)
+• Save. Now the DNS zone is in GoDaddy and the records below will apply.
 
-STEP 2: Update Vercel Environment Variable
+STEP 1: Add DNS Records in GoDaddy ........................................... ✅ DONE
+─────────────────────────────────────────────────────────────────────────────────
+Go to GoDaddy → My Products → dusthairstudio.com → DNS → Manage DNS.
+TTL: Use 1/2 hour (30 min, or 1800 if GoDaddy asks for seconds) for all records during launch so changes propagate quickly; you can increase to 1–4 hours later once stable.
+
+Add these records (edit or delete any conflicting ones for @ and www).
+If you get "Record name www conflicts with another record": delete the existing www record (A or CNAME) first, then add the CNAME for www.
+
+  Type    Name/Host              Value / Data
+  ─────────────────────────────────────────────────────────────────────────────
+  A       @                     76.76.21.21
+  CNAME   www                    cname.vercel-dns.com
+
+  MX      @                      smtp.google.com                    (Priority: 1)
+  TXT     @                      google-site-verification=Gp5MoRPL6N9XJHTC6tJ0-ziNiwIl76zOl69ofaGVS08
+  TXT     @                      v=spf1 include:_spf.google.com include:amazonses.com ~all
+
+  MX      send.updates           feedback-smtp.us-east-1.amazonses.com   (Priority: 10)
+  TXT     send.updates           v=spf1 include:amazonses.com ~all
+  TXT     resend._domainkey.updates   p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCsV0FvrpL14u7phreXSdmn3+FV2nCj2m4g9rcWkGh76lg07GelOL8fHjxgEvr1j90Al/p2ZfIySMvYnQde+f1+/Ex8NZWoRdSj7IvkOL824V3u6wEk278aZmg/VVUdoHI9SK0qIY4kZvedT2xJaGPkDIXMTbQFILdd5xAnOaQBRwIDAQAB
+
+  TXT     _dmarc                  v=DMARC1; p=none;
+
+Note: If Resend dashboard shows a different DKIM host, use that exact host.
+
+STEP 2: Configure Custom Domain in Vercel ..................................... ✅ DONE
+─────────────────────────────────────────────────────────────────────────────────
+1. Go to: Vercel Dashboard → Your project → Settings → Domains
+2. Add domain: www.dusthairstudio.com
+3. Add domain: dusthairstudio.com (set to redirect to www)
+4. Wait for SSL (Vercel will verify DNS; usually instant, up to ~1 hour)
+
+STEP 3: Update Vercel Environment Variable ................................... ⬜ DO NEXT
 ─────────────────────────────────────────────────────────────────────────────────
 Change NEXT_PUBLIC_APP_URL:
   FROM: https://dusthair.vercel.app
   TO:   https://www.dusthairstudio.com
 
-STEP 3: Update Square Developer Dashboard (Production Tab)
+STEP 4: Update Square Developer Dashboard (Production Tab) .................... ⬜
 ─────────────────────────────────────────────────────────────────────────────────
 Go to: https://developer.squareup.com/apps → Select your app → Production tab
 
@@ -47,13 +78,13 @@ C) OAuth → Redirect URL:
    FROM: https://dusthair.vercel.app/booking/confirmation
    TO:   https://www.dusthairstudio.com/booking/confirmation
 
-STEP 4: Redeploy on Vercel
+STEP 5: Redeploy on Vercel ..................................................... ⬜
 ─────────────────────────────────────────────────────────────────────────────────
 1. Go to Vercel Dashboard → Deployments
 2. Click "Redeploy" on latest deployment
 3. Wait for deployment to complete
 
-STEP 5: Test Everything on New Domain
+STEP 6: Test Everything on New Domain ......................................... ⬜
 ─────────────────────────────────────────────────────────────────────────────────
 - [ ] Visit https://www.dusthairstudio.com - site loads
 - [ ] Test customer booking flow
@@ -88,26 +119,50 @@ App URL (⚠️ UPDATE FOR PRODUCTION LAUNCH):
     → Change to: https://www.dusthairstudio.com
 
 ================================================================================
-⚠️  GOOGLE CALENDAR NOTE
+⚠️  GOOGLE CALENDAR - PRODUCTION
 ================================================================================
 
-If Google Cloud app is in "Testing" mode, refresh tokens expire after 7 days.
+1) Add production redirect URI in Google Cloud Console (one-time per environment):
+   - Go to: https://console.cloud.google.com → Your project
+   - APIs & Services → Credentials → Your OAuth 2.0 Client ID
+   - Under "Authorized redirect URIs" add:
+     • https://dusthair.vercel.app/admin/schedule   (soft launch)
+     • https://www.dusthairstudio.com/admin/schedule   (when you switch to custom domain)
+   - Save. You can have multiple URIs (localhost + all production URLs).
 
-To fix (one-time):
-1. Go to: https://console.cloud.google.com
-2. APIs & Services → OAuth consent screen
-3. Click "PUBLISH APP"
+2) App URL is already correct:
+   - NEXT_PUBLIC_APP_URL in Vercel is used for the redirect; no code changes needed.
+   - When you change to custom domain, update NEXT_PUBLIC_APP_URL and add the new
+     redirect URI in Google (step 1).
 
-This keeps the "unverified app" warning during admin setup but tokens won't expire.
+3) If Google Cloud app is in "Testing" mode, refresh tokens expire after 7 days.
+   To fix (one-time):
+   - Go to: https://console.cloud.google.com
+   - APIs & Services → OAuth consent screen
+   - Click "PUBLISH APP"
+   (Keeps "unverified app" warning during admin setup but tokens won't expire.)
 
 ================================================================================
-📧 POST-LAUNCH: Email Domain Authentication (Optional but Recommended)
+📧 EMAIL (already in Step 1)
 ================================================================================
 
-For better email deliverability from @dusthairstudio.com:
-1. Add SPF record to DNS
-2. Add DKIM records from Resend dashboard
-3. Verify domain in Resend
+Step 1 includes SPF, Resend MX/DKIM/SPF for send.updates, and DMARC. After DNS
+propagates, verify the domain in Resend dashboard if you use send.updates subdomain.
+
+STEP X: Configure Supabase Auth SMTP (Resend) ................................. ⬜
+─────────────────────────────────────────────────────────────────────────────────
+Required for admin invite emails, password reset, and other Auth emails to send.
+
+1. Resend Dashboard → API Keys → Create API key (or use existing)
+2. Supabase Dashboard → Project Settings → Auth → SMTP Settings
+3. Enable Custom SMTP:
+   • Sender email: verified domain in Resend (e.g. noreply@dusthairstudio.com)
+   • Sender name: DUST Hair Studio
+   • Host: smtp.resend.com
+   • Port: 465 (SSL) or 587 (TLS)
+   • Username: resend
+   • Password: your Resend API key
+4. Save. Test by sending an admin invite from Settings → Admins.
 
 ================================================================================
 🧪 QUICK TEST CHECKLIST

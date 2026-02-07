@@ -162,7 +162,7 @@ async function findAvailableSlots(
     const { data: settings, error: settingsError } = await supabase
       .from('settings')
       .select('key, value')
-      .in('key', ['business_hours', 'business_hours_timezone'])
+      .in('key', ['business_hours', 'business_hours_timezone', 'booking_available_from_date'])
 
     if (settingsError) {
       console.error('❌ [WAITLIST CRON] Error fetching business hours settings:', settingsError)
@@ -176,6 +176,14 @@ async function findAvailableSlots(
 
     const businessHoursData = (settingsMap.business_hours as Record<string, { start?: string; end?: string; is_open?: boolean }>) || {}
     const timezone = (settingsMap.business_hours_timezone as string) || 'America/Los_Angeles'
+    const bookingAvailableFromDate = (settingsMap.booking_available_from_date as string) || null
+
+    // Only consider dates on or after booking start date
+    let effectiveStartDate = startDate
+    if (bookingAvailableFromDate) {
+      if (endDate < bookingAvailableFromDate) return []
+      if (startDate < bookingAvailableFromDate) effectiveStartDate = bookingAvailableFromDate
+    }
 
     // Convert to array format (same as debug endpoint)
     const DAYS = [
@@ -211,16 +219,16 @@ async function findAvailableSlots(
     const { data: bookings } = await supabase
       .from('bookings')
       .select('booking_date, booking_time, duration_minutes, status')
-      .gte('booking_date', startDate)
+      .gte('booking_date', effectiveStartDate)
       .lte('booking_date', endDate)
       .in('status', ['confirmed', 'pending'])
 
     // Get Google Calendar blocked time
-    const blockedTimes = await googleCalendar.getBlockedTime(startDate, endDate)
+    const blockedTimes = await googleCalendar.getBlockedTime(effectiveStartDate, endDate)
     console.log(`🔍 [WAITLIST CRON] Found ${blockedTimes.length} blocked time slots from Google Calendar`)
 
     // Check each day in the range
-    const currentDate = new Date(startDate)
+    const currentDate = new Date(effectiveStartDate)
     const lastDate = new Date(endDate)
 
     while (currentDate <= lastDate) {

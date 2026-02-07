@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminSupabaseClient } from '@/lib/supabase-server'
 
+function getRedirectUri(): string {
+  const base = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/+$/, '')
+  return `${base}/admin/schedule`
+}
+
 // GET Google Calendar integration status
 export async function GET() {
   try {
@@ -59,7 +64,7 @@ export async function POST(request: NextRequest) {
         client_secret: process.env.GOOGLE_CLIENT_SECRET!,
         code,
         grant_type: 'authorization_code',
-        redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/admin/schedule`
+        redirect_uri: getRedirectUri()
       })
     })
 
@@ -141,7 +146,7 @@ export async function DELETE() {
 function generateGoogleAuthUrl(): string {
   const params = new URLSearchParams({
     client_id: process.env.GOOGLE_CLIENT_ID!,
-    redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/admin/schedule`,
+    redirect_uri: getRedirectUri(),
     response_type: 'code',
     scope: 'https://www.googleapis.com/auth/calendar',
     access_type: 'offline',

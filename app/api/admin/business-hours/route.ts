@@ -9,7 +9,7 @@ export async function GET() {
     const { data: settings, error } = await supabase
       .from('settings')
       .select('key, value')
-      .in('key', ['business_hours', 'business_hours_timezone'])
+      .in('key', ['business_hours', 'business_hours_timezone', 'booking_available_from_date'])
 
     if (error) {
       console.error('Error fetching business hours settings:', error)
@@ -23,6 +23,7 @@ export async function GET() {
 
     const businessHoursData = (settingsMap.business_hours as Record<string, { start?: string; end?: string; is_open?: boolean }>) || {}
     const timezone = (settingsMap.business_hours_timezone as string) || 'America/Los_Angeles'
+    const bookingAvailableFromDate = (settingsMap.booking_available_from_date as string) || null
 
     // Convert to array format for the UI
     const DAYS = [
@@ -47,7 +48,7 @@ export async function GET() {
       }
     })
 
-    return NextResponse.json({ businessHours })
+    return NextResponse.json({ businessHours, booking_available_from_date: bookingAvailableFromDate })
   } catch (error) {
     console.error('Admin business hours API error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

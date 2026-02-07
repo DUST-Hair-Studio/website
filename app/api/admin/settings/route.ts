@@ -45,7 +45,8 @@ export async function GET() {
     }
 
     const schedule = {
-      buffer_time_minutes: settingsMap.buffer_time_minutes || 0
+      buffer_time_minutes: settingsMap.buffer_time_minutes || 0,
+      booking_available_from_date: settingsMap.booking_available_from_date || null
     }
 
     const waitlist = {
@@ -127,6 +128,9 @@ export async function POST(request: NextRequest) {
       const scheduleData = schedule || settings
       if (scheduleData.buffer_time_minutes !== undefined) {
         updates.push({ key: 'buffer_time_minutes', value: scheduleData.buffer_time_minutes, updated_at: now })
+      }
+      if (scheduleData.booking_available_from_date !== undefined) {
+        updates.push({ key: 'booking_available_from_date', value: scheduleData.booking_available_from_date || null, updated_at: now })
       }
     } else if (type === 'waitlist' || waitlist) {
       const waitlistData = waitlist || settings

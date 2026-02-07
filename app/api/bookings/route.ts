@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase-server'
 import { GoogleCalendarService } from '@/lib/google-calendar'
 import { EmailService } from '@/lib/email-service'
 import { ReminderScheduler } from '@/lib/reminder-scheduler'
@@ -31,6 +31,21 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       console.error('Error validating future appointment:', error)
       return NextResponse.json({ error: 'Error validating appointment time' }, { status: 400 })
+    }
+
+    // Check booking start date (if set, don't allow booking before that date)
+    const adminSupabase = createAdminSupabaseClient()
+    const { data: fromDateRow } = await adminSupabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'booking_available_from_date')
+      .single()
+    const bookingAvailableFromDate = (fromDateRow?.value as string) || null
+    if (bookingAvailableFromDate && date < bookingAvailableFromDate) {
+      return NextResponse.json(
+        { error: `Booking is only available from ${bookingAvailableFromDate}. Please choose a date on or after that.` },
+        { status: 400 }
+      )
     }
 
     // Get service details
