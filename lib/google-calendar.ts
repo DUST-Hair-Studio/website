@@ -167,7 +167,8 @@ Booking ID: ${booking.id}`
       })
 
       if (!response.ok) {
-        console.error('Error creating calendar event:', await response.text())
+        const errText = await response.text()
+        console.error('Google Calendar create event failed:', response.status, errText)
         return null
       }
 

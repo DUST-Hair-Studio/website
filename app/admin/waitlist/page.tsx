@@ -44,11 +44,13 @@ export default function AdminWaitlistPage() {
       const response = await fetch('/api/admin/waitlist')
       
       if (!response.ok) {
-        throw new Error('Failed to fetch waitlist requests')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to fetch waitlist requests')
       }
       
-      const data = await response.json()
-      setWaitlistRequests(data.waitlist || [])
+      const data = await response.json().catch(() => ({}))
+      const list = Array.isArray(data?.waitlist) ? data.waitlist : []
+      setWaitlistRequests(list)
     } catch (error) {
       console.error('Error fetching waitlist:', error)
       toast.error('Failed to load waitlist requests')

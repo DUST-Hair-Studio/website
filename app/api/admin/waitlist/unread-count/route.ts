@@ -64,14 +64,14 @@ export async function GET() {
     
     console.log('🔔 [UNREAD COUNT API] Admin verified')
 
-    // Get last viewed timestamp from settings
+    // Get last viewed timestamp from settings (maybeSingle handles 0 rows without error)
     const { data: lastViewedData, error: settingsError } = await supabase
       .from('settings')
       .select('value')
       .eq('key', 'waitlist_last_viewed_at')
-      .single()
+      .maybeSingle()
     
-    if (settingsError && settingsError.code !== 'PGRST116') { // PGRST116 is "not found" error
+    if (settingsError) {
       console.error('🔔 [UNREAD COUNT API] Settings query error:', settingsError)
     }
 

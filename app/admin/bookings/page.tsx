@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuPortal } from '@/components/ui/dropdown-menu'
-import { CheckCircle, Calendar, DollarSign, CalendarDays, RotateCcw, Search, Filter, Table, Phone, MessageSquare, Mail, ListChecks, CreditCard, MoreVertical, CheckSquare, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { CheckCircle, Calendar, DollarSign, CalendarDays, RotateCcw, Search, Filter, Table, Phone, MessageSquare, Mail, ListChecks, CreditCard, MoreVertical, CheckSquare, Loader2, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 import RescheduleModal from '@/components/admin/reschedule-modal'
@@ -55,6 +55,7 @@ export default function AdminBookingsPage() {
   const [editingPublicNotes, setEditingPublicNotes] = useState(false)
   const [publicNotesValue, setPublicNotesValue] = useState('')
   const [savingPublicNotes, setSavingPublicNotes] = useState(false)
+  const [cancellingBookingId, setCancellingBookingId] = useState<string | null>(null)
 
   // Close phone menu when clicking outside
   useEffect(() => {
@@ -400,6 +401,32 @@ export default function AdminBookingsPage() {
     )
     setShowRescheduleModal(false)
     setBookingToReschedule(null)
+  }
+
+  const handleCancelBooking = async (booking: BookingWithDetails) => {
+    if (booking.payment_status === 'paid') return
+    try {
+      setCancellingBookingId(booking.id)
+      const response = await fetch(`/api/admin/bookings/${booking.id}`, {
+        method: 'DELETE',
+      })
+      if (response.ok) {
+        setBookings(prev => prev.filter(b => b.id !== booking.id))
+        if (selectedBooking?.id === booking.id) {
+          setSelectedBooking(null)
+          setShowBookingDetails(false)
+        }
+        toast.success('Booking deleted')
+      } else {
+        const data = await response.json()
+        toast.error(data.error || 'Failed to delete booking')
+      }
+    } catch (error) {
+      console.error('Error cancelling booking:', error)
+      toast.error('Failed to delete booking')
+    } finally {
+      setCancellingBookingId(null)
+    }
   }
 
   // Mark booking as complete
@@ -1055,6 +1082,23 @@ export default function AdminBookingsPage() {
                               <RotateCcw className="w-4 h-4 mr-2" />
                               Reschedule
                             </DropdownMenuItem>
+                            {booking.payment_status !== 'paid' && booking.status !== 'completed' && booking.status !== 'cancelled' && (
+                              <DropdownMenuItem 
+                                onClick={(e: React.MouseEvent) => {
+                                  e.stopPropagation()
+                                  handleCancelBooking(booking)
+                                }}
+                                disabled={cancellingBookingId === booking.id}
+                                className="text-red-600 focus:text-red-600"
+                              >
+                                {cancellingBookingId === booking.id ? (
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                ) : (
+                                  <X className="w-4 h-4 mr-2" />
+                                )}
+                                {cancellingBookingId === booking.id ? 'Deleting...' : 'Cancel'}
+                              </DropdownMenuItem>
+                            )}
                             {booking.price_charged && booking.price_charged > 0 && booking.payment_status !== 'paid' && (
                               <>
                                 <DropdownMenuItem 
@@ -1196,6 +1240,23 @@ export default function AdminBookingsPage() {
                                   <RotateCcw className="w-4 h-4 mr-2" />
                                   Reschedule
                                 </DropdownMenuItem>
+                                {booking.payment_status !== 'paid' && booking.status !== 'completed' && booking.status !== 'cancelled' && (
+                                  <DropdownMenuItem 
+                                    onClick={(e: React.MouseEvent) => {
+                                      e.stopPropagation()
+                                      handleCancelBooking(booking)
+                                    }}
+                                    disabled={cancellingBookingId === booking.id}
+                                    className="text-red-600 focus:text-red-600"
+                                  >
+                                    {cancellingBookingId === booking.id ? (
+                                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    ) : (
+                                      <X className="w-4 h-4 mr-2" />
+                                    )}
+                                    {cancellingBookingId === booking.id ? 'Deleting...' : 'Cancel'}
+                                  </DropdownMenuItem>
+                                )}
                                 {booking.price_charged && booking.price_charged > 0 && (
                                   <DropdownMenuItem 
                                     onClick={(e: React.MouseEvent) => {
@@ -1371,6 +1432,23 @@ export default function AdminBookingsPage() {
                                   <RotateCcw className="w-4 h-4 mr-2" />
                                   Reschedule
                                 </DropdownMenuItem>
+                                {booking.payment_status !== 'paid' && booking.status !== 'completed' && booking.status !== 'cancelled' && (
+                                  <DropdownMenuItem 
+                                    onClick={(e: React.MouseEvent) => {
+                                      e.stopPropagation()
+                                      handleCancelBooking(booking)
+                                    }}
+                                    disabled={cancellingBookingId === booking.id}
+                                    className="text-red-600 focus:text-red-600"
+                                  >
+                                    {cancellingBookingId === booking.id ? (
+                                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    ) : (
+                                      <X className="w-4 h-4 mr-2" />
+                                    )}
+                                    {cancellingBookingId === booking.id ? 'Deleting...' : 'Cancel'}
+                                  </DropdownMenuItem>
+                                )}
                                 {booking.price_charged && booking.price_charged > 0 && (
                                   <DropdownMenuItem 
                                     onClick={(e: React.MouseEvent) => {
@@ -1838,6 +1916,23 @@ export default function AdminBookingsPage() {
                                       <RotateCcw className="w-4 h-4 mr-2" />
                                       Reschedule
                                     </DropdownMenuItem>
+                                    {booking.payment_status !== 'paid' && booking.status !== 'completed' && booking.status !== 'cancelled' && (
+                                      <DropdownMenuItem 
+                                        onClick={(e: React.MouseEvent) => {
+                                          e.stopPropagation()
+                                          handleCancelBooking(booking)
+                                        }}
+                                        disabled={cancellingBookingId === booking.id}
+                                        className="text-red-600 focus:text-red-600"
+                                      >
+                                        {cancellingBookingId === booking.id ? (
+                                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        ) : (
+                                          <X className="w-4 h-4 mr-2" />
+                                        )}
+                                        {cancellingBookingId === booking.id ? 'Deleting...' : 'Cancel'}
+                                      </DropdownMenuItem>
+                                    )}
                                     {booking.price_charged && booking.price_charged > 0 && (
                                       <DropdownMenuItem 
                                         onClick={(e: React.MouseEvent) => {
@@ -2018,6 +2113,23 @@ export default function AdminBookingsPage() {
                                           <RotateCcw className="w-4 h-4 mr-2" />
                                           Reschedule
                                         </DropdownMenuItem>
+                                        {booking.payment_status !== 'paid' && booking.status !== 'completed' && booking.status !== 'cancelled' && (
+                                          <DropdownMenuItem 
+                                            onClick={(e: React.MouseEvent) => {
+                                              e.stopPropagation()
+                                              handleCancelBooking(booking)
+                                            }}
+                                            disabled={cancellingBookingId === booking.id}
+                                            className="text-red-600 focus:text-red-600"
+                                          >
+                                            {cancellingBookingId === booking.id ? (
+                                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            ) : (
+                                              <X className="w-4 h-4 mr-2" />
+                                            )}
+                                            {cancellingBookingId === booking.id ? 'Deleting...' : 'Cancel'}
+                                          </DropdownMenuItem>
+                                        )}
                                         {booking.price_charged && booking.price_charged > 0 && booking.payment_status !== 'paid' && (
                                           <>
                                             <DropdownMenuItem 

@@ -70,8 +70,10 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Explicitly ensure we return an array (handles null/undefined when table is empty)
+    const waitlist = Array.isArray(waitlistRequests) ? waitlistRequests : []
     return NextResponse.json({
-      waitlist: waitlistRequests || []
+      waitlist
     })
 
   } catch (error) {

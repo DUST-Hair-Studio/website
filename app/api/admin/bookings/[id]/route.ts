@@ -229,6 +229,21 @@ export async function PATCH(
       updateData.status = status
     }
 
+    // When cancelling, only allow if not paid
+    if (status === 'cancelled') {
+      const { data: existing } = await supabase
+        .from('bookings')
+        .select('payment_status')
+        .eq('id', id)
+        .single()
+      if (existing?.payment_status === 'paid') {
+        return NextResponse.json(
+          { error: 'Cannot cancel a paid booking. Process a refund first if needed.' },
+          { status: 400 }
+        )
+      }
+    }
+
     if (admin_notes !== undefined) {
       updateData.admin_notes = admin_notes
     }
@@ -272,8 +287,19 @@ export async function PATCH(
       return NextResponse.json({ error: 'Failed to update booking' }, { status: 500 })
     }
 
-    // Send cancellation email if status changed to cancelled
+    // Send cancellation email and delete Google Calendar event if status changed to cancelled
     if (status === 'cancelled') {
+      if (booking.google_calendar_event_id) {
+        try {
+          const googleCalendar = new GoogleCalendarService()
+          const isConnected = await googleCalendar.isConnected()
+          if (isConnected) {
+            await googleCalendar.deleteBookingEvent(id, booking.google_calendar_event_id)
+          }
+        } catch (calError) {
+          console.error('Error deleting Google Calendar event:', calError)
+        }
+      }
       try {
         const emailService = new EmailService()
         const bookingData = {

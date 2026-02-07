@@ -438,6 +438,10 @@ export async function PATCH(
       return NextResponse.json({ error: 'Cannot cancel completed appointments' }, { status: 400 })
     }
 
+    if (currentBooking.payment_status === 'paid') {
+      return NextResponse.json({ error: 'Cannot cancel paid appointments online. Please contact us to cancel.' }, { status: 400 })
+    }
+
     // Update the booking status to cancelled
     const { data: updatedBooking, error: updateError } = await supabase
       .from('bookings')
@@ -589,6 +593,10 @@ export async function DELETE(
     
     if (currentBooking.status === 'completed') {
       return NextResponse.json({ error: 'Cannot delete completed appointments' }, { status: 400 })
+    }
+
+    if (currentBooking.payment_status === 'paid') {
+      return NextResponse.json({ error: 'Cannot cancel paid appointments online. Please contact us to cancel.' }, { status: 400 })
     }
 
     // Delete Google Calendar event if it exists

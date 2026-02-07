@@ -156,8 +156,9 @@ export default function MyAppointmentsPage() {
   }
 
   const canCancel = (booking: BookingWithDetails) => {
-    return isUpcoming(booking.booking_date, booking.booking_time) && 
-           (booking.status === 'confirmed' || booking.status === 'pending')
+    return isUpcoming(booking.booking_date, booking.booking_time) &&
+           (booking.status === 'confirmed' || booking.status === 'pending') &&
+           booking.payment_status !== 'paid'
   }
 
   const openRescheduleModal = (booking: BookingWithDetails) => {
@@ -431,6 +432,11 @@ export default function MyAppointmentsPage() {
                                 <X className="w-4 h-4 mr-2" />
                                 Cancel
                               </Button>
+                            )}
+                            {isUpcoming(booking.booking_date, booking.booking_time) &&
+                             (booking.status === 'confirmed' || booking.status === 'pending') &&
+                             booking.payment_status === 'paid' && (
+                              <p className="text-sm text-gray-500">To cancel, please contact us.</p>
                             )}
                           </div>
                         </div>
