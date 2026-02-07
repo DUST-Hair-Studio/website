@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
 
     // If booking start date is set, don't offer slots before that date
     let effectiveStartDate = startDate
-    let effectiveEndDate = endDate
+    const effectiveEndDate = endDate
     if (bookingAvailableFromDate) {
       if (endDate < bookingAvailableFromDate) {
         return NextResponse.json({ availableSlots: [] })
