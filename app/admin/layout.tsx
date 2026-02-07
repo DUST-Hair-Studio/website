@@ -49,14 +49,15 @@ export default function AdminLayout({
   }, [])
 
   useEffect(() => {
+    // Allow accept-invite without auth – run first so we never redirect it to login
+    if (isAcceptInvitePage) {
+      setCheckingAdmin(false)
+      setIsAdmin(true)
+      return
+    }
+
     const checkAdminAccess = async () => {
       if (loading) return
-      // Allow accept-invite page without auth - user gets session from invite link hash
-      if (isAcceptInvitePage) {
-        setCheckingAdmin(false)
-        setIsAdmin(true) // Allow render
-        return
-      }
 
       if (!user) {
         setCheckingAdmin(false)

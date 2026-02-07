@@ -1,5 +1,7 @@
 # Admin Invite Flow – Supabase URL Configuration
 
+**Reference:** [Supabase – Redirect URLs](https://supabase.com/docs/guides/auth/redirect-urls) (official guide for Site URL, Redirect URLs, wildcards, and email templates).
+
 Invites are sent via Supabase Auth `inviteUserByEmail` with `redirectTo: ${NEXT_PUBLIC_APP_URL}/admin/accept-invite`. If the redirect URL is not in Supabase’s allow list, Supabase sends users to the **Site URL** with tokens in the hash (e.g. `https://www.dusthairstudio.com/#access_token=...`). The app then redirects those requests to `/admin/accept-invite` so the “Set Your Password” page can run.
 
 For the cleanest behavior (invite link going straight to accept-invite), configure Supabase and env as below.
@@ -47,3 +49,7 @@ If this is wrong, the link in the email will point to the wrong origin and Supab
 - In Vercel, confirm `NEXT_PUBLIC_APP_URL` matches the production domain (e.g. `https://www.dusthairstudio.com`).
 - Check **Supabase Auth logs** when the invite link is clicked to see which redirect was used.
 - Send a **new invite** after changing URL configuration; old emails still contain the old redirect.
+
+## 5. Custom invite email templates (optional)
+
+If you customize the **invite** email in Supabase (Authentication → Email Templates), use `{{ .RedirectTo }}` in the link URL so the invite uses the `redirectTo` we send, not the default Site URL. See [Supabase – Redirect URLs → Email templates when using redirectTo](https://supabase.com/docs/guides/auth/redirect-urls#email-templates-when-using-redirectto).

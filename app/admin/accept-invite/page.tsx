@@ -17,6 +17,7 @@ export default function AdminAcceptInvitePage() {
   const [checking, setChecking] = useState(true)
   const [hasInviteToken, setHasInviteToken] = useState(false)
   const [configError, setConfigError] = useState('')
+  const [inviteLinkError, setInviteLinkError] = useState('')
   const router = useRouter()
   const supabase = createClient()
 
@@ -33,9 +34,7 @@ export default function AdminAcceptInvitePage() {
       const refreshToken = params.get('refresh_token') || hashParams.get('refresh_token') || searchParams.get('refresh_token')
 
       if ((type === 'invite' || type === 'recovery') && accessToken) {
-        // Sign out any existing session first - prevents updating wrong user's password
         await supabase.auth.signOut()
-        // Explicitly set session from invite tokens so we have the invited user's session
         if (refreshToken) {
           const { error: sessionError } = await supabase.auth.setSession({
             access_token: accessToken,
@@ -45,22 +44,20 @@ export default function AdminAcceptInvitePage() {
             console.error('Failed to set invite session:', sessionError)
             setError('Invalid or expired invite link. Please request a new one.')
           }
+          if (typeof window !== 'undefined') {
+            window.history.replaceState(null, '', window.location.pathname)
+          }
+          setHasInviteToken(true)
+        } else {
+          setInviteLinkError('Invite link is missing session data. Use the full link from your email or request a new invite.')
         }
-        // Clear tokens from URL (security - don't leave tokens in address bar)
-        if (typeof window !== 'undefined') {
-          window.history.replaceState(null, '', window.location.pathname)
-        }
-        setHasInviteToken(true)
         setChecking(false)
         return
       }
 
-      if (accessToken && !type) {
-        // Some Supabase versions may not include type
+      if (accessToken && !type && refreshToken) {
         await supabase.auth.signOut()
-        if (refreshToken) {
-          await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
-        }
+        await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
         if (typeof window !== 'undefined') {
           window.history.replaceState(null, '', window.location.pathname)
         }
@@ -117,8 +114,32 @@ export default function AdminAcceptInvitePage() {
     )
   }
 
-  if (!hasInviteToken && !configError) {
+  if (!hasInviteToken && !configError && !inviteLinkError) {
     return null
+  }
+
+  if (inviteLinkError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-gray-900">DUST</h1>
+            <p className="mt-2 text-gray-600">Admin Portal</p>
+          </div>
+          <Card className="w-full max-w-md mx-auto">
+            <CardHeader>
+              <CardTitle>Invalid invite link</CardTitle>
+              <CardDescription>{inviteLinkError}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline" className="w-full" onClick={() => router.push('/admin/login')}>
+                Go to Login
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
   }
 
   if (configError) {

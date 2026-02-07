@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
-import { Loader2, Calendar, Clock, Link, Unlink, CheckCircle, XCircle, CreditCard, Building, ListChecks, UserPlus, Users, Mail } from 'lucide-react'
+import { Loader2, Calendar, Clock, Link, Unlink, CheckCircle, XCircle, CreditCard, Building, ListChecks, UserPlus, Users, Mail, UserMinus } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth-context'
 
@@ -170,6 +170,8 @@ function AdminSettingsContent() {
   const [inviteName, setInviteName] = useState('')
   const [inviting, setInviting] = useState(false)
   const [togglingAdminId, setTogglingAdminId] = useState<string | null>(null)
+  const [removingAdminId, setRemovingAdminId] = useState<string | null>(null)
+  const [removeAdminDialog, setRemoveAdminDialog] = useState<AdminUser | null>(null)
   const { user } = useAuth()
 
   // Initialize business hours with default values
@@ -271,6 +273,22 @@ function AdminSettingsContent() {
       toast.error(error instanceof Error ? error.message : 'Failed to update admin')
     } finally {
       setTogglingAdminId(null)
+    }
+  }
+
+  const handleRemoveAdmin = async (admin: AdminUser) => {
+    try {
+      setRemovingAdminId(admin.id)
+      const response = await fetch(`/api/admin/admins/${admin.id}`, { method: 'DELETE' })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Failed to remove admin')
+      toast.success(`${admin.name || admin.email} has been removed from admins`)
+      setRemoveAdminDialog(null)
+      fetchSettings()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to remove admin')
+    } finally {
+      setRemovingAdminId(null)
     }
   }
 
@@ -1147,6 +1165,25 @@ function AdminSettingsContent() {
                               onCheckedChange={(checked) => handleToggleAdminActive(admin, checked)}
                               disabled={togglingAdminId === admin.id || (isCurrentUser && admin.is_active)}
                             />
+                            {!isCurrentUser && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => setRemoveAdminDialog(admin)}
+                                disabled={removingAdminId === admin.id}
+                                title="Remove from admins"
+                              >
+                                {removingAdminId === admin.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <>
+                                    <UserMinus className="h-4 w-4 sm:mr-1" />
+                                    <span className="hidden sm:inline">Remove</span>
+                                  </>
+                                )}
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </li>
@@ -1184,6 +1221,32 @@ function AdminSettingsContent() {
               className="bg-red-600 hover:bg-red-700"
             >
               Disconnect
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Remove Admin Confirmation Dialog */}
+      <AlertDialog open={!!removeAdminDialog} onOpenChange={(open) => {
+        if (!open) setRemoveAdminDialog(null)
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove admin</AlertDialogTitle>
+            <AlertDialogDescription>
+              {removeAdminDialog
+                ? `Remove ${removeAdminDialog.name || removeAdminDialog.email} from admins? They will lose access to the admin portal. You can invite them again later if needed.`
+                : ''}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => removeAdminDialog && handleRemoveAdmin(removeAdminDialog)}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={!!removingAdminId}
+            >
+              {removingAdminId ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Remove'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
