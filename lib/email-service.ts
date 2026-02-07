@@ -4,6 +4,10 @@ import { createAdminSupabaseClient } from './supabase-server'
 // Only initialize Resend if API key is available
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
+// Use RESEND_FROM_OVERRIDE when domain isn't verified yet (e.g. "DUST Hair Studio <onboarding@resend.dev>")
+const getFromAddress = (businessEmail: string) =>
+  process.env.RESEND_FROM_OVERRIDE || businessEmail
+
 export interface EmailTemplate {
   id: string
   name: string
@@ -184,7 +188,7 @@ export class EmailService {
       const appointmentsUrl = `${baseUrl}/appointments`
 
       const { data, error } = await resend.emails.send({
-        from: businessSettings.business_email,
+        from: getFromAddress(businessSettings.business_email),
         to: [booking.customers.email],
         subject,
         text: message,
@@ -257,7 +261,7 @@ export class EmailService {
       const htmlMessage = message.replace(/\n/g, '<br>')
 
       const { data, error } = await resend.emails.send({
-        from: businessSettings.business_email,
+        from: getFromAddress(businessSettings.business_email),
         to: [booking.customers.email],
         subject,
         text: message,
@@ -327,7 +331,7 @@ export class EmailService {
       const htmlMessage = message.replace(/\n/g, '<br>')
 
       const { data, error } = await resend.emails.send({
-        from: businessSettings.business_email,
+        from: getFromAddress(businessSettings.business_email),
         to: [booking.customers.email],
         subject,
         text: message,
@@ -439,7 +443,7 @@ export class EmailService {
       const appointmentsUrl = `${baseUrl}/appointments`
 
       const { data, error } = await resend.emails.send({
-        from: businessSettings.business_email,
+        from: getFromAddress(businessSettings.business_email),
         to: [booking.customers.email],
         subject,
         text: message,
@@ -548,7 +552,7 @@ ${businessSettings.business_phone}`
       // const htmlMessage = message.replace(/\n/g, '<br>')
 
       const { data: emailData, error } = await resend.emails.send({
-        from: businessSettings.business_email,
+        from: getFromAddress(businessSettings.business_email),
         to: [data.customer.email],
         subject,
         text: message,
@@ -666,7 +670,7 @@ Best regards,
 The ${businessSettings.business_name} Team`
 
       const { data: emailData, error } = await resend.emails.send({
-        from: businessSettings.business_email,
+        from: getFromAddress(businessSettings.business_email),
         to: [paymentData.customers.email],
         subject,
         text: message,

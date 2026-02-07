@@ -149,6 +149,12 @@ App URL (⚠️ UPDATE FOR PRODUCTION LAUNCH):
 Step 1 includes SPF, Resend MX/DKIM/SPF for send.updates, and DMARC. After DNS
 propagates, verify the domain in Resend dashboard if you use send.updates subdomain.
 
+WORKAROUND if domain not verified yet (new Resend account):
+Add to .env.local and Vercel env vars:
+  RESEND_FROM_OVERRIDE=DUST Hair Studio <onboarding@resend.dev>
+This uses Resend's default sender so emails work before domain verification.
+Remove once domain is verified; then emails will send from business_email.
+
 STEP X: Configure Supabase Auth SMTP (Resend) ................................. ⬜
 ─────────────────────────────────────────────────────────────────────────────────
 Required for admin invite emails, password reset, and other Auth emails to send.

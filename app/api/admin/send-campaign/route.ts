@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
       const batchPromises = batch.map(async (email: string) => {
         try {
           const { data, error } = await resend.emails.send({
-            from: businessSettings.business_email,
+            from: process.env.RESEND_FROM_OVERRIDE || businessSettings.business_email,
             to: [email],
             subject,
             text: message,

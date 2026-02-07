@@ -193,7 +193,7 @@ ${businessSettings.business_phone}`
       const htmlMessage = message.replace(/\n/g, '<br>')
 
       const { data, error } = await resend.emails.send({
-        from: businessSettings.business_email,
+        from: process.env.RESEND_FROM_OVERRIDE || businessSettings.business_email,
         to: [waitlistRequest.customers.email],
         subject,
         text: message,
