@@ -52,7 +52,7 @@ function GoogleCalendarCallbackContent() {
 
         // Redirect back to schedule page after a short delay
         setTimeout(() => {
-          router.push('/admin/schedule')
+          router.push('/admin/settings?tab=schedule')
         }, 2000)
 
       } catch (error) {
@@ -92,7 +92,7 @@ function GoogleCalendarCallbackContent() {
                 {message}
               </p>
               <p className="text-sm text-gray-500">
-                Redirecting you back to the schedule page...
+                Redirecting to schedule settings…
               </p>
             </>
           )}
@@ -107,7 +107,7 @@ function GoogleCalendarCallbackContent() {
                 {message}
               </p>
               <button
-                onClick={() => router.push('/admin/schedule')}
+                onClick={() => router.push('/admin/settings?tab=schedule')}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
               >
                 Back to Schedule

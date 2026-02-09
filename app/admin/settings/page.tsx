@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -11,7 +11,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
-import { Loader2, Calendar, Clock, Link, Unlink, CheckCircle, XCircle, CreditCard, Building, ListChecks, UserPlus, Users, Mail, UserMinus } from 'lucide-react'
+import { Loader2, Calendar, Clock, Link as LinkIcon, Unlink, CheckCircle, XCircle, CreditCard, Building, ListChecks, UserPlus, Users, Mail, UserMinus, CalendarPlus, Trash2, ExternalLink } from 'lucide-react'
+import Link from 'next/link'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth-context'
 
@@ -158,6 +159,15 @@ function AdminSettingsContent() {
     buffer_time_minutes: 0,
     booking_available_from_date: null
   })
+
+  // One-time open dates (availability overrides)
+  const [overrideDates, setOverrideDates] = useState<Array<{ id: string; date: string; open_time: string; close_time: string }>>([])
+  const [overridesLoading, setOverridesLoading] = useState(false)
+  const [addOverrideDate, setAddOverrideDate] = useState('')
+  const [addOverrideOpen, setAddOverrideOpen] = useState('11:00')
+  const [addOverrideClose, setAddOverrideClose] = useState('21:00')
+  const [addingOverride, setAddingOverride] = useState(false)
+  const [deletingOverrideId, setDeletingOverrideId] = useState<string | null>(null)
   
   // Waitlist Settings State
   const [waitlistSettings, setWaitlistSettings] = useState<WaitlistSettings>({
@@ -330,6 +340,68 @@ function AdminSettingsContent() {
       setActiveTab(tab)
     }
   }, [searchParams])
+
+  const fetchOverrideDates = useCallback(async () => {
+    setOverridesLoading(true)
+    try {
+      const today = new Date().toISOString().split('T')[0]
+      const res = await fetch(`/api/admin/availability-overrides?startDate=${today}`)
+      if (res.ok) {
+        const data = await res.json()
+        setOverrideDates(data.overrides || [])
+      }
+    } catch (e) {
+      console.error('Error fetching overrides:', e)
+    } finally {
+      setOverridesLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (activeTab === 'schedule') fetchOverrideDates()
+  }, [activeTab, fetchOverrideDates])
+
+  const handleAddOverride = async () => {
+    if (!addOverrideDate.trim()) {
+      toast.error('Please select a date')
+      return
+    }
+    setAddingOverride(true)
+    try {
+      const res = await fetch('/api/admin/availability-overrides', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: addOverrideDate, open_time: addOverrideOpen, close_time: addOverrideClose })
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Failed to add')
+      }
+      toast.success('Date opened for booking')
+      setAddOverrideDate('')
+      setAddOverrideOpen('11:00')
+      setAddOverrideClose('21:00')
+      await fetchOverrideDates()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to add date')
+    } finally {
+      setAddingOverride(false)
+    }
+  }
+
+  const handleDeleteOverride = async (id: string) => {
+    setDeletingOverrideId(id)
+    try {
+      const res = await fetch(`/api/admin/availability-overrides/${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Failed to remove')
+      toast.success('Date removed')
+      await fetchOverrideDates()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to remove')
+    } finally {
+      setDeletingOverrideId(null)
+    }
+  }
 
   // Save business hours
   const saveBusinessHours = async () => {
@@ -531,7 +603,7 @@ function AdminSettingsContent() {
             <span className="sm:hidden">Payments</span>
           </TabsTrigger>
           <TabsTrigger value="integrations" className="flex items-center justify-center gap-2 text-sm py-3 px-2 data-[state=active]:bg-black data-[state=active]:text-white">
-            <Link className="hidden sm:block h-4 w-4" />
+            <LinkIcon className="hidden sm:block h-4 w-4" />
             <span className="hidden sm:inline">Integrations</span>
             <span className="sm:hidden">Apps</span>
           </TabsTrigger>
@@ -628,7 +700,7 @@ function AdminSettingsContent() {
             <CardContent className="space-y-6 p-4 sm:p-6">
               <div className="space-y-4">
                 {businessHours.map((day) => (
-                  <div key={day.day_of_week} className="p-4 border rounded-lg space-y-3">
+                  <div key={day.day_of_week} className="p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <Switch
@@ -761,6 +833,145 @@ function AdminSettingsContent() {
                 {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Save Buffer Time
               </Button>
+            </CardContent>
+          </Card>
+
+          {/* One-time open dates */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CalendarPlus className="h-5 w-5" />
+                One-time open dates
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 p-4 sm:p-6">
+              <p className="text-sm text-gray-600">
+                Open specific dates that are normally closed (e.g. you usually work Thu–Sun but want to open Wednesday for one day).
+              </p>
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs font-medium">Date</Label>
+                  <Input
+                    type="date"
+                    value={addOverrideDate}
+                    onChange={(e) => setAddOverrideDate(e.target.value)}
+                    className="w-full sm:w-40"
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs font-medium">Open</Label>
+                  <Input type="time" value={addOverrideOpen} onChange={(e) => setAddOverrideOpen(e.target.value)} className="w-24 sm:w-28" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs font-medium">Close</Label>
+                  <Input type="time" value={addOverrideClose} onChange={(e) => setAddOverrideClose(e.target.value)} className="w-24 sm:w-28" />
+                </div>
+                <Button onClick={handleAddOverride} disabled={addingOverride || !addOverrideDate} size="sm">
+                  {addingOverride ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Add date'}
+                </Button>
+              </div>
+              <div>
+                <h4 className="font-medium text-sm text-gray-900 mb-2">Upcoming open dates</h4>
+                {overridesLoading ? (
+                  <p className="text-sm text-gray-500">Loading…</p>
+                ) : overrideDates.length === 0 ? (
+                  <p className="text-sm text-gray-500">None added yet.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {overrideDates.map((o) => (
+                      <li key={o.id} className="flex items-center justify-between rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
+                        <span>
+                          <strong>{new Date(o.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</strong>
+                          {' '}{o.open_time} – {o.close_time}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => handleDeleteOverride(o.id)}
+                          disabled={deletingOverrideId === o.id}
+                        >
+                          {deletingOverrideId === o.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Google Calendar Integration */}
+          <Card>
+            <CardHeader className="pb-3 sm:pb-6">
+              <CardTitle className="flex items-center space-x-2 text-base sm:text-lg">
+                <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span>Google Calendar Integration</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 sm:space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  {googleCalendar.isConnected ? (
+                    <div className="w-2 h-2 bg-green-500 rounded-full" />
+                  ) : (
+                    <div className="w-2 h-2 bg-gray-400 rounded-full" />
+                  )}
+                  <span className="font-medium text-sm sm:text-base">
+                    {googleCalendar.isConnected ? 'Connected' : 'Not Connected'}
+                  </span>
+                </div>
+              </div>
+              {googleCalendar.isConnected ? (
+                <div className="space-y-3">
+                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-xs sm:text-sm text-green-800">
+                      Google Calendar is connected and syncing
+                    </p>
+                    {'calendarId' in googleCalendar && googleCalendar.calendarId && (
+                      <p className="text-xs text-green-600 mt-1 break-all">
+                        Calendar ID: {String(googleCalendar.calendarId)}
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm sm:text-base text-gray-900">Integration features</h4>
+                    <ul className="text-xs sm:text-sm text-gray-600 space-y-1">
+                      <li>• New bookings automatically appear in your Google Calendar</li>
+                      <li>• Blocked time in Google Calendar blocks availability in the system</li>
+                      <li>• Two-way sync keeps everything in sync</li>
+                    </ul>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                    <p className="text-xs sm:text-sm text-gray-600">
+                      Google Calendar is not connected. Connect it to enable two-way synchronization.
+                    </p>
+                  </div>
+                </div>
+              )}
+              <div className="pt-3 sm:pt-4">
+                {googleCalendar.isConnected ? (
+                  <Button
+                    variant="outline"
+                    className="w-full text-sm sm:text-base text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                    onClick={handleGoogleCalendarDisconnect}
+                  >
+                    <Unlink className="h-4 w-4 mr-2 shrink-0" />
+                    Disconnect
+                  </Button>
+                ) : (
+                  <Button variant="outline" className="w-full text-sm sm:text-base" asChild>
+                    <Link href="/admin/settings?tab=integrations" className="inline-flex items-center justify-center">
+                      <LinkIcon className="h-4 w-4 mr-2 shrink-0" />
+                      Connect Google Calendar
+                    </Link>
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
 
@@ -1059,7 +1270,7 @@ function AdminSettingsContent() {
                       onClick={handleGoogleCalendarAuth}
                       className="flex items-center gap-2"
                     >
-                      <Link className="h-4 w-4" />
+                      <LinkIcon className="h-4 w-4" />
                       Connect Google Calendar
                     </Button>
                   )}

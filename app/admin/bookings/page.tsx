@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuPortal } from '@/components/ui/dropdown-menu'
-import { CheckCircle, Calendar, DollarSign, CalendarDays, RotateCcw, Search, Filter, Table, Phone, MessageSquare, Mail, ListChecks, CreditCard, MoreVertical, CheckSquare, Loader2, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { CheckCircle, Calendar, DollarSign, CalendarDays, RotateCcw, Search, Filter, Table, Phone, MessageSquare, Mail, ListChecks, CreditCard, MoreVertical, CheckSquare, Loader2, ChevronLeft, ChevronRight, X, Clock } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 import RescheduleModal from '@/components/admin/reschedule-modal'
@@ -742,13 +742,21 @@ export default function AdminBookingsPage() {
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Bookings Management</h1>
           <p className="text-gray-600 text-sm sm:text-base">Manage all customer bookings and appointments</p>
         </div>
-        <Button 
-          onClick={() => setShowAdminBookModal(true)}
-          className="w-full sm:w-auto"
-        >
-          <Calendar className="w-4 h-4 mr-2" />
-          Book Appointment
-        </Button>
+        <div className="flex items-center gap-2">
+          <Link href="/admin/settings?tab=schedule">
+            <Button variant="outline" className="w-full sm:w-auto">
+              <Clock className="w-4 h-4 mr-2" />
+              Schedule
+            </Button>
+          </Link>
+          <Button 
+            onClick={() => setShowAdminBookModal(true)}
+            className="w-full sm:w-auto"
+          >
+            <Calendar className="w-4 h-4 mr-2" />
+            Book Appointment
+          </Button>
+        </div>
       </div>
 
       {/* Summary Stats */}
