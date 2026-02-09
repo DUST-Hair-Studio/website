@@ -64,7 +64,7 @@ const HOURS_OPTIONS = [
 const TEMPLATE_VARIABLES = [
   { variable: '{customer_name}', description: 'Customer\'s full name' },
   { variable: '{customer_email}', description: 'Customer\'s email address' },
-  { variable: '{business_email}', description: 'Business email (from Settings)' },
+  { variable: '{business_email}', description: 'Business/contact email (e.g. "contact us at {business_email}")' },
   { variable: '{appointment_date}', description: 'Appointment date (e.g., January 15, 2024)' },
   { variable: '{appointment_time}', description: 'Appointment time (e.g., 2:00 PM)' },
   { variable: '{appointment_datetime}', description: 'Full date and time' },
@@ -79,6 +79,7 @@ const TEMPLATE_VARIABLES = [
 
 const PREVIEW_SAMPLE: Record<string, string> = {
   '{customer_name}': 'Jordan Smith',
+  '{email}': 'appointments@yourstudio.com',
   '{customer_email}': 'jordan@example.com',
   '{business_email}': 'appointments@yourstudio.com',
   '{appointment_date}': 'Monday, February 10, 2025',
@@ -347,6 +348,9 @@ function AdminRemindersContent() {
 
         {/* Templates Tab */}
         <TabsContent value="templates" className="space-y-6 mt-6">
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 mb-4">
+            <strong>Note:</strong> The &quot;Payment Request&quot; email (when you send a payment link from a booking) is not edited here. That email is fixed in the app. Only the templates listed below are used for appointment confirmations, reminders, cancellations, and similar messages.
+          </div>
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Reminder Templates</h2>
             <Button onClick={() => setShowTemplateForm(true)} className="flex items-center gap-2">

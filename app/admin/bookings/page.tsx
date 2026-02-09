@@ -408,10 +408,17 @@ export default function AdminBookingsPage() {
     try {
       setCancellingBookingId(booking.id)
       const response = await fetch(`/api/admin/bookings/${booking.id}`, {
-        method: 'DELETE',
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'cancelled' }),
       })
       if (response.ok) {
-        setBookings(prev => prev.filter(b => b.id !== booking.id))
+        const data = await response.json()
+        if (data.booking) {
+          setBookings(prev => prev.map(b => b.id === booking.id ? data.booking : b))
+        } else {
+          setBookings(prev => prev.filter(b => b.id !== booking.id))
+        }
         if (selectedBooking?.id === booking.id) {
           setSelectedBooking(null)
           setShowBookingDetails(false)
@@ -423,7 +430,7 @@ export default function AdminBookingsPage() {
       }
     } catch (error) {
       console.error('Error cancelling booking:', error)
-      toast.error('Failed to delete booking')
+      toast.error('Failed to cancel booking')
     } finally {
       setCancellingBookingId(null)
     }
@@ -1096,7 +1103,7 @@ export default function AdminBookingsPage() {
                                 ) : (
                                   <X className="w-4 h-4 mr-2" />
                                 )}
-                                {cancellingBookingId === booking.id ? 'Deleting...' : 'Cancel'}
+                                {cancellingBookingId === booking.id ? 'Cancelling...' : 'Cancel'}
                               </DropdownMenuItem>
                             )}
                             {booking.price_charged && booking.price_charged > 0 && booking.payment_status !== 'paid' && (
@@ -1254,7 +1261,7 @@ export default function AdminBookingsPage() {
                                     ) : (
                                       <X className="w-4 h-4 mr-2" />
                                     )}
-                                    {cancellingBookingId === booking.id ? 'Deleting...' : 'Cancel'}
+                                    {cancellingBookingId === booking.id ? 'Cancelling...' : 'Cancel'}
                                   </DropdownMenuItem>
                                 )}
                                 {booking.price_charged && booking.price_charged > 0 && (
@@ -1446,7 +1453,7 @@ export default function AdminBookingsPage() {
                                     ) : (
                                       <X className="w-4 h-4 mr-2" />
                                     )}
-                                    {cancellingBookingId === booking.id ? 'Deleting...' : 'Cancel'}
+                                    {cancellingBookingId === booking.id ? 'Cancelling...' : 'Cancel'}
                                   </DropdownMenuItem>
                                 )}
                                 {booking.price_charged && booking.price_charged > 0 && (
@@ -1930,7 +1937,7 @@ export default function AdminBookingsPage() {
                                         ) : (
                                           <X className="w-4 h-4 mr-2" />
                                         )}
-                                        {cancellingBookingId === booking.id ? 'Deleting...' : 'Cancel'}
+                                        {cancellingBookingId === booking.id ? 'Cancelling...' : 'Cancel'}
                                       </DropdownMenuItem>
                                     )}
                                     {booking.price_charged && booking.price_charged > 0 && (
@@ -2127,7 +2134,7 @@ export default function AdminBookingsPage() {
                                             ) : (
                                               <X className="w-4 h-4 mr-2" />
                                             )}
-                                            {cancellingBookingId === booking.id ? 'Deleting...' : 'Cancel'}
+                                            {cancellingBookingId === booking.id ? 'Cancelling...' : 'Cancel'}
                                           </DropdownMenuItem>
                                         )}
                                         {booking.price_charged && booking.price_charged > 0 && booking.payment_status !== 'paid' && (

@@ -136,6 +136,7 @@ export class EmailService {
       .replace(/{appointment_date}/g, appointmentDate)
       .replace(/{appointment_time}/g, appointmentTime)
       .replace(/{business_email}/g, businessEmail)
+      .replace(/{email}/g, businessEmail)
       .replace(/{customer_email}/g, customerEmail)
       .replace(/{customer_name}/g, customerName)
       .replace(/{service_name}/g, serviceName)
@@ -322,9 +323,14 @@ export class EmailService {
   // Send cancellation email when booking is cancelled
   async sendCancellationEmail(booking: BookingData): Promise<boolean> {
     try {
-      // Check if Resend is configured
       if (!resend) {
         console.log('Resend API key not configured, skipping email')
+        return false
+      }
+
+      const toEmail = booking?.customers?.email
+      if (!toEmail || typeof toEmail !== 'string') {
+        console.error('Cancellation email skipped: no customer email for booking', booking?.id)
         return false
       }
 
@@ -356,7 +362,7 @@ export class EmailService {
       const { data, error } = await resend.emails.send({
         from: getResendFromAddress(),
         replyTo: businessSettings.business_email || undefined,
-        to: [booking.customers.email],
+        to: [toEmail],
         subject,
         text: message,
         html: `
@@ -367,7 +373,7 @@ export class EmailService {
             </div>
             <div style="border-top: 1px solid #eee; padding-top: 20px; font-size: 12px; color: #666;">
               <p>Booking ID: ${booking.id}</p>
-              <p>If you have any questions, please contact us at ${businessSettings.business_phone}</p>
+              <p>If you have any questions, please contact us at ${businessSettings?.business_phone ?? ''}</p>
             </div>
           </div>
         `
@@ -629,7 +635,7 @@ ${businessSettings.business_phone}`
     }
   }
 
-  // Send payment link email
+  // Send payment link email (hardcoded content; not from reminder_templates)
   async sendPaymentLinkEmail(paymentData: PaymentLinkData): Promise<boolean> {
     try {
       console.log('📧 [PAYMENT LINK EMAIL] Starting to send payment link email')
@@ -688,7 +694,7 @@ Payment Link: ${paymentData.paymentUrl}
 
 This payment link is secure and will take you to our payment processor where you can complete your transaction safely.
 
-If you have any questions about this payment or your appointment, please don't hesitate to contact us at ${businessSettings.business_phone}.
+If you have any questions about this payment or your appointment, please contact us at appointments@dusthairstudio.com.
 
 Thank you for choosing ${businessSettings.business_name}!
 
@@ -739,7 +745,7 @@ The ${businessSettings.business_name} Team`
             </div>
 
             <div style="border-top: 1px solid #eee; padding-top: 20px; font-size: 12px; color: #666;">
-              <p>If you have any questions about this payment or your appointment, please don't hesitate to contact us at ${businessSettings.business_phone}.</p>
+              <p>If you have any questions about this payment or your appointment, please contact us at appointments@dusthairstudio.com.</p>
               <p>Thank you for choosing ${businessSettings.business_name}!</p>
               <p style="margin-top: 15px;"><strong>Booking ID:</strong> ${paymentData.id}</p>
             </div>

@@ -49,6 +49,7 @@ export default function RescheduleModal({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [businessHours, setBusinessHours] = useState<{day_of_week: number; is_open: boolean; open_time: string; close_time: string; timezone: string}[]>([])
+  const [overrideDates, setOverrideDates] = useState<string[]>([])
 
   // Reset state when modal opens/closes
   useEffect(() => {
@@ -60,7 +61,7 @@ export default function RescheduleModal({
     }
   }, [isOpen, booking])
 
-  // Fetch business hours
+  // Fetch business hours and one-time override dates
   useEffect(() => {
     const fetchBusinessHours = async () => {
       try {
@@ -74,8 +75,26 @@ export default function RescheduleModal({
       }
     }
 
+    const fetchOverrideDates = async () => {
+      try {
+        const start = new Date()
+        const end = new Date()
+        end.setDate(end.getDate() + 180)
+        const toYMD = (d: Date) =>
+          `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+        const res = await fetch(`/api/availability/override-dates?startDate=${toYMD(start)}&endDate=${toYMD(end)}`)
+        if (res.ok) {
+          const data = await res.json()
+          setOverrideDates(data.dates || [])
+        }
+      } catch (error) {
+        console.error('Error fetching override dates:', error)
+      }
+    }
+
     if (isOpen) {
       fetchBusinessHours()
+      fetchOverrideDates()
     }
   }, [isOpen])
 
@@ -83,12 +102,13 @@ export default function RescheduleModal({
   // Availability is now only fetched when a date is actually selected
   // This makes the modal load instantly
 
-  // Business day and availability checking functions
   const isBusinessDay = (date: Date): boolean => {
-    if (businessHours.length === 0) {
-      return true
-    }
-    
+    const toYMD = (y: number, mo: number, day: number) =>
+      `${y}-${String(mo).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    const dateStrLocal = toYMD(date.getFullYear(), date.getMonth() + 1, date.getDate())
+    const dateStrUTC = toYMD(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate())
+    if (overrideDates.includes(dateStrLocal) || overrideDates.includes(dateStrUTC)) return true
+    if (businessHours.length === 0) return true
     const dayOfWeek = date.getDay()
     const dayHours = businessHours.find(hours => hours.day_of_week === dayOfWeek)
     return !!(dayHours && dayHours.is_open)
@@ -124,7 +144,7 @@ export default function RescheduleModal({
       const day = String(date.getDate()).padStart(2, '0')
       const dateStr = `${year}-${month}-${day}`
 
-      const url = `/api/admin/availability?startDate=${dateStr}&endDate=${dateStr}&serviceDuration=${duration}`
+      const url = `/api/availability?startDate=${dateStr}&endDate=${dateStr}&serviceDuration=${duration}`
       
       const response = await fetch(url)
       
@@ -300,6 +320,7 @@ export default function RescheduleModal({
             <CardContent className="p-0">
               <div className="w-full pb-12 px-2">
                 <Calendar
+                  key={`reschedule-modal-cal-${overrideDates.length}`}
                   mode="single"
                   selected={selectedDate}
                   onSelect={handleDateSelect}

@@ -6,7 +6,7 @@ export async function GET() {
   try {
     const supabase = createAdminSupabaseClient()
     
-    const { data: templates, error } = await supabase
+    const { data: rawTemplates, error } = await supabase
       .from('reminder_templates')
       .select('*')
       .order('created_at', { ascending: false })
@@ -20,6 +20,8 @@ export async function GET() {
       return NextResponse.json({ error: 'Failed to fetch templates', details: error.message }, { status: 500 })
     }
 
+    // Payment request email is hardcoded in lib/email-service (sendPaymentLinkEmail); hide payment_link so it doesn't show as editable
+    const templates = (rawTemplates ?? []).filter((t: { type?: string }) => t.type !== 'payment_link')
     return NextResponse.json({ templates })
   } catch (error) {
     console.error('Reminder templates API error:', error)

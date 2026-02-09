@@ -40,7 +40,8 @@ export default function ReschedulePage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [businessHours, setBusinessHours] = useState<{day_of_week: number; is_open: boolean; open_time: string; close_time: string; timezone: string}[]>([])
-  
+  const [overrideDates, setOverrideDates] = useState<string[]>([])
+
   // State to track dates with no availability (same as booking flow)
   const [datesWithNoAvailability, setDatesWithNoAvailability] = useState<Set<string>>(new Set())
   
@@ -97,14 +98,13 @@ export default function ReschedulePage() {
     }
   }, [user, authLoading, bookingId, router, fetchBooking])
 
-  // Fetch business hours (same as booking flow)
+  // Fetch business hours and one-time override dates (so override days are selectable)
   useEffect(() => {
     const fetchBusinessHours = async () => {
       try {
         const response = await fetch('/api/admin/business-hours')
         if (response.ok) {
           const data = await response.json()
-          console.log('🔍 Reschedule - Business hours loaded:', data.businessHours)
           setBusinessHours(data.businessHours || [])
         }
       } catch (error) {
@@ -112,7 +112,25 @@ export default function ReschedulePage() {
       }
     }
 
+    const fetchOverrideDates = async () => {
+      try {
+        const start = new Date()
+        const end = new Date()
+        end.setDate(end.getDate() + 180)
+        const toYMD = (d: Date) =>
+          `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+        const res = await fetch(`/api/availability/override-dates?startDate=${toYMD(start)}&endDate=${toYMD(end)}`)
+        if (res.ok) {
+          const data = await res.json()
+          setOverrideDates(data.dates || [])
+        }
+      } catch (error) {
+        console.error('❌ Reschedule - Error fetching override dates:', error)
+      }
+    }
+
     fetchBusinessHours()
+    fetchOverrideDates()
   }, [])
 
   // Efficient availability check for visible calendar days (same as booking flow)
@@ -193,20 +211,17 @@ export default function ReschedulePage() {
     }
   }, [booking, businessHours, checkAvailabilityForVisibleDays])
 
-  // Business day and availability checking functions (same as booking flow)
+  // Business day and availability checking (includes one-time override dates)
   const isBusinessDay = (date: Date): boolean => {
-    // If business hours haven't loaded yet, allow all dates temporarily
-    if (businessHours.length === 0) {
-      console.log('🔍 Reschedule - Business hours not loaded yet, allowing date:', date.toDateString())
-      return true
-    }
-    
-    const dayOfWeek = date.getDay() // 0 = Sunday, 1 = Monday, etc.
+    const toYMD = (y: number, mo: number, day: number) =>
+      `${y}-${String(mo).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    const dateStrLocal = toYMD(date.getFullYear(), date.getMonth() + 1, date.getDate())
+    const dateStrUTC = toYMD(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate())
+    if (overrideDates.includes(dateStrLocal) || overrideDates.includes(dateStrUTC)) return true
+    if (businessHours.length === 0) return true
+    const dayOfWeek = date.getDay()
     const dayHours = businessHours.find(hours => hours.day_of_week === dayOfWeek)
-    const isOpen = dayHours && dayHours.is_open
-    
-    console.log(`🔍 Reschedule - Date: ${date.toDateString()}, Day: ${dayOfWeek}, DayHours:`, dayHours, `IsOpen: ${isOpen}`)
-    return !!isOpen
+    return !!(dayHours && dayHours.is_open)
   }
 
   const hasNoAvailability = (date: Date) => {
@@ -413,6 +428,7 @@ export default function ReschedulePage() {
             <CardContent className="p-0 relative">
               <div className="w-full pb-16 pt-2 px-2 sm:pb-10 sm:pt-0 overflow-hidden">
                 <Calendar
+                  key={`reschedule-cal-${overrideDates.length}`}
                   mode="single"
                   selected={selectedDate}
                   onSelect={handleDateSelect}
