@@ -224,12 +224,24 @@ export async function POST(request: NextRequest) {
               .message u {
                   text-decoration: underline;
               }
+              .message ul,
               .message .campaign-list {
-                  margin: 0.75em 0 1em 1.5em;
-                  padding-left: 0.5em;
+                  list-style: none;
+                  margin: 0.75em 0 1em 0;
+                  padding-left: 0;
               }
+              .message ul li,
               .message .campaign-list li {
                   margin-bottom: 0.35em;
+                  padding-left: 1.25em;
+                  position: relative;
+              }
+              .message ul li::before,
+              .message .campaign-list li::before {
+                  content: "–";
+                  font-weight: 700;
+                  position: absolute;
+                  left: 0;
               }
               .cta-container {
                   text-align: center;

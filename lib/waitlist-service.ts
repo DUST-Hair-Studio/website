@@ -192,9 +192,11 @@ ${businessSettings.business_phone}`
 
       const htmlMessage = message.replace(/\n/g, '<br>')
 
+      const resendFrom = process.env.RESEND_FROM_OVERRIDE || process.env.RESEND_FROM_EMAIL || 'DUST Hair Studio <onboarding@resend.dev>'
       const { data, error } = await resend.emails.send({
-        from: process.env.RESEND_FROM_OVERRIDE || businessSettings.business_email,
+        from: resendFrom,
         to: [waitlistRequest.customers.email],
+        replyTo: businessSettings.business_email || undefined,
         subject,
         text: message,
         html: `
