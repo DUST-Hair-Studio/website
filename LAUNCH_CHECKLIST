@@ -56,6 +56,35 @@ STEP 2: Configure Custom Domain in Vercel ..................................... 
 3. Add domain: dusthairstudio.com (set to redirect to www)
 4. Wait for SSL (Vercel will verify DNS; usually instant, up to ~1 hour)
 
+--------------------------------------------------------------------------------
+🔧 TROUBLESHOOTING: Apex (dusthairstudio.com) shows GoDaddy parking / dot-photos
+--------------------------------------------------------------------------------
+If visiting dusthairstudio.com (no www) shows "parked for free at GoDaddy" or
+redirects to dot-photos.com, the apex domain is NOT reaching Vercel. Fix in GoDaddy:
+
+1. Turn OFF parking / monetization
+   • GoDaddy → My Products → dusthairstudio.com
+   • Look for "Parking", "Monetize", "CashParking", or "Forwarding" that might
+     point to a parking page. Disable or remove it so DNS records control the domain.
+
+2. Confirm the A record for @ (apex)
+   • Go to DNS → Manage DNS
+   • Ensure there is exactly one A record:  Name = @ (or blank),  Value = 76.76.21.21
+   • If you see a different A record for @ (e.g. GoDaddy parking IP), delete it
+     and add/keep the one above. No "Forwarding" for the root should override this.
+
+3. Optional: Use GoDaddy "Forwarding" instead of Vercel redirect
+   • If you prefer: Domain → Forwarding → Add forwarding:
+     From: dusthairstudio.com  →  To: https://www.dusthairstudio.com (301, permanent)
+   • Then the apex is handled by GoDaddy and always redirects to www. Your A record
+     for @ can stay 76.76.21.21 so Vercel still owns it when forwarding is off.
+
+4. Vercel being slow/down
+   • If the apex DNS is correct, a Vercel outage would show a Vercel error or
+     timeout, not GoDaddy parking. Seeing GoDaddy/dot-photos means the request
+     is still hitting GoDaddy (parking or wrong A record). Check status.vercel.com
+     if www also fails to load.
+
 STEP 3: Update Vercel Environment Variable ................................... ⬜ DO NEXT
 ─────────────────────────────────────────────────────────────────────────────────
 Change NEXT_PUBLIC_APP_URL:
@@ -89,6 +118,7 @@ STEP 6: Test Everything on New Domain ......................................... 
 - [ ] Visit https://www.dusthairstudio.com - site loads
 - [ ] Test customer booking flow
 - [ ] Test "Pay Now (POS)" - payment completes and status updates
+- [ ] Test "Send Payment Link" - link is created and email is received (see Payment Links below)
 - [ ] Test email links point to correct domain
 - [ ] Test admin portal: https://www.dusthairstudio.com/admin
 
@@ -191,12 +221,41 @@ Required for admin invite emails, password reset, and other Auth emails to send.
 4. Save. Test by sending an admin invite from Settings → Admins.
 
 ================================================================================
+💳 PAYMENT LINKS (Send Payment Link email)
+================================================================================
+
+If "Send Payment Link" fails or emails don't arrive after going live:
+
+1) Runtime: The send-payment-link API route must run on Node.js (not Edge).
+   - Code has: export const runtime = 'nodejs' in app/api/bookings/send-payment-link/route.ts
+   - Redeploy after any change so Vercel picks it up.
+
+2) Square (production): In Admin → Settings → Payments, ensure:
+   - Square Payment Processing is ON
+   - Square Environment = Production (Live)
+   - Square Access Token = production token (from Square Developer → Production)
+   - Square Location ID = your live location ID
+
+3) App URL: NEXT_PUBLIC_APP_URL in Vercel must match your live domain
+   (e.g. https://www.dusthairstudio.com). Payment link redirect URL is built from this.
+
+4) Resend (email delivery): Payment link emails use Resend. Ensure:
+   - RESEND_API_KEY is set in Vercel
+   - If using custom "from" (e.g. business email): domain must be verified in Resend
+   - Workaround until domain verified: set RESEND_FROM_OVERRIDE=DUST Hair Studio <onboarding@resend.dev>
+     in Vercel env (see EMAIL section above). Remove after domain is verified.
+
+5) Check Vercel Function Logs: Deployments → select deployment → Logs. Filter for
+   "SEND PAYMENT LINK" or "PAYMENT LINK EMAIL" to see Square or Resend errors.
+
+================================================================================
 🧪 QUICK TEST CHECKLIST
 ================================================================================
 
 Before going live, verify:
 - [ ] Booking flow works end-to-end
 - [ ] Payment via POS updates booking to "paid"
+- [ ] "Send Payment Link" creates link and customer receives the email
 - [ ] Confirmation emails are sent
 - [ ] Reminder emails are scheduled
 - [ ] Admin can view/manage bookings

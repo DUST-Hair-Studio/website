@@ -119,6 +119,8 @@ export class EmailService {
 
     return template
       .replace(/{customer_name}/g, booking.customers.name)
+      .replace(/{email}/g, booking.customers.email)
+      .replace(/{customer_email}/g, booking.customers.email)
       .replace(/{appointment_date}/g, appointmentDate)
       .replace(/{appointment_time}/g, appointmentTime)
       .replace(/{appointment_datetime}/g, appointmentDateTime)

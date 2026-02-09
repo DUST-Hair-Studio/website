@@ -3,6 +3,9 @@ import { createPaymentLink } from '@/lib/square-payment';
 import { EmailService, PaymentLinkData } from '@/lib/email-service';
 import { createAdminSupabaseClient } from '@/lib/supabase-server';
 
+// Force Node.js runtime for Square SDK + email sending compatibility
+export const runtime = 'nodejs';
+
 export async function POST(request: NextRequest) {
   try {
     console.log('📧 [SEND PAYMENT LINK EMAIL] Starting payment link email generation...');

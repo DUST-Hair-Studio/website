@@ -63,6 +63,8 @@ const HOURS_OPTIONS = [
 
 const TEMPLATE_VARIABLES = [
   { variable: '{customer_name}', description: 'Customer\'s full name' },
+  { variable: '{email}', description: 'Customer\'s email address' },
+  { variable: '{customer_email}', description: 'Customer\'s email address' },
   { variable: '{appointment_date}', description: 'Appointment date (e.g., January 15, 2024)' },
   { variable: '{appointment_time}', description: 'Appointment time (e.g., 2:00 PM)' },
   { variable: '{appointment_datetime}', description: 'Full date and time' },
@@ -74,6 +76,30 @@ const TEMPLATE_VARIABLES = [
   { variable: '{business_address}', description: 'Your business address' },
   { variable: '{booking_id}', description: 'Unique booking reference' }
 ]
+
+const PREVIEW_SAMPLE: Record<string, string> = {
+  '{customer_name}': 'Jordan Smith',
+  '{email}': 'jordan@example.com',
+  '{customer_email}': 'jordan@example.com',
+  '{appointment_date}': 'Monday, February 10, 2025',
+  '{appointment_time}': '2:00 PM',
+  '{appointment_datetime}': 'Monday, February 10, 2025 at 2:00 PM',
+  '{old_appointment_date}': 'Friday, February 7, 2025',
+  '{old_appointment_time}': '10:00 AM',
+  '{service_name}': 'Haircut & Styling',
+  '{business_name}': 'DUST Studio',
+  '{business_phone}': '(555) 123-4567',
+  '{business_address}': '1942 Riverside Dr, Los Angeles, CA 90039',
+  '{booking_id}': 'abc-123'
+}
+
+function previewWithSample(text: string): string {
+  let out = text
+  for (const [variable, value] of Object.entries(PREVIEW_SAMPLE)) {
+    out = out.replace(new RegExp(variable.replace(/[{}]/g, '\\$&'), 'g'), value)
+  }
+  return out
+}
 
 function AdminRemindersContent() {
   const [activeTab, setActiveTab] = useState('templates')
@@ -331,14 +357,14 @@ function AdminRemindersContent() {
 
           {/* Template Form Modal */}
           <Dialog open={showTemplateForm} onOpenChange={setShowTemplateForm}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] sm:max-w-6xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
               <DialogHeader>
                 <DialogTitle>
                   {editingTemplate ? 'Edit Template' : 'Create New Template'}
                 </DialogTitle>
               </DialogHeader>
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4 sm:space-y-6 min-w-0">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="template_name">Template Name</Label>
                     <Input
@@ -398,18 +424,59 @@ function AdminRemindersContent() {
                   </div>
                 </div>
                 
+                <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 min-w-0">
+                  <div className="min-w-0 space-y-2">
+                    <Label htmlFor="template_message">Message Template</Label>
+                    <Textarea
+                      id="template_message"
+                      value={templateForm.message}
+                      onChange={(e) => setTemplateForm(prev => ({ ...prev, message: e.target.value }))}
+                      placeholder="Hi {customer_name}, this is a reminder about your appointment on {appointment_date} at {appointment_time}..."
+                      rows={6}
+                      className="resize-y min-h-[140px] w-full min-w-0"
+                    />
+                    <p className="text-sm text-gray-600">
+                      Click a variable below (or on the right on large screens) to copy it, then paste into the template.
+                    </p>
+                  </div>
+                  <div className="space-y-2 min-w-0">
+                    <Label className="text-sm font-medium">Available variables</Label>
+                    <div className="flex flex-wrap gap-1.5 p-3 rounded-lg bg-gray-50 border border-gray-100 lg:flex-col lg:flex-nowrap">
+                      {TEMPLATE_VARIABLES.map((v, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => {
+                            void navigator.clipboard.writeText(v.variable)
+                            toast.success(`Copied ${v.variable}`)
+                          }}
+                          className="text-left px-2 py-1.5 rounded text-sm font-mono bg-white border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition-colors shrink-0"
+                          title={`${v.description} — click to copy`}
+                        >
+                          {v.variable}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="template_message">Message Template</Label>
-                  <Textarea
-                    id="template_message"
-                    value={templateForm.message}
-                    onChange={(e) => setTemplateForm(prev => ({ ...prev, message: e.target.value }))}
-                    placeholder="Hi {customer_name}, this is a reminder about your appointment on {appointment_date} at {appointment_time}..."
-                    rows={6}
-                  />
-                  <p className="text-sm text-gray-600">
-                    Use variables like {`{customer_name}`}, {`{appointment_date}`}, {`{appointment_time}`}, etc.
-                  </p>
+                  <Label className="text-sm font-medium">Email preview</Label>
+                  <div className="rounded-lg border border-gray-200 bg-gray-50/50 overflow-hidden">
+                    <div className="border-b border-gray-200 bg-white px-3 py-2">
+                      <div className="text-xs text-gray-500 uppercase tracking-wide mb-0.5">Subject</div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {templateForm.subject ? previewWithSample(templateForm.subject) : '(No subject)'}
+                      </div>
+                    </div>
+                    <div className="p-3 sm:p-4 bg-white">
+                      <div className="text-xs text-gray-500 uppercase tracking-wide mb-1.5">Message</div>
+                      <div className="text-sm text-gray-800 whitespace-pre-wrap font-sans min-h-[80px]">
+                        {templateForm.message ? previewWithSample(templateForm.message) : '(No message yet)'}
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500">Preview uses sample data. Real emails will use actual booking details.</p>
                 </div>
 
                 <div className="flex items-center space-x-2">

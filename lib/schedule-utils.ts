@@ -18,6 +18,12 @@ interface BlockedTimeSlot {
   end_time: string
 }
 
+export interface AvailabilityOverride {
+  date: string
+  open_time: string
+  close_time: string
+}
+
 export function generateAvailableSlots(
   startDate: string,
   endDate: string,
@@ -25,39 +31,47 @@ export function generateAvailableSlots(
   existingBookings: Booking[],
   blockedTimeSlots: BlockedTimeSlot[],
   serviceDuration: number,
-  bufferTime: number = 0
+  bufferTime: number = 0,
+  availabilityOverrides?: AvailabilityOverride[]
 ): string[] {
   const availableSlots: string[] = []
   const start = new Date(startDate)
   const end = new Date(endDate)
-  
+  const overridesByDate = new Map(
+    (availabilityOverrides || []).map(o => [o.date, o])
+  )
+
   // Generate slots for each day in the range
   const current = new Date(start)
-  
+
   while (current <= end) {
-    // Parse the date string properly to avoid timezone issues
     const dateStr = current.toISOString().split('T')[0]
-    const localDate = new Date(dateStr + 'T00:00:00') // Create date in local timezone
-    const dayOfWeek = localDate.getDay() // 0 = Sunday, 1 = Monday, etc.
-    
-    // Find business hours for this day
-    const dayHours = businessHours.find(hours => hours.day_of_week === dayOfWeek)
-    
-    if (!dayHours || !dayHours.is_open) {
-      current.setDate(current.getDate() + 1) // Move to next day
-      continue // Skip days when business is closed
+    const override = overridesByDate.get(dateStr)
+
+    let openTime: { hours: number; minutes: number } | null
+    let closeTime: { hours: number; minutes: number } | null
+
+    if (override) {
+      // One-time open date: use override hours
+      openTime = parseTime(override.open_time)
+      closeTime = parseTime(override.close_time)
+    } else {
+      const localDate = new Date(dateStr + 'T00:00:00')
+      const dayOfWeek = localDate.getDay()
+      const dayHours = businessHours.find(hours => hours.day_of_week === dayOfWeek)
+      if (!dayHours || !dayHours.is_open) {
+        current.setDate(current.getDate() + 1)
+        continue
+      }
+      openTime = parseTime(dayHours.open_time)
+      closeTime = parseTime(dayHours.close_time)
     }
-    
-    // Parse open and close times
-    const openTime = parseTime(dayHours.open_time)
-    const closeTime = parseTime(dayHours.close_time)
-    
+
     if (!openTime || !closeTime) {
-      current.setDate(current.getDate() + 1) // Move to next day
+      current.setDate(current.getDate() + 1)
       continue
     }
-    
-    // Generate time slots for this day
+
     const daySlots = generateTimeSlotsForDay(
       dateStr,
       openTime,
@@ -67,13 +81,11 @@ export function generateAvailableSlots(
       existingBookings.filter(booking => booking.date === dateStr),
       blockedTimeSlots.filter(blocked => blocked.date === dateStr)
     )
-    
+
     availableSlots.push(...daySlots)
-    
-    // Move to next day
     current.setDate(current.getDate() + 1)
   }
-  
+
   return availableSlots
 }
 

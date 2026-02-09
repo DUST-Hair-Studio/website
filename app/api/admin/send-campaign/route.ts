@@ -5,6 +5,87 @@ import { Resend } from 'resend'
 // Initialize Resend
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
+/**
+ * Escape HTML to prevent XSS when rendering user content in emails.
+ */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+/**
+ * Convert plain text with simple formatting (Google Docs-style) to safe HTML for emails.
+ * Supports: **bold**, __underline__, bullet lists (- item), and paragraph spacing.
+ */
+function formatCampaignMessage(message: string): string {
+  const escaped = escapeHtml(message)
+
+  // Split into paragraphs (double newline)
+  const paragraphs = escaped.split(/\n\n+/)
+
+  const formattedParagraphs = paragraphs.map((block) => {
+    const lines = block.split('\n')
+    const parts: string[] = []
+    let i = 0
+
+    while (i < lines.length) {
+      const line = lines[i]
+      // Bullet list: consecutive lines starting with "- "
+      if (line.startsWith('- ') || /^[•]\s/.test(line)) {
+        const listItems: string[] = []
+        while (i < lines.length && (lines[i].startsWith('- ') || /^[•]\s/.test(lines[i]))) {
+          const item = lines[i].replace(/^[-•]\s*/, '')
+          listItems.push(`<li>${applyInlineFormatting(item)}</li>`)
+          i++
+        }
+        parts.push(`<ul class="campaign-list">${listItems.join('')}</ul>`)
+        continue
+      }
+      parts.push(applyInlineFormatting(line) + (i < lines.length - 1 ? '<br>' : ''))
+      i++
+    }
+
+    return parts.join('')
+  })
+
+  return formattedParagraphs.map((p) => `<p class="campaign-paragraph">${p}</p>`).join('')
+}
+
+/** Apply **bold** and __underline__ within a line (no nesting). */
+function applyInlineFormatting(line: string): string {
+  let out = line
+  // __underline__ (use double underscore to avoid breaking mid-word)
+  out = out.replace(/__([^_]+)__/g, '<u>$1</u>')
+  // **bold**
+  out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+  return out
+}
+
+/** Replace campaign template variables with values for a given recipient. */
+function replaceCampaignVariables(
+  text: string,
+  recipientEmail: string,
+  opts: { campaignName?: string; businessName?: string }
+): string {
+  const now = new Date()
+  const currentDate = now.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+  return text
+    .replace(/{email}/g, recipientEmail)
+    .replace(/{customer_email}/g, recipientEmail)
+    .replace(/{current_date}/g, currentDate)
+    .replace(/{campaign_id}/g, opts.campaignName || '')
+    .replace(/{your_name}/g, opts.businessName || '')
+    .replace(/{customer_name}/g, recipientEmail.split('@')[0]) // fallback when no name available
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient()
@@ -46,15 +127,20 @@ export async function POST(request: NextRequest) {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
     const finalRegistrationUrl = registrationUrl ? `${baseUrl}${registrationUrl}` : `${baseUrl}/register/existing`
 
-    // Create dynamic HTML email template with DUST branding
-    const finalButtonText = buttonText || ''
-    const htmlTemplate = `
+    const campaignReplaceOpts = {
+      campaignName: campaignName || '',
+      businessName: businessSettings.business_name || ''
+    }
+
+    function buildCampaignHtml(personalizedSubject: string, personalizedMessage: string): string {
+      const finalButtonText = buttonText || ''
+      return `
       <!DOCTYPE html>
       <html lang="en">
       <head>
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>${subject}</title>
+          <title>${escapeHtml(personalizedSubject)}</title>
           <style>
               body {
                   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -91,6 +177,25 @@ export async function POST(request: NextRequest) {
                   font-size: 15px;
                   color: #1C1C1D;
                   margin-bottom: 30px;
+              }
+              .message .campaign-paragraph {
+                  margin: 0 0 1em 0;
+              }
+              .message .campaign-paragraph:last-child {
+                  margin-bottom: 0;
+              }
+              .message strong {
+                  font-weight: 700;
+              }
+              .message u {
+                  text-decoration: underline;
+              }
+              .message .campaign-list {
+                  margin: 0.75em 0 1em 1.5em;
+                  padding-left: 0.5em;
+              }
+              .message .campaign-list li {
+                  margin-bottom: 0.35em;
               }
               .cta-container {
                   text-align: center;
@@ -136,7 +241,7 @@ export async function POST(request: NextRequest) {
               
               <div class="content">
                   <div class="message">
-                      ${message.replace(/\n/g, '<br>')}
+                      ${formatCampaignMessage(personalizedMessage)}
                   </div>
                   
                   ${finalButtonText && registrationUrl ? `
@@ -157,6 +262,7 @@ export async function POST(request: NextRequest) {
       </body>
       </html>
     `
+    }
 
     // Send emails in batches to avoid rate limits
     const batchSize = 10
@@ -167,29 +273,32 @@ export async function POST(request: NextRequest) {
     for (let i = 0; i < emailList.length; i += batchSize) {
       const batch = emailList.slice(i, i + batchSize)
       
-      const batchPromises = batch.map(async (email: string) => {
+      const batchPromises = batch.map(async (recipientEmail: string) => {
+        const personalizedSubject = replaceCampaignVariables(subject, recipientEmail, campaignReplaceOpts)
+        const personalizedMessage = replaceCampaignVariables(message, recipientEmail, campaignReplaceOpts)
+        const html = buildCampaignHtml(personalizedSubject, personalizedMessage)
         try {
           const { data, error } = await resend.emails.send({
             from: process.env.RESEND_FROM_OVERRIDE || businessSettings.business_email,
-            to: [email],
-            subject,
-            text: message,
-            html: htmlTemplate
+            to: [recipientEmail],
+            subject: personalizedSubject,
+            text: personalizedMessage,
+            html
           })
 
           if (error) {
-            console.error(`Error sending to ${email}:`, error)
+            console.error(`Error sending to ${recipientEmail}:`, error)
             errorCount++
-            return { email, success: false, error: error.message }
+            return { email: recipientEmail, success: false, error: error.message }
           }
 
           successCount++
-          return { email, success: true, emailId: data?.id }
+          return { email: recipientEmail, success: true, emailId: data?.id }
         } catch (error) {
-          console.error(`Exception sending to ${email}:`, error)
+          console.error(`Exception sending to ${recipientEmail}:`, error)
           errorCount++
           return { 
-            email, 
+            email: recipientEmail, 
             success: false, 
             error: error instanceof Error ? error.message : 'Unknown error' 
           }

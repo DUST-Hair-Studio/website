@@ -98,20 +98,32 @@ function BookPageContent() {
     fetchWaitlistSetting()
   }, [])
 
-  // Fetch customer info if logged in
+  // Fetch customer info if logged in - autofill from auth user immediately, then enrich from customer record
   useEffect(() => {
-    const fetchCustomer = async () => {
-      if (!user) return
+    if (!user) return
 
+    // Prefill from auth user (always available for logged-in users)
+    const nameParts = (user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || '').trim().split(/\s+/)
+    const firstName = nameParts[0] || ''
+    const lastName = nameParts.slice(1).join(' ') || ''
+    setCustomerInfo(prev => ({
+      ...prev,
+      firstName: prev.firstName || firstName,
+      lastName: prev.lastName || lastName,
+      email: prev.email || user.email || '',
+      phone: prev.phone || user.user_metadata?.phone || ''
+    }))
+
+    const fetchCustomer = async () => {
       try {
         const response = await fetch('/api/customer/me')
         const data = await response.json()
-        
+
         if (data.customer) {
           setCustomerInfo({
             firstName: data.customer.first_name || '',
             lastName: data.customer.last_name || '',
-            email: data.customer.email || '',
+            email: data.customer.email || user.email || '',
             phone: data.customer.phone || ''
           })
           setCustomer(data.customer)
@@ -175,7 +187,7 @@ function BookPageContent() {
       const month = String(date.getMonth() + 1).padStart(2, '0')
       const day = String(date.getDate()).padStart(2, '0')
       const dateStr = `${year}-${month}-${day}`
-      const url = `/api/admin/availability?startDate=${dateStr}&endDate=${dateStr}&serviceDuration=${selectedService.duration_minutes}`
+      const url = `/api/availability?startDate=${dateStr}&endDate=${dateStr}&serviceDuration=${selectedService.duration_minutes}`
       const response = await fetch(url)
       
       if (response.ok) {

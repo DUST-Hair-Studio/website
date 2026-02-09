@@ -42,11 +42,12 @@ export default function CampaignsPage() {
     name: '',
     description: '',
     registrationUrl: '',
-    customerType: 'existing' as 'new' | 'existing' | 'both',
+    customerType: 'both' as 'new' | 'existing' | 'both', // default for API; only set when sending
     subject: '',
     message: '',
     buttonText: ''
   })
+  const [sendAudience, setSendAudience] = useState<'all' | 'existing' | 'new' | null>(null)
 
   const fetchCampaignHistory = useCallback(async (campaignId: string) => {
     setLoadingCampaignHistory(true)
@@ -90,6 +91,10 @@ export default function CampaignsPage() {
     }
     fetchCampaigns()
   }, [])
+
+  useEffect(() => {
+    if (selectedCampaign) setSendAudience(null)
+  }, [selectedCampaign])
 
   const handleSendCampaign = async (campaign: CampaignConfig) => {
     if (!emailList.trim()) {
@@ -316,7 +321,6 @@ export default function CampaignsPage() {
               </CardHeader>
               <CardContent className="pt-0 sm:pt-0">
                 <div className="space-y-2 text-sm min-w-0">
-                  <div className="wrap-break-word"><strong>Type:</strong> {campaign.customerType}</div>
                   <div className="break-all"><strong>URL:</strong> {campaign.registrationUrl}</div>
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1"><strong>Status:</strong>
                     <span className={`inline-flex px-2 py-1 rounded text-xs ${
@@ -359,18 +363,55 @@ export default function CampaignsPage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="emailMessage">Email Message</Label>
-                <Textarea
-                  id="emailMessage"
-                  value={emailMessage || selectedCampaign.emailTemplate.message}
-                  onChange={(e) => setEmailMessage(e.target.value)}
-                  rows={12}
-                  placeholder="Enter your email message here..."
-                />
-                <p className="text-sm text-gray-500">
-                  This is the message that will be sent to all recipients. You can edit it here or use the campaign default.
-                </p>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div className="lg:col-span-2 space-y-2">
+                  <Label htmlFor="emailMessage">Email Message</Label>
+                  <Textarea
+                    id="emailMessage"
+                    value={emailMessage || selectedCampaign.emailTemplate.message}
+                    onChange={(e) => setEmailMessage(e.target.value)}
+                    rows={12}
+                    placeholder="Enter your email message here..."
+                    className="min-h-[240px]"
+                  />
+                  <p className="text-sm text-gray-500">
+                    This is the message that will be sent to all recipients. You can edit it here or use the campaign default.
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Formatting: <strong>**bold**</strong> → bold; <u>__underline__</u> → underline; start a line with <code>- </code> for a bullet list. Click a variable on the right to copy.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Available variables</Label>
+                  <div className="flex flex-wrap gap-1.5 p-3 rounded-lg bg-gray-50 border border-gray-100">
+                    {[
+                      { v: '{business_name}', d: 'Business name' },
+                      { v: '{business_phone}', d: 'Business phone' },
+                      { v: '{business_address}', d: 'Business address' },
+                      { v: '{registration_url}', d: 'Registration link' },
+                      { v: '{campaign_name}', d: 'Campaign name' },
+                      { v: '{customer_name}', d: "Customer's name" },
+                      { v: '{email}', d: "Recipient's email" },
+                      { v: '{customer_email}', d: "Recipient's email" },
+                      { v: '{current_date}', d: "Today's date" },
+                      { v: '{campaign_id}', d: 'Campaign ID' },
+                      { v: '{your_name}', d: 'Your name' }
+                    ].map(({ v, d }) => (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => {
+                          void navigator.clipboard.writeText(v)
+                          toast.success(`Copied ${v}`)
+                        }}
+                        className="px-2 py-1 rounded text-xs font-mono bg-white border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition-colors"
+                        title={`${d} — click to copy`}
+                      >
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               <div className="bg-blue-50 p-4 rounded-lg">
@@ -383,63 +424,24 @@ export default function CampaignsPage() {
                     <strong>Button:</strong> &quot;{selectedCampaign.buttonText}&quot; → <code>{selectedCampaign.registrationUrl}</code>
                   </p>
                 )}
-                <p className="text-sm text-blue-800">
-                  <strong>Target audience:</strong> {selectedCampaign.customerType === 'both' ? 'All customers' : `${selectedCampaign.customerType.charAt(0).toUpperCase() + selectedCampaign.customerType.slice(1)} customers`}
-                </p>
               </div>
 
-              {/* Available Variables for Campaign */}
-              <div className="bg-gray-50 p-3 sm:p-4 rounded-lg min-w-0">
-                <h4 className="font-semibold text-gray-900 mb-3 text-sm sm:text-base">Available Variables</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
-                  <div className="space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{business_name}'}</code>
-                      <span className="text-gray-600">Your business name</span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{business_phone}'}</code>
-                      <span className="text-gray-600">Your business phone</span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{business_address}'}</code>
-                      <span className="text-gray-600">Your business address</span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{registration_url}'}</code>
-                      <span className="text-gray-600">Campaign registration link</span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{campaign_name}'}</code>
-                      <span className="text-gray-600">Campaign name</span>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{customer_name}'}</code>
-                      <span className="text-gray-600">Customer&apos;s full name</span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{customer_email}'}</code>
-                      <span className="text-gray-600">Customer&apos;s email</span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{current_date}'}</code>
-                      <span className="text-gray-600">Today&apos;s date</span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{campaign_id}'}</code>
-                      <span className="text-gray-600">Campaign ID</span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{your_name}'}</code>
-                      <span className="text-gray-600">Your name (from settings)</span>
-                    </div>
-                  </div>
-                </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  Use these variables in your email subject and message. They will be automatically replaced with actual values when sent.
-                </p>
+              <div className="space-y-2">
+                <Label>Recipients (optional)</Label>
+                <Select
+                  value={sendAudience ?? 'all'}
+                  onValueChange={(value: 'all' | 'existing' | 'new') => setSendAudience(value === 'all' ? null : value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All (your email list)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All (your email list)</SelectItem>
+                    <SelectItem value="existing">Existing customers only</SelectItem>
+                    <SelectItem value="new">New customers only</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500">Who to send to. Leave as &quot;All&quot; to use the email list above as-is.</p>
               </div>
 
               <Button
@@ -510,25 +512,6 @@ export default function CampaignsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="customerType">Recipients</Label>
-                <Select
-                  value={newCampaign.customerType}
-                  onValueChange={(value: 'new' | 'existing' | 'both') => 
-                    setNewCampaign(prev => ({ ...prev, customerType: value }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="new">New Customers</SelectItem>
-                    <SelectItem value="existing">Existing Customers</SelectItem>
-                    <SelectItem value="both">Both</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="subject">Email Subject</Label>
                 <Input
                   id="subject"
@@ -538,15 +521,52 @@ export default function CampaignsPage() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="message">Email Message</Label>
-                <Textarea
-                  id="message"
-                  value={newCampaign.message}
-                  onChange={(e) => setNewCampaign(prev => ({ ...prev, message: e.target.value }))}
-                  rows={8}
-                  placeholder="Email message content"
-                />
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div className="lg:col-span-2 space-y-2">
+                  <Label htmlFor="message">Email Message</Label>
+                  <Textarea
+                    id="message"
+                    value={newCampaign.message}
+                    onChange={(e) => setNewCampaign(prev => ({ ...prev, message: e.target.value }))}
+                    rows={8}
+                    placeholder="Email message content"
+                    className="min-h-[180px]"
+                  />
+                  <p className="text-xs text-gray-500">
+                    Use <strong>**bold**</strong>, <u>__underline__</u>, and lines starting with <code>- </code> for bullets. Blank lines start new paragraphs. Click a variable on the right to copy.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Available variables</Label>
+                  <div className="flex flex-wrap gap-1.5 p-3 rounded-lg bg-gray-50 border border-gray-100">
+                    {[
+                      { v: '{business_name}', d: 'Business name' },
+                      { v: '{business_phone}', d: 'Business phone' },
+                      { v: '{business_address}', d: 'Business address' },
+                      { v: '{registration_url}', d: 'Registration link' },
+                      { v: '{campaign_name}', d: 'Campaign name' },
+                      { v: '{customer_name}', d: "Customer's name" },
+                      { v: '{email}', d: "Recipient's email" },
+                      { v: '{customer_email}', d: "Recipient's email" },
+                      { v: '{current_date}', d: "Today's date" },
+                      { v: '{campaign_id}', d: 'Campaign ID' },
+                      { v: '{your_name}', d: 'Your name' }
+                    ].map(({ v, d }) => (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => {
+                          void navigator.clipboard.writeText(v)
+                          toast.success(`Copied ${v}`)
+                        }}
+                        className="px-2 py-1 rounded text-xs font-mono bg-white border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition-colors"
+                        title={`${d} — click to copy`}
+                      >
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -570,60 +590,6 @@ export default function CampaignsPage() {
                   />
                   <p className="text-xs text-gray-500">Text displayed on the button</p>
                 </div>
-              </div>
-
-              {/* Available Variables */}
-              <div className="bg-gray-50 p-3 sm:p-4 rounded-lg min-w-0">
-                <h4 className="font-semibold text-gray-900 mb-3 text-sm sm:text-base">Available Variables</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
-                  <div className="space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{business_name}'}</code>
-                      <span className="text-gray-600">Your business name</span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{business_phone}'}</code>
-                      <span className="text-gray-600">Your business phone</span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{business_address}'}</code>
-                      <span className="text-gray-600">Your business address</span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{registration_url}'}</code>
-                      <span className="text-gray-600">Campaign registration link</span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{campaign_name}'}</code>
-                      <span className="text-gray-600">Campaign name</span>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{customer_name}'}</code>
-                      <span className="text-gray-600">Customer&apos;s full name</span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{customer_email}'}</code>
-                      <span className="text-gray-600">Customer&apos;s email</span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{current_date}'}</code>
-                      <span className="text-gray-600">Today&apos;s date</span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{campaign_id}'}</code>
-                      <span className="text-gray-600">Campaign ID</span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <code className="bg-gray-200 px-2 py-1 rounded text-xs">{'{your_name}'}</code>
-                      <span className="text-gray-600">Your name (from settings)</span>
-                    </div>
-                  </div>
-                </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  Use these variables in your email subject and message. They will be automatically replaced with actual values when sent.
-                </p>
               </div>
 
               <div className="flex gap-2">
@@ -701,15 +667,6 @@ export default function CampaignsPage() {
             <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 min-w-0">
               {/* Campaign Info */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="flex items-center gap-2 text-gray-600 text-sm mb-1">
-                    <Users className="h-4 w-4" />
-                    Recipients
-                  </div>
-                  <div className="font-semibold">
-                    {detailsCampaign.customerType === 'both' ? 'All customers' : `${detailsCampaign.customerType.charAt(0).toUpperCase() + detailsCampaign.customerType.slice(1)} customers`}
-                  </div>
-                </div>
                 <div className="bg-gray-50 rounded-lg p-4">
                   <div className="flex items-center gap-2 text-gray-600 text-sm mb-1">
                     <Mail className="h-4 w-4" />

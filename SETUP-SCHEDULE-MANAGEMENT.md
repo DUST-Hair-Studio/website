@@ -7,7 +7,8 @@ A complete schedule management system with Google Calendar integration that work
 ### ✅ Features Implemented:
 - **Business Hours Management**: Friday-Sunday 11am-9pm PST (configurable)
 - **Google Calendar Integration**: Two-way sync (bookings → calendar, blocked time → availability)
-- **Real-time Availability**: Checks business hours, existing bookings, and Google Calendar blocks
+- **One-time open dates**: Open specific dates that are normally closed (e.g. open a Wednesday when you usually work Thu–Sun)
+- **Real-time Availability**: Checks business hours, existing bookings, Google Calendar blocks, and one-time overrides
 - **Admin UI**: Complete schedule management interface at `/admin/schedule`
 
 ## 📋 Setup Steps
@@ -27,6 +28,9 @@ VALUES ('business_hours_timezone', '"America/Los_Angeles"', 'Timezone for busine
 ON CONFLICT (key) DO UPDATE SET 
   value = EXCLUDED.value,
   updated_at = NOW();
+
+-- One-time availability overrides (open specific dates that are normally closed)
+-- Run the migration in database-migrations/availability-overrides.sql
 
 -- Add google_calendar_event_id column to bookings table if it doesn't exist
 ALTER TABLE bookings 

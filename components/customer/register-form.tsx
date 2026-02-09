@@ -92,6 +92,13 @@ export function RegisterForm({ isExistingCustomer = false, campaignId }: Registe
       return
     }
 
+    // Validate email
+    if (!formData.email || formData.email.trim().length === 0) {
+      setError('Email is required')
+      setLoading(false)
+      return
+    }
+
     // Validate phone number
     if (!formData.phone || formData.phone.trim().length === 0) {
       setError('Phone number is required')
@@ -324,7 +331,7 @@ export function RegisterForm({ isExistingCustomer = false, campaignId }: Registe
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">Email *</Label>
             <Input
               id="email"
               name="email"

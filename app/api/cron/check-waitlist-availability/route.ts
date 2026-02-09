@@ -223,6 +223,19 @@ async function findAvailableSlots(
       .lte('booking_date', endDate)
       .in('status', ['confirmed', 'pending'])
 
+    // Get one-time availability overrides for this range
+    const { data: overrides } = await supabase
+      .from('availability_overrides')
+      .select('date, open_time, close_time')
+      .gte('date', effectiveStartDate)
+      .lte('date', endDate)
+    const overridesByDate = new Map(
+      (overrides || []).map(o => [
+        typeof o.date === 'string' ? o.date.slice(0, 10) : o.date,
+        { open_time: o.open_time || '11:00', close_time: o.close_time || '21:00' }
+      ])
+    )
+
     // Get Google Calendar blocked time
     const blockedTimes = await googleCalendar.getBlockedTime(effectiveStartDate, endDate)
     console.log(`🔍 [WAITLIST CRON] Found ${blockedTimes.length} blocked time slots from Google Calendar`)
@@ -233,21 +246,29 @@ async function findAvailableSlots(
 
     while (currentDate <= lastDate) {
       const dateStr = currentDate.toISOString().split('T')[0]
-      const dayOfWeek = currentDate.getDay() // 0 = Sunday, 6 = Saturday
+      const override = overridesByDate.get(dateStr)
 
-      // Get business hours for this day
-      const dayHours = businessHours.find(bh => bh.day_of_week === dayOfWeek && bh.is_open)
+      let openTime: string
+      let closeTime: string
 
-      if (!dayHours) {
-        // Business is closed this day
-        currentDate.setDate(currentDate.getDate() + 1)
-        continue
+      if (override) {
+        openTime = override.open_time
+        closeTime = override.close_time
+      } else {
+        const dayOfWeek = currentDate.getDay()
+        const dayHours = businessHours.find(bh => bh.day_of_week === dayOfWeek && bh.is_open)
+        if (!dayHours) {
+          currentDate.setDate(currentDate.getDate() + 1)
+          continue
+        }
+        openTime = dayHours.open_time
+        closeTime = dayHours.close_time
       }
 
       // Generate potential time slots for this day
       const potentialSlots = generateTimeSlots(
-        dayHours.open_time,
-        dayHours.close_time,
+        openTime,
+        closeTime,
         durationMinutes
       )
 

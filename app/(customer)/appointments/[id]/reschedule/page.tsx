@@ -158,7 +158,7 @@ export default function ReschedulePage() {
         if (availabilityCache.has(dateStr)) continue
         
         try {
-          const url = `/api/admin/availability?startDate=${dateStr}&endDate=${dateStr}&serviceDuration=${booking.services.duration_minutes}`
+          const url = `/api/availability?startDate=${dateStr}&endDate=${dateStr}&serviceDuration=${booking.services.duration_minutes}`
           const response = await fetch(url)
           
           if (response.ok) {
@@ -242,7 +242,7 @@ export default function ReschedulePage() {
       const dateStr = `${year}-${month}-${day}`
 
       // Use the exact same API endpoint and parameters as the booking flow
-      const url = `/api/admin/availability?startDate=${dateStr}&endDate=${dateStr}&serviceDuration=${booking.services.duration_minutes}`
+      const url = `/api/availability?startDate=${dateStr}&endDate=${dateStr}&serviceDuration=${booking.services.duration_minutes}`
       console.log('🔍 Reschedule - Fetching availability from:', url)
       
       const response = await fetch(url)
