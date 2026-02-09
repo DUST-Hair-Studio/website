@@ -160,8 +160,7 @@ export default function Home() {
             </h2>
             
             <p className="dust-mono text-lg sm:text-base md:text-md lg:text-lg xl:text-lg 2xl:text-xl text-gray-700 mb-8 max-w-2xl mx-auto leading-relaxed">
-Each appointment is approached as a collaboration, with time and space dedicated to understanding you and the hair you wear.
-If this is your first time here, welcome. To ensure we have enough time together for an extended consultation and haircut, please select the new client appointment, regardless of hair length.</p>
+            Each appointment is approached as a collaboration, with time and space dedicated to understanding you and the hair you wear. To make sure we have enough time together please select the appointment appropriate to your hair length.</p>
             
             <p className="dust-mono text-lg sm:text-base md:text-md lg:text-lg xl:text-lg 2xl:text-xl text-gray-700 mb-8 max-w-2xl mx-auto leading-relaxed">
               Looking forward to seeing you soon

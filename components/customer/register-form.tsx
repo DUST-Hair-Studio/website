@@ -78,6 +78,13 @@ export function RegisterForm({ isExistingCustomer = false, campaignId }: Registe
     setLoading(true)
     setError('')
 
+    // Validate full name
+    if (!formData.name || formData.name.trim().length === 0) {
+      setError('Full name is required')
+      setLoading(false)
+      return
+    }
+
     // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match')
@@ -269,7 +276,7 @@ export function RegisterForm({ isExistingCustomer = false, campaignId }: Registe
           )}
           
           <div className="space-y-2">
-            <Label htmlFor="name">Full Name</Label>
+            <Label htmlFor="name">Full Name *</Label>
             <Input
               id="name"
               name="name"
@@ -277,11 +284,12 @@ export function RegisterForm({ isExistingCustomer = false, campaignId }: Registe
               onChange={handleInputChange}
               required
               disabled={loading}
+              placeholder="Your full name"
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Birth Date</Label>
+            <Label>Birth Date (optional)</Label>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <select
@@ -371,11 +379,9 @@ export function RegisterForm({ isExistingCustomer = false, campaignId }: Registe
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                 />
                 <span className="text-sm">Text (SMS) only</span>
-                {isExistingCustomer && (
-                  <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded">
-                    SMS reminders are coming soon!
-                  </span>
-                )}
+                <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded">
+                  SMS reminders are coming soon!
+                </span>
               </label>
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
