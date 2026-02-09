@@ -4,9 +4,11 @@ import { createAdminSupabaseClient } from './supabase-server'
 // Only initialize Resend if API key is available
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
-// Use RESEND_FROM_OVERRIDE when domain isn't verified yet (e.g. "DUST Hair Studio <onboarding@resend.dev>")
-const getFromAddress = (businessEmail: string) =>
-  process.env.RESEND_FROM_OVERRIDE || businessEmail
+// Resend must send FROM a verified domain. Business email is for templates and replyTo only.
+const getResendFromAddress = () =>
+  process.env.RESEND_FROM_OVERRIDE ||
+  process.env.RESEND_FROM_EMAIL ||
+  'DUST Hair Studio <onboarding@resend.dev>'
 
 export interface EmailTemplate {
   id: string
@@ -127,6 +129,7 @@ export class EmailService {
       .replace(/{service_name}/g, booking.services.name)
       .replace(/{business_name}/g, businessSettings.business_name)
       .replace(/{business_phone}/g, businessSettings.business_phone)
+      .replace(/{business_email}/g, businessSettings.business_email)
       .replace(/{business_address}/g, businessSettings.business_address)
       .replace(/{booking_id}/g, booking.id)
   }
@@ -190,7 +193,8 @@ export class EmailService {
       const appointmentsUrl = `${baseUrl}/appointments`
 
       const { data, error } = await resend.emails.send({
-        from: getFromAddress(businessSettings.business_email),
+        from: getResendFromAddress(),
+        replyTo: businessSettings.business_email || undefined,
         to: [booking.customers.email],
         subject,
         text: message,
@@ -263,7 +267,8 @@ export class EmailService {
       const htmlMessage = message.replace(/\n/g, '<br>')
 
       const { data, error } = await resend.emails.send({
-        from: getFromAddress(businessSettings.business_email),
+        from: getResendFromAddress(),
+        replyTo: businessSettings.business_email || undefined,
         to: [booking.customers.email],
         subject,
         text: message,
@@ -333,7 +338,8 @@ export class EmailService {
       const htmlMessage = message.replace(/\n/g, '<br>')
 
       const { data, error } = await resend.emails.send({
-        from: getFromAddress(businessSettings.business_email),
+        from: getResendFromAddress(),
+        replyTo: businessSettings.business_email || undefined,
         to: [booking.customers.email],
         subject,
         text: message,
@@ -445,7 +451,8 @@ export class EmailService {
       const appointmentsUrl = `${baseUrl}/appointments`
 
       const { data, error } = await resend.emails.send({
-        from: getFromAddress(businessSettings.business_email),
+        from: getResendFromAddress(),
+        replyTo: businessSettings.business_email || undefined,
         to: [booking.customers.email],
         subject,
         text: message,
@@ -554,7 +561,8 @@ ${businessSettings.business_phone}`
       // const htmlMessage = message.replace(/\n/g, '<br>')
 
       const { data: emailData, error } = await resend.emails.send({
-        from: getFromAddress(businessSettings.business_email),
+        from: getResendFromAddress(),
+        replyTo: businessSettings.business_email || undefined,
         to: [data.customer.email],
         subject,
         text: message,
@@ -672,7 +680,8 @@ Best regards,
 The ${businessSettings.business_name} Team`
 
       const { data: emailData, error } = await resend.emails.send({
-        from: getFromAddress(businessSettings.business_email),
+        from: getResendFromAddress(),
+        replyTo: businessSettings.business_email || undefined,
         to: [paymentData.customers.email],
         subject,
         text: message,

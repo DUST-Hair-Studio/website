@@ -43,6 +43,7 @@ function BookPageContent() {
   const [loadingTimes, setLoadingTimes] = useState(false)
   const [businessHours, setBusinessHours] = useState<{day_of_week: number; is_open: boolean; open_time: string; close_time: string; timezone: string}[]>([])
   const [bookingAvailableFromDate, setBookingAvailableFromDate] = useState<string | null>(null)
+  const [overrideDates, setOverrideDates] = useState<string[]>([]) // one-time open dates (YYYY-MM-DD)
   const [waitlistEnabled, setWaitlistEnabled] = useState(true)
   
   const [step, setStep] = useState(1) // 1: Service, 2: Date/Time, 3: Details, 4: Confirmation
@@ -136,15 +137,13 @@ function BookPageContent() {
     fetchCustomer()
   }, [user])
 
-  // Fetch business hours
+  // Fetch business hours and one-time override dates (so override days are selectable in calendar)
   useEffect(() => {
     const fetchBusinessHours = async () => {
       try {
         const response = await fetch('/api/admin/business-hours')
         if (response.ok) {
           const data = await response.json()
-          console.log('Business hours loaded:', data.businessHours)
-          console.log('Open days:', data.businessHours?.filter((h: { is_open: boolean }) => h.is_open))
           setBusinessHours(data.businessHours || [])
           setBookingAvailableFromDate(data.booking_available_from_date || null)
         }
@@ -153,23 +152,44 @@ function BookPageContent() {
       }
     }
 
+    const fetchOverrideDates = async () => {
+      try {
+        const start = new Date()
+        const end = new Date()
+        end.setDate(end.getDate() + 90)
+        const toYMD = (d: Date) =>
+          `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+        const startStr = toYMD(start)
+        const endStr = toYMD(end)
+        const res = await fetch(`/api/availability/override-dates?startDate=${startStr}&endDate=${endStr}`)
+        if (res.ok) {
+          const data = await res.json()
+          setOverrideDates(data.dates || [])
+        }
+      } catch (error) {
+        console.error('Error fetching override dates:', error)
+      }
+    }
+
     fetchBusinessHours()
+    fetchOverrideDates()
   }, [])
 
   const isBusinessDay = useCallback((date: Date): boolean => {
-    // If business hours haven't loaded yet, allow all dates temporarily
-    if (businessHours.length === 0) {
-      console.log('Business hours not loaded yet, allowing date:', date.toDateString())
-      return true
-    }
-    
-    const dayOfWeek = date.getDay() // 0 = Sunday, 1 = Monday, etc.
+    const toYMD = (y: number, mo: number, day: number) =>
+      `${y}-${String(mo).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    const dateStrLocal = toYMD(date.getFullYear(), date.getMonth() + 1, date.getDate())
+    const dateStrUTC = toYMD(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate())
+
+    // One-time override: this specific date is open (check both local and UTC - calendar may use either)
+    if (overrideDates.includes(dateStrLocal) || overrideDates.includes(dateStrUTC)) return true
+
+    if (businessHours.length === 0) return true
+
+    const dayOfWeek = date.getDay()
     const dayHours = businessHours.find(hours => hours.day_of_week === dayOfWeek)
-    const isOpen = dayHours && dayHours.is_open
-    
-    console.log(`Date: ${date.toDateString()}, Day: ${dayOfWeek}, DayHours:`, dayHours, `IsOpen: ${isOpen}`)
-    return !!isOpen
-  }, [businessHours])
+    return !!(dayHours && dayHours.is_open)
+  }, [businessHours, overrideDates])
 
   // NOTE: Removed slow pre-checking of availability for each calendar day
   // Availability is now only fetched when a date is actually selected
@@ -446,6 +466,7 @@ function BookPageContent() {
               <CardContent className="p-0 overflow-x-hidden">
                 <div className="w-full pb-16 pt-2 px-4 sm:pb-10 sm:pt-0 overflow-hidden">
                   <Calendar
+                    key={`cal-${overrideDates.length}`}
                     mode="single"
                     selected={selectedDate}
                     onSelect={handleDateSelect}
@@ -454,7 +475,6 @@ function BookPageContent() {
                       today.setHours(0, 0, 0, 0)
                       const isPast = date < today
                       const isBusinessDayResult = isBusinessDay(date)
-                      // If booking start date is set, disable dates before it
                       let beforeBookingStart = false
                       if (bookingAvailableFromDate) {
                         const minDate = new Date(bookingAvailableFromDate + 'T00:00:00')

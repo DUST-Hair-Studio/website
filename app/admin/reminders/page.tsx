@@ -424,7 +424,28 @@ function AdminRemindersContent() {
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 min-w-0">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Available variables</Label>
+                  <p className="text-xs text-gray-500">Click to copy, then paste into subject or message.</p>
+                  <div className="flex flex-wrap gap-1.5 p-3 rounded-lg bg-gray-50 border border-gray-100">
+                    {TEMPLATE_VARIABLES.map((v, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => {
+                          void navigator.clipboard.writeText(v.variable)
+                          toast.success(`Copied ${v.variable}`)
+                        }}
+                        className="px-2 py-1.5 rounded text-xs font-mono bg-white border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition-colors shrink-0"
+                        title={`${v.description} — click to copy`}
+                      >
+                        {v.variable}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
                   <div className="min-w-0 space-y-2">
                     <Label htmlFor="template_message">Message Template</Label>
                     <Textarea
@@ -432,51 +453,28 @@ function AdminRemindersContent() {
                       value={templateForm.message}
                       onChange={(e) => setTemplateForm(prev => ({ ...prev, message: e.target.value }))}
                       placeholder="Hi {customer_name}, this is a reminder about your appointment on {appointment_date} at {appointment_time}..."
-                      rows={6}
-                      className="resize-y min-h-[140px] w-full min-w-0"
+                      rows={10}
+                      className="resize-y min-h-[200px] w-full min-w-0 max-w-full"
                     />
-                    <p className="text-sm text-gray-600">
-                      Click a variable below (or on the right on large screens) to copy it, then paste into the template.
-                    </p>
                   </div>
-                  <div className="space-y-2 min-w-0">
-                    <Label className="text-sm font-medium">Available variables</Label>
-                    <div className="flex flex-wrap gap-1.5 p-3 rounded-lg bg-gray-50 border border-gray-100 lg:flex-col lg:flex-nowrap">
-                      {TEMPLATE_VARIABLES.map((v, i) => (
-                        <button
-                          key={i}
-                          type="button"
-                          onClick={() => {
-                            void navigator.clipboard.writeText(v.variable)
-                            toast.success(`Copied ${v.variable}`)
-                          }}
-                          className="text-left px-2 py-1.5 rounded text-sm font-mono bg-white border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition-colors shrink-0"
-                          title={`${v.description} — click to copy`}
-                        >
-                          {v.variable}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Email preview</Label>
-                  <div className="rounded-lg border border-gray-200 bg-gray-50/50 overflow-hidden">
-                    <div className="border-b border-gray-200 bg-white px-3 py-2">
-                      <div className="text-xs text-gray-500 uppercase tracking-wide mb-0.5">Subject</div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {templateForm.subject ? previewWithSample(templateForm.subject) : '(No subject)'}
+                  <div className="min-w-0 space-y-2">
+                    <Label className="text-sm font-medium">Email preview</Label>
+                    <div className="rounded-lg border border-gray-200 bg-gray-50/50 overflow-hidden min-h-[200px] flex flex-col">
+                      <div className="border-b border-gray-200 bg-white px-3 py-2 shrink-0">
+                        <div className="text-xs text-gray-500 uppercase tracking-wide mb-0.5">Subject</div>
+                        <div className="text-sm font-medium text-gray-900 wrap-break-word">
+                          {templateForm.subject ? previewWithSample(templateForm.subject) : '(No subject)'}
+                        </div>
+                      </div>
+                      <div className="p-3 sm:p-4 bg-white flex-1 overflow-auto">
+                        <div className="text-xs text-gray-500 uppercase tracking-wide mb-1.5">Message</div>
+                        <div className="text-sm text-gray-800 whitespace-pre-wrap font-sans">
+                          {templateForm.message ? previewWithSample(templateForm.message) : '(No message yet)'}
+                        </div>
                       </div>
                     </div>
-                    <div className="p-3 sm:p-4 bg-white">
-                      <div className="text-xs text-gray-500 uppercase tracking-wide mb-1.5">Message</div>
-                      <div className="text-sm text-gray-800 whitespace-pre-wrap font-sans min-h-[80px]">
-                        {templateForm.message ? previewWithSample(templateForm.message) : '(No message yet)'}
-                      </div>
-                    </div>
+                    <p className="text-xs text-gray-500">Preview uses sample data.</p>
                   </div>
-                  <p className="text-xs text-gray-500">Preview uses sample data. Real emails will use actual booking details.</p>
                 </div>
 
                 <div className="flex items-center space-x-2">
