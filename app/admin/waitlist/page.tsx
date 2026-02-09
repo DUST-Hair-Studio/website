@@ -65,19 +65,22 @@ export default function AdminWaitlistPage() {
       setCheckingAvailability(true)
       toast.info('Checking for available slots...')
       
-      const response = await fetch('/api/cron/check-waitlist-availability')
+      const response = await fetch('/api/cron/check-waitlist-availability', { credentials: 'include' })
       
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to check availability')
+        const errorData = await response.json().catch(() => ({}))
+        const msg = errorData.error || 'Failed to check availability'
+        if (response.status === 401) {
+          throw new Error('Please log in to the admin panel and try again.')
+        }
+        throw new Error(msg)
       }
       
       const data = await response.json()
       
       if (data.success) {
-        toast.success(
-          `Availability check complete! Processed ${data.processed} request(s), notified ${data.notified} customer(s).`
-        )
+        const message = data.detail ?? `Processed ${data.processed} request(s), notified ${data.notified} customer(s).`
+        toast.success(message, { duration: (data.noSlotsFound > 0 || data.emailSkipped > 0) ? 8000 : 4000 })
         
         // Refresh the list to show updated statuses
         await fetchWaitlistRequests()

@@ -94,6 +94,8 @@ export async function GET(request: NextRequest) {
 
     let notifiedCount = 0
     let processedCount = 0
+    let noSlotsCount = 0
+    let emailSkippedCount = 0
 
     // Process each waitlist request
     for (const request of waitlistRequests) {
@@ -136,8 +138,12 @@ export async function GET(request: NextRequest) {
           if (notificationSent) {
             notifiedCount++
             console.log(`✅ [WAITLIST CRON] Notified ${request.customers.email}`)
+          } else {
+            emailSkippedCount++
+            console.log('⚠️ [WAITLIST CRON] Slots found but email not sent (check Resend API key and email settings)')
           }
         } else {
+          noSlotsCount++
           console.log('ℹ️ [WAITLIST CRON] No available slots found')
         }
 
@@ -147,13 +153,30 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    console.log(`\n🎉 [WAITLIST CRON] Completed! Processed ${processedCount}, Notified ${notifiedCount}`)
+    console.log(`\n🎉 [WAITLIST CRON] Completed! Processed ${processedCount}, Notified ${notifiedCount}, No slots: ${noSlotsCount}, Email skipped: ${emailSkippedCount}`)
+
+    // Build a helpful detail message for local debugging and UI
+    let detailMessage: string
+    if (processedCount > 0 && notifiedCount === 0) {
+      if (noSlotsCount > 0 && emailSkippedCount === 0) {
+        detailMessage = `No available slots found for ${noSlotsCount} request(s). Check business hours, booking start date, and that the waitlist date range has open slots.`
+      } else if (emailSkippedCount > 0 && noSlotsCount === 0) {
+        detailMessage = `Slots found but email not sent for ${emailSkippedCount} request(s). Check RESEND_API_KEY and Settings → email enabled.`
+      } else {
+        detailMessage = `No slots for ${noSlotsCount} request(s); slots found but email skipped for ${emailSkippedCount} (check Resend and email settings).`
+      }
+    } else {
+      detailMessage = `Processed ${processedCount} request(s), notified ${notifiedCount} customer(s).`
+    }
 
     return NextResponse.json({
       success: true,
       message: 'Waitlist check completed',
       processed: processedCount,
-      notified: notifiedCount
+      notified: notifiedCount,
+      noSlotsFound: noSlotsCount,
+      emailSkipped: emailSkippedCount,
+      detail: detailMessage
     })
 
   } catch (error) {
