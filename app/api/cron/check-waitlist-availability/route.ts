@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createAdminSupabaseClient } from '@/lib/supabase-server'
+import { createAdminSupabaseClient, createServerSupabaseClient } from '@/lib/supabase-server'
 import { GoogleCalendarService } from '@/lib/google-calendar'
 
 /**
  * Cron job to check waitlist availability
  * Runs daily to check if any slots have opened up for pending waitlist requests
+ * 
+ * Can be triggered by:
+ * 1. Vercel cron (use Authorization: Bearer <CRON_SECRET>)
+ * 2. Admin "Check Availability Now" button (uses session cookie; no header needed)
  * 
  * To configure in Vercel:
  * Add to vercel.json:
@@ -23,11 +27,28 @@ export async function GET(request: NextRequest) {
   try {
     console.log('🔔 [WAITLIST CRON] Starting waitlist availability check')
 
-    // Verify cron secret for security (optional but recommended)
+    // Allow either cron secret (for Vercel cron) or authenticated admin (for "Check Availability Now" button)
     const authHeader = request.headers.get('authorization')
-    if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      console.log('❌ [WAITLIST CRON] Unauthorized: Invalid cron secret')
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const hasValidCronSecret =
+      process.env.CRON_SECRET && authHeader === `Bearer ${process.env.CRON_SECRET}`
+
+    if (!hasValidCronSecret) {
+      const supabase = await createServerSupabaseClient()
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      const isAdmin =
+        !authError &&
+        user &&
+        (await supabase
+          .from('admin_users')
+          .select('id')
+          .eq('email', user.email)
+          .eq('is_active', true)
+          .single()).data != null
+
+      if (!isAdmin) {
+        console.log('❌ [WAITLIST CRON] Unauthorized: need CRON_SECRET or admin session')
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
     }
 
     const supabase = createAdminSupabaseClient()
