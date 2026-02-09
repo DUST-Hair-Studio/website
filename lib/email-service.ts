@@ -93,19 +93,21 @@ export class EmailService {
     booking: BookingData,
     businessSettings: BusinessSettings
   ): string {
+    if (!template || typeof template !== 'string') return ''
+    const tz = businessSettings?.timezone ?? 'America/Los_Angeles'
     const appointmentDate = new Date(booking.booking_date).toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
       day: 'numeric',
-      timeZone: businessSettings.timezone
+      timeZone: tz
     })
 
     const appointmentTime = new Date(`${booking.booking_date}T${booking.booking_time}`).toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
-      timeZone: businessSettings.timezone
+      timeZone: tz
     })
 
     const appointmentDateTime = new Date(`${booking.booking_date}T${booking.booking_time}`).toLocaleString('en-US', {
@@ -116,22 +118,31 @@ export class EmailService {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
-      timeZone: businessSettings.timezone
+      timeZone: tz
     })
 
+    const customerName = booking?.customers?.name ?? ''
+    const customerEmail = booking?.customers?.email ?? ''
+    const serviceName = booking?.services?.name ?? ''
+    const businessName = businessSettings?.business_name ?? ''
+    const businessEmail = businessSettings?.business_email ?? ''
+    const businessPhone = businessSettings?.business_phone ?? ''
+    const businessAddress = businessSettings?.business_address ?? ''
+    const bookingId = booking?.id ?? ''
+
+    // Replace longer placeholders first so substrings aren't corrupted (e.g. {appointment_datetime} before {appointment_date})
     return template
-      .replace(/{customer_name}/g, booking.customers.name)
-      .replace(/{email}/g, booking.customers.email)
-      .replace(/{customer_email}/g, booking.customers.email)
+      .replace(/{appointment_datetime}/g, appointmentDateTime)
       .replace(/{appointment_date}/g, appointmentDate)
       .replace(/{appointment_time}/g, appointmentTime)
-      .replace(/{appointment_datetime}/g, appointmentDateTime)
-      .replace(/{service_name}/g, booking.services.name)
-      .replace(/{business_name}/g, businessSettings.business_name)
-      .replace(/{business_phone}/g, businessSettings.business_phone)
-      .replace(/{business_email}/g, businessSettings.business_email)
-      .replace(/{business_address}/g, businessSettings.business_address)
-      .replace(/{booking_id}/g, booking.id)
+      .replace(/{business_email}/g, businessEmail)
+      .replace(/{customer_email}/g, customerEmail)
+      .replace(/{customer_name}/g, customerName)
+      .replace(/{service_name}/g, serviceName)
+      .replace(/{business_name}/g, businessName)
+      .replace(/{business_phone}/g, businessPhone)
+      .replace(/{business_address}/g, businessAddress)
+      .replace(/{booking_id}/g, bookingId)
   }
 
   // Get active email template by type
@@ -242,9 +253,14 @@ export class EmailService {
   // Send reminder email (for scheduled reminders)
   async sendReminderEmail(booking: BookingData, templateId: string): Promise<boolean> {
     try {
-      // Check if Resend is configured
       if (!resend) {
         console.log('Resend API key not configured, skipping email')
+        return false
+      }
+
+      const toEmail = booking?.customers?.email
+      if (!toEmail || typeof toEmail !== 'string') {
+        console.error('Reminder skipped: no customer email for booking', booking?.id)
         return false
       }
 
@@ -269,7 +285,7 @@ export class EmailService {
       const { data, error } = await resend.emails.send({
         from: getResendFromAddress(),
         replyTo: businessSettings.business_email || undefined,
-        to: [booking.customers.email],
+        to: [toEmail],
         subject,
         text: message,
         html: `
@@ -280,7 +296,7 @@ export class EmailService {
             </div>
             <div style="border-top: 1px solid #eee; padding-top: 20px; font-size: 12px; color: #666;">
               <p>Booking ID: ${booking.id}</p>
-              <p>If you need to reschedule, please contact us at ${businessSettings.business_phone}</p>
+              <p>If you need to reschedule, please contact us at ${businessSettings?.business_phone ?? ''}</p>
             </div>
           </div>
         `

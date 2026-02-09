@@ -64,6 +64,40 @@ function applyInlineFormatting(line: string): string {
   return out
 }
 
+const ALLOWED_TAGS = new Set(['p', 'br', 'strong', 'em', 'u', 'ul', 'ol', 'li', 'a', 'div', 'span'])
+
+/** Sanitize HTML from the rich text editor for email body (allow only safe tags). */
+function sanitizeCampaignHtml(html: string): string {
+  let out = html
+  out = out.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+  out = out.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+  out = out.replace(/\s+on\w+\s*=\s*["'][^"']*["']/gi, '')
+  out = out.replace(/<\/?([a-z][a-z0-9]*)\b[^>]*>/gi, (match, tagName) => {
+    const tag = tagName.toLowerCase()
+    if (!ALLOWED_TAGS.has(tag)) return ''
+    if (match.startsWith('</')) return `</${tag}>`
+    if (tag === 'br') return '<br>'
+    if (tag === 'a') {
+      const hrefMatch = match.match(/href\s*=\s*["']([^"']*)["']/i)
+      const href = hrefMatch ? hrefMatch[1] : '#'
+      return `<a href="${href.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;')}">`
+    }
+    return `<${tag}>`
+  })
+  return out
+}
+
+/** Render message body: use HTML if present (sanitized), else format plain text. */
+function renderMessageBody(message: string): string {
+  if (typeof message !== 'string') return ''
+  const trimmed = message.trim()
+  if (!trimmed) return ''
+  if (/<[a-z][\s\S]*>/i.test(trimmed)) {
+    return sanitizeCampaignHtml(trimmed)
+  }
+  return formatCampaignMessage(trimmed)
+}
+
 /** Replace campaign template variables with values for a given recipient. */
 function replaceCampaignVariables(
   text: string,
@@ -241,7 +275,7 @@ export async function POST(request: NextRequest) {
               
               <div class="content">
                   <div class="message">
-                      ${formatCampaignMessage(personalizedMessage)}
+                      ${renderMessageBody(personalizedMessage)}
                   </div>
                   
                   ${finalButtonText && registrationUrl ? `

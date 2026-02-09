@@ -72,6 +72,17 @@ export async function runProcessReminders(): Promise<ProcessRemindersResult> {
         continue
       }
 
+      const customers = reminder.bookings?.customers
+      const customerEmail = customers?.email
+      if (!customerEmail || typeof customerEmail !== 'string') {
+        await supabase
+          .from('reminder_history')
+          .update({ status: 'failed', error_message: 'No customer email', sent_at: new Date().toISOString() })
+          .eq('id', reminder.id)
+        failed++
+        continue
+      }
+
       const bookingData = {
         id: reminder.bookings.id,
         booking_date: reminder.bookings.booking_date,
@@ -79,13 +90,13 @@ export async function runProcessReminders(): Promise<ProcessRemindersResult> {
         duration_minutes: reminder.bookings.duration_minutes,
         price_charged: reminder.bookings.price_charged,
         services: {
-          name: reminder.bookings.services.name,
-          duration_minutes: reminder.bookings.services.duration_minutes
+          name: reminder.bookings.services?.name ?? '',
+          duration_minutes: reminder.bookings.services?.duration_minutes ?? 0
         },
         customers: {
-          name: reminder.bookings.customers.name,
-          email: reminder.bookings.customers.email,
-          phone: reminder.bookings.customers.phone
+          name: customers?.name ?? '',
+          email: customerEmail,
+          phone: customers?.phone ?? ''
         }
       }
 

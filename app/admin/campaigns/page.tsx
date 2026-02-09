@@ -5,8 +5,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import dynamic from 'next/dynamic'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+
+const RichTextEditor = dynamic(() => import('@/components/ui/rich-text-editor').then((m) => m.RichTextEditor), {
+  ssr: false,
+  loading: () => (
+    <div className="rounded-md border border-input bg-background min-h-[240px] flex items-center justify-center text-sm text-muted-foreground">
+      Loading editor…
+    </div>
+  ),
+})
 import { Loader2, Mail, Plus, Edit, Trash2, Send, BarChart3, X, Calendar, Users, CheckCircle, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { getActiveCampaigns, type CampaignConfig } from '@/lib/campaign-config'
@@ -21,6 +31,56 @@ interface SendHistoryItem {
   failed_sends: number
   recipient_emails: string[]
   sent_at: string
+}
+
+const CAMPAIGN_VARIABLES = [
+  { v: '{business_name}', d: 'Business name' },
+  { v: '{business_phone}', d: 'Business phone' },
+  { v: '{business_address}', d: 'Business address' },
+  { v: '{registration_url}', d: 'Registration link' },
+  { v: '{campaign_name}', d: 'Campaign name' },
+  { v: '{customer_name}', d: "Customer's name" },
+  { v: '{email}', d: "Recipient's email" },
+  { v: '{customer_email}', d: "Recipient's email" },
+  { v: '{current_date}', d: "Today's date" },
+  { v: '{campaign_id}', d: 'Campaign ID' },
+  { v: '{your_name}', d: 'Your name' }
+]
+
+const PREVIEW_SAMPLE_CAMPAIGN: Record<string, string> = {
+  '{business_name}': 'DUST Studio',
+  '{business_phone}': '(555) 123-4567',
+  '{business_address}': '1942 Riverside Dr, Los Angeles, CA 90039',
+  '{registration_url}': 'https://example.com/register',
+  '{campaign_name}': 'Summer 2025',
+  '{customer_name}': 'Jordan Smith',
+  '{email}': 'jordan@example.com',
+  '{customer_email}': 'jordan@example.com',
+  '{current_date}': 'Monday, February 10, 2025',
+  '{campaign_id}': 'summer_2025',
+  '{your_name}': 'DUST Studio'
+}
+
+function previewCampaignWithSample(text: string): string {
+  let out = text
+  for (const [variable, value] of Object.entries(PREVIEW_SAMPLE_CAMPAIGN)) {
+    out = out.replace(new RegExp(variable.replace(/[{}]/g, '\\$&'), 'g'), value)
+  }
+  return out
+}
+
+/** Allowed tags for campaign message preview (safe subset). */
+const PREVIEW_ALLOWED_TAGS = /^(p|br|strong|em|u|ul|ol|li|a|div|span)$/i
+
+function sanitizePreviewHtml(html: string): string {
+  return html.replace(/<\/?([a-z][a-z0-9]*)\b[^>]*>/gi, (match, tagName) => {
+    if (!PREVIEW_ALLOWED_TAGS.test(tagName)) return ''
+    return match.startsWith('</') ? `</${tagName.toLowerCase()}>` : match
+  })
+}
+
+function isMessageHtml(message: string): boolean {
+  return /<[a-z][\s\S]*>/i.test((message || '').trim())
 }
 
 export default function CampaignsPage() {
@@ -47,7 +107,16 @@ export default function CampaignsPage() {
     message: '',
     buttonText: ''
   })
-  const [sendAudience, setSendAudience] = useState<'all' | 'existing' | 'new' | null>(null)
+  const [sendRecipientMode, setSendRecipientMode] = useState<'all' | 'existing' | 'new' | 'manual'>('manual')
+  const [recipientData, setRecipientData] = useState<{
+    allCount: number
+    existingCount: number
+    newCount: number
+    allEmails: string[]
+    existingEmails: string[]
+    newEmails: string[]
+  } | null>(null)
+  const [loadingRecipients, setLoadingRecipients] = useState(false)
 
   const fetchCampaignHistory = useCallback(async (campaignId: string) => {
     setLoadingCampaignHistory(true)
@@ -93,29 +162,61 @@ export default function CampaignsPage() {
   }, [])
 
   useEffect(() => {
-    if (selectedCampaign) setSendAudience(null)
+    if (selectedCampaign) {
+      setEmailMessage('')
+    }
+  }, [selectedCampaign])
+
+  useEffect(() => {
+    if (!selectedCampaign) {
+      setRecipientData(null)
+      return
+    }
+    let cancelled = false
+    setLoadingRecipients(true)
+    fetch('/api/admin/campaign-recipients')
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (!cancelled && data) setRecipientData(data)
+      })
+      .catch(() => { if (!cancelled) setRecipientData(null) })
+      .finally(() => { if (!cancelled) setLoadingRecipients(false) })
+    return () => { cancelled = true }
   }, [selectedCampaign])
 
   const handleSendCampaign = async (campaign: CampaignConfig) => {
-    if (!emailList.trim()) {
-      toast.error('Please enter email addresses')
-      return
+    let emails: string[]
+    if (sendRecipientMode === 'manual') {
+      if (!emailList.trim()) {
+        toast.error('Please enter email addresses or choose a different recipient group.')
+        return
+      }
+      emails = emailList
+        .split(/[,\n]/)
+        .map((e) => e.trim())
+        .filter((e) => e && e.includes('@'))
+      if (emails.length === 0) {
+        toast.error('No valid email addresses found')
+        return
+      }
+    } else {
+      if (!recipientData) {
+        toast.error('Recipient list is still loading. Please try again.')
+        return
+      }
+      if (sendRecipientMode === 'all') emails = recipientData.allEmails
+      else if (sendRecipientMode === 'existing') emails = recipientData.existingEmails
+      else emails = recipientData.newEmails
+      if (emails.length === 0) {
+        toast.error(`No recipients in the "${sendRecipientMode}" group.`)
+        return
+      }
     }
 
     setIsSending(true)
     setSendResults(null)
 
     try {
-      // Parse email list
-      const emails = emailList
-        .split(/[,\n]/)
-        .map(email => email.trim())
-        .filter(email => email && email.includes('@'))
-
-      if (emails.length === 0) {
-        toast.error('No valid email addresses found')
-        return
-      }
 
       const response = await fetch('/api/admin/send-campaign', {
         method: 'POST',
@@ -125,7 +226,7 @@ export default function CampaignsPage() {
         body: JSON.stringify({
           emailList: emails,
           subject: campaign.emailTemplate.subject,
-          message: emailMessage || campaign.emailTemplate.message,
+          message: campaign.emailTemplate.message,
           campaignName: campaign.id,
           registrationUrl: campaign.registrationUrl,
           buttonText: campaign.buttonText ?? ''
@@ -349,104 +450,134 @@ export default function CampaignsPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="emailList">Email List</Label>
-                <Textarea
-                  id="emailList"
-                  placeholder="Enter email addresses (one per line or comma separated)"
-                  value={emailList}
-                  onChange={(e) => setEmailList(e.target.value)}
-                  rows={6}
-                  className="font-mono text-sm"
-                />
-                <div className="text-sm text-gray-500">
-                  {emailList.split(/[,\n]/).filter(email => email.trim()).length} emails
+                <Label>Recipients</Label>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSendRecipientMode('all')}
+                    className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                      sendRecipientMode === 'all'
+                        ? 'border-gray-900 bg-gray-900 text-white'
+                        : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    All
+                    {loadingRecipients ? (
+                      <span className="text-xs opacity-80">…</span>
+                    ) : (
+                      <span className="text-xs opacity-80">({recipientData?.allCount ?? 0})</span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSendRecipientMode('existing')}
+                    className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                      sendRecipientMode === 'existing'
+                        ? 'border-gray-900 bg-gray-900 text-white'
+                        : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Existing
+                    {loadingRecipients ? (
+                      <span className="text-xs opacity-80">…</span>
+                    ) : (
+                      <span className="text-xs opacity-80">({recipientData?.existingCount ?? 0})</span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSendRecipientMode('new')}
+                    className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                      sendRecipientMode === 'new'
+                        ? 'border-gray-900 bg-gray-900 text-white'
+                        : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    New
+                    {loadingRecipients ? (
+                      <span className="text-xs opacity-80">…</span>
+                    ) : (
+                      <span className="text-xs opacity-80">({recipientData?.newCount ?? 0})</span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSendRecipientMode('manual')}
+                    className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                      sendRecipientMode === 'manual'
+                        ? 'border-gray-900 bg-gray-900 text-white'
+                        : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Manual
+                    {sendRecipientMode === 'manual' && emailList.trim() && (
+                      <span className="text-xs opacity-80">
+                        ({emailList.split(/[,\n]/).filter((e) => e.trim() && e.includes('@')).length})
+                      </span>
+                    )}
+                  </button>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div className="lg:col-span-2 space-y-2">
-                  <Label htmlFor="emailMessage">Email Message</Label>
-                  <Textarea
-                    id="emailMessage"
-                    value={emailMessage || selectedCampaign.emailTemplate.message}
-                    onChange={(e) => setEmailMessage(e.target.value)}
-                    rows={12}
-                    placeholder="Enter your email message here..."
-                    className="min-h-[240px]"
-                  />
-                  <p className="text-sm text-gray-500">
-                    This is the message that will be sent to all recipients. You can edit it here or use the campaign default.
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Formatting: <strong>**bold**</strong> → bold; <u>__underline__</u> → underline; start a line with <code>- </code> for a bullet list. Click a variable on the right to copy.
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Available variables</Label>
-                  <div className="flex flex-wrap gap-1.5 p-3 rounded-lg bg-gray-50 border border-gray-100">
-                    {[
-                      { v: '{business_name}', d: 'Business name' },
-                      { v: '{business_phone}', d: 'Business phone' },
-                      { v: '{business_address}', d: 'Business address' },
-                      { v: '{registration_url}', d: 'Registration link' },
-                      { v: '{campaign_name}', d: 'Campaign name' },
-                      { v: '{customer_name}', d: "Customer's name" },
-                      { v: '{email}', d: "Recipient's email" },
-                      { v: '{customer_email}', d: "Recipient's email" },
-                      { v: '{current_date}', d: "Today's date" },
-                      { v: '{campaign_id}', d: 'Campaign ID' },
-                      { v: '{your_name}', d: 'Your name' }
-                    ].map(({ v, d }) => (
-                      <button
-                        key={v}
-                        type="button"
-                        onClick={() => {
-                          void navigator.clipboard.writeText(v)
-                          toast.success(`Copied ${v}`)
-                        }}
-                        className="px-2 py-1 rounded text-xs font-mono bg-white border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition-colors"
-                        title={`${d} — click to copy`}
-                      >
-                        {v}
-                      </button>
-                    ))}
+                {sendRecipientMode === 'manual' && (
+                  <div className="mt-2 space-y-1">
+                    <Textarea
+                      id="emailList"
+                      placeholder="Enter email addresses (one per line or comma separated)"
+                      value={emailList}
+                      onChange={(e) => setEmailList(e.target.value)}
+                      rows={4}
+                      className="font-mono text-sm"
+                    />
+                    <p className="text-xs text-gray-500">
+                      {emailList.split(/[,\n]/).filter((e) => e.trim()).length} address(es) entered
+                    </p>
                   </div>
-                </div>
-              </div>
-
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h4 className="font-semibold text-blue-900 mb-2">Campaign Preview</h4>
-                <p className="text-sm text-blue-800 mb-2">
-                  <strong>Subject:</strong> {selectedCampaign.emailTemplate.subject}
-                </p>
-                {selectedCampaign.registrationUrl && selectedCampaign.buttonText && (
-                  <p className="text-sm text-blue-800 mb-2">
-                    <strong>Button:</strong> &quot;{selectedCampaign.buttonText}&quot; → <code>{selectedCampaign.registrationUrl}</code>
-                  </p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label>Recipients (optional)</Label>
-                <Select
-                  value={sendAudience ?? 'all'}
-                  onValueChange={(value: 'all' | 'existing' | 'new') => setSendAudience(value === 'all' ? null : value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All (your email list)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All (your email list)</SelectItem>
-                    <SelectItem value="existing">Existing customers only</SelectItem>
-                    <SelectItem value="new">New customers only</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-gray-500">Who to send to. Leave as &quot;All&quot; to use the email list above as-is.</p>
+                <Label className="text-sm font-medium">Email preview</Label>
+                <p className="text-xs text-gray-500">This is what will be sent. To change it, edit the campaign first.</p>
+                <div className="rounded-lg border border-gray-200 bg-gray-50/50 overflow-hidden min-h-[160px] flex flex-col">
+                  <div className="border-b border-gray-200 bg-white px-3 py-2 shrink-0">
+                    <div className="text-xs text-gray-500 uppercase tracking-wide mb-0.5">Subject</div>
+                    <div className="text-sm font-medium text-gray-900 wrap-break-word">
+                      {previewCampaignWithSample(selectedCampaign.emailTemplate.subject)}
+                    </div>
+                  </div>
+                  <div className="p-3 sm:p-4 bg-white flex-1 overflow-auto">
+                    <div className="text-xs text-gray-500 uppercase tracking-wide mb-1.5">Message</div>
+                    {isMessageHtml(selectedCampaign.emailTemplate.message) ? (
+                      <div
+                        className="text-sm text-gray-800 font-sans [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mb-2"
+                        dangerouslySetInnerHTML={{
+                          __html: sanitizePreviewHtml(previewCampaignWithSample(selectedCampaign.emailTemplate.message)),
+                        }}
+                      />
+                    ) : (
+                      <div className="text-sm text-gray-800 whitespace-pre-wrap font-sans">
+                        {previewCampaignWithSample(selectedCampaign.emailTemplate.message)}
+                      </div>
+                    )}
+                  </div>
+                  {selectedCampaign.registrationUrl && selectedCampaign.buttonText && (
+                    <div className="px-3 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-600">
+                      Button: &quot;{selectedCampaign.buttonText}&quot;
+                    </div>
+                  )}
+                </div>
               </div>
 
               <Button
                 onClick={() => handleSendCampaign(selectedCampaign)}
-                disabled={isSending || !emailList.trim()}
+                disabled={
+                  isSending ||
+                  (sendRecipientMode === 'manual' && !emailList.trim()) ||
+                  (sendRecipientMode !== 'manual' &&
+                    (loadingRecipients ||
+                      (sendRecipientMode === 'all' && (recipientData?.allCount ?? 0) === 0) ||
+                      (sendRecipientMode === 'existing' && (recipientData?.existingCount ?? 0) === 0) ||
+                      (sendRecipientMode === 'new' && (recipientData?.newCount ?? 0) === 0)))
+                }
                 className="w-full"
               >
                 {isSending ? (
@@ -521,51 +652,68 @@ export default function CampaignsPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div className="lg:col-span-2 space-y-2">
-                  <Label htmlFor="message">Email Message</Label>
-                  <Textarea
-                    id="message"
-                    value={newCampaign.message}
-                    onChange={(e) => setNewCampaign(prev => ({ ...prev, message: e.target.value }))}
-                    rows={8}
-                    placeholder="Email message content"
-                    className="min-h-[180px]"
-                  />
-                  <p className="text-xs text-gray-500">
-                    Use <strong>**bold**</strong>, <u>__underline__</u>, and lines starting with <code>- </code> for bullets. Blank lines start new paragraphs. Click a variable on the right to copy.
-                  </p>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Available variables</Label>
+                <p className="text-xs text-gray-500">Click to copy, then paste into subject or message.</p>
+                <div className="flex flex-wrap gap-1.5 p-3 rounded-lg bg-gray-50 border border-gray-100">
+                  {CAMPAIGN_VARIABLES.map(({ v, d }) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => {
+                        void navigator.clipboard.writeText(v)
+                        toast.success(`Copied ${v}`)
+                      }}
+                      className="px-2 py-1.5 rounded text-xs font-mono bg-white border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition-colors shrink-0"
+                      title={`${d} — click to copy`}
+                    >
+                      {v}
+                    </button>
+                  ))}
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Available variables</Label>
-                  <div className="flex flex-wrap gap-1.5 p-3 rounded-lg bg-gray-50 border border-gray-100">
-                    {[
-                      { v: '{business_name}', d: 'Business name' },
-                      { v: '{business_phone}', d: 'Business phone' },
-                      { v: '{business_address}', d: 'Business address' },
-                      { v: '{registration_url}', d: 'Registration link' },
-                      { v: '{campaign_name}', d: 'Campaign name' },
-                      { v: '{customer_name}', d: "Customer's name" },
-                      { v: '{email}', d: "Recipient's email" },
-                      { v: '{customer_email}', d: "Recipient's email" },
-                      { v: '{current_date}', d: "Today's date" },
-                      { v: '{campaign_id}', d: 'Campaign ID' },
-                      { v: '{your_name}', d: 'Your name' }
-                    ].map(({ v, d }) => (
-                      <button
-                        key={v}
-                        type="button"
-                        onClick={() => {
-                          void navigator.clipboard.writeText(v)
-                          toast.success(`Copied ${v}`)
-                        }}
-                        className="px-2 py-1 rounded text-xs font-mono bg-white border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition-colors"
-                        title={`${d} — click to copy`}
-                      >
-                        {v}
-                      </button>
-                    ))}
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
+                <div className="min-w-0 space-y-2">
+                  <Label htmlFor="message">Email Message</Label>
+                  <RichTextEditor
+                    value={newCampaign.message}
+                    onChange={(html) => setNewCampaign(prev => ({ ...prev, message: html }))}
+                    placeholder="Email message content"
+                    minHeight="240px"
+                    editorKey={newCampaign.id || 'create'}
+                  />
+                </div>
+                <div className="min-w-0 space-y-2">
+                  <Label className="text-sm font-medium">Email preview</Label>
+                  <div className="rounded-lg border border-gray-200 bg-gray-50/50 overflow-hidden min-h-[200px] flex flex-col">
+                    <div className="border-b border-gray-200 bg-white px-3 py-2 shrink-0">
+                      <div className="text-xs text-gray-500 uppercase tracking-wide mb-0.5">Subject</div>
+                      <div className="text-sm font-medium text-gray-900 wrap-break-word">
+                        {newCampaign.subject ? previewCampaignWithSample(newCampaign.subject) : '(No subject)'}
+                      </div>
+                    </div>
+                    <div className="p-3 sm:p-4 bg-white flex-1 overflow-auto">
+                      <div className="text-xs text-gray-500 uppercase tracking-wide mb-1.5">Message</div>
+                      {newCampaign.message ? (
+                        isMessageHtml(newCampaign.message) ? (
+                          <div
+                            className="text-sm text-gray-800 font-sans [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mb-2"
+                            dangerouslySetInnerHTML={{
+                              __html: sanitizePreviewHtml(previewCampaignWithSample(newCampaign.message)),
+                            }}
+                          />
+                        ) : (
+                          <div className="text-sm text-gray-800 whitespace-pre-wrap font-sans">
+                            {previewCampaignWithSample(newCampaign.message)}
+                          </div>
+                        )
+                      ) : (
+                        <div className="text-sm text-gray-500 font-sans">(No message yet)</div>
+                      )}
+                    </div>
                   </div>
+                  <p className="text-xs text-gray-500">Preview uses sample data.</p>
                 </div>
               </div>
 

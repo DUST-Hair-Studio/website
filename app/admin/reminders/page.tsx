@@ -63,8 +63,8 @@ const HOURS_OPTIONS = [
 
 const TEMPLATE_VARIABLES = [
   { variable: '{customer_name}', description: 'Customer\'s full name' },
-  { variable: '{email}', description: 'Customer\'s email address' },
   { variable: '{customer_email}', description: 'Customer\'s email address' },
+  { variable: '{business_email}', description: 'Business email (from Settings)' },
   { variable: '{appointment_date}', description: 'Appointment date (e.g., January 15, 2024)' },
   { variable: '{appointment_time}', description: 'Appointment time (e.g., 2:00 PM)' },
   { variable: '{appointment_datetime}', description: 'Full date and time' },
@@ -79,8 +79,8 @@ const TEMPLATE_VARIABLES = [
 
 const PREVIEW_SAMPLE: Record<string, string> = {
   '{customer_name}': 'Jordan Smith',
-  '{email}': 'jordan@example.com',
   '{customer_email}': 'jordan@example.com',
+  '{business_email}': 'appointments@yourstudio.com',
   '{appointment_date}': 'Monday, February 10, 2025',
   '{appointment_time}': '2:00 PM',
   '{appointment_datetime}': 'Monday, February 10, 2025 at 2:00 PM',
