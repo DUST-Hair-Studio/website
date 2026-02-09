@@ -156,7 +156,7 @@ function BookPageContent() {
       try {
         const start = new Date()
         const end = new Date()
-        end.setDate(end.getDate() + 90)
+        end.setDate(end.getDate() + 180) // 6 months so override dates further out are selectable
         const toYMD = (d: Date) =>
           `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
         const startStr = toYMD(start)
