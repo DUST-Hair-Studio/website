@@ -300,7 +300,7 @@ export default function AdminWaitlistPage() {
         <Card className="border-red-200 bg-red-50">
           <CardContent className="pt-4 sm:pt-6">
             <div className="flex items-start">
-              <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 mr-3 mt-0.5 flex-shrink-0" />
+              <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 mr-3 mt-0.5 shrink-0" />
               <div className="text-xs sm:text-sm text-red-900">
                 <p className="font-medium mb-1">Waitlist is currently disabled</p>
                 <p className="text-red-800">
@@ -316,7 +316,7 @@ export default function AdminWaitlistPage() {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
         {/* Total Requests */}
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
+        <Card className="border-0 shadow-sm bg-linear-to-br from-white to-gray-50">
           <CardContent className="p-4 md:p-6">
             <div className="flex flex-col items-center text-center">
               <div className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{stats.total}</div>
@@ -331,7 +331,7 @@ export default function AdminWaitlistPage() {
         </Card>
 
         {/* Pending */}
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
+        <Card className="border-0 shadow-sm bg-linear-to-br from-white to-gray-50">
           <CardContent className="p-4 md:p-6">
             <div className="flex flex-col items-center text-center">
               <div className="text-2xl md:text-3xl font-bold text-yellow-600 mb-2">{stats.pending}</div>
@@ -346,7 +346,7 @@ export default function AdminWaitlistPage() {
         </Card>
 
         {/* Notified */}
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
+        <Card className="border-0 shadow-sm bg-linear-to-br from-white to-gray-50">
           <CardContent className="p-4 md:p-6">
             <div className="flex flex-col items-center text-center">
               <div className="text-2xl md:text-3xl font-bold text-blue-600 mb-2">{stats.notified}</div>
@@ -361,7 +361,7 @@ export default function AdminWaitlistPage() {
         </Card>
 
         {/* Converted */}
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
+        <Card className="border-0 shadow-sm bg-linear-to-br from-white to-gray-50">
           <CardContent className="p-4 md:p-6">
             <div className="flex flex-col items-center text-center">
               <div className="text-2xl md:text-3xl font-bold text-green-600 mb-2">{stats.converted}</div>
@@ -376,7 +376,7 @@ export default function AdminWaitlistPage() {
         </Card>
 
         {/* Expired */}
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
+        <Card className="border-0 shadow-sm bg-linear-to-br from-white to-gray-50">
           <CardContent className="p-4 md:p-6">
             <div className="flex flex-col items-center text-center">
               <div className="text-2xl md:text-3xl font-bold text-gray-600 mb-2">{stats.expired}</div>
@@ -391,7 +391,7 @@ export default function AdminWaitlistPage() {
         </Card>
 
         {/* Cancelled */}
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-gray-50">
+        <Card className="border-0 shadow-sm bg-linear-to-br from-white to-gray-50">
           <CardContent className="p-4 md:p-6">
             <div className="flex flex-col items-center text-center">
               <div className="text-2xl md:text-3xl font-bold text-red-600 mb-2">{stats.cancelled}</div>
@@ -421,7 +421,7 @@ export default function AdminWaitlistPage() {
         </div>
         
         <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-gray-500 flex-shrink-0" />
+          <Filter className="w-4 h-4 text-gray-500 shrink-0" />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-full sm:w-36 md:w-40">
               <SelectValue placeholder="Status" />
@@ -458,11 +458,11 @@ export default function AdminWaitlistPage() {
                   <div key={request.id} className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
                     <div className="flex items-start justify-between">
                       <div className="flex items-start space-x-2">
-                        <User className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                        <User className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
                         <div className="min-w-0 flex-1">
                           <div className="font-medium text-gray-900 text-sm">{request.customers.name}</div>
                           <div className="text-xs text-gray-500 flex items-center mt-0.5">
-                            <Mail className="w-3 h-3 mr-1 flex-shrink-0" />
+                            <Mail className="w-3 h-3 mr-1 shrink-0" />
                             <span className="truncate">{request.customers.email}</span>
                           </div>
                         </div>
@@ -576,7 +576,7 @@ export default function AdminWaitlistPage() {
                       <tr key={request.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-4 py-3 whitespace-nowrap">
                           <div className="flex items-start">
-                            <User className="w-4 h-4 text-gray-400 mr-2 mt-0.5 flex-shrink-0" />
+                            <User className="w-4 h-4 text-gray-400 mr-2 mt-0.5 shrink-0" />
                             <div>
                               <div className="text-sm font-medium text-gray-900">{request.customers.name}</div>
                               <div className="text-xs text-gray-500 flex items-center mt-0.5">
@@ -592,7 +592,7 @@ export default function AdminWaitlistPage() {
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           <div className="flex items-start">
-                            <Calendar className="w-4 h-4 text-gray-400 mr-2 mt-0.5 flex-shrink-0" />
+                            <Calendar className="w-4 h-4 text-gray-400 mr-2 mt-0.5 shrink-0" />
                             <div>
                               <div className="text-sm font-medium text-gray-900">{formatDate(request.start_date)}</div>
                               <div className="text-xs text-gray-500">to {formatDate(request.end_date)}</div>
@@ -675,7 +675,7 @@ export default function AdminWaitlistPage() {
       <Card className="bg-blue-50 border-blue-200">
         <CardContent className="pt-4 sm:pt-6">
           <div className="flex items-start">
-            <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" />
+            <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 mr-3 mt-0.5 shrink-0" />
             <div className="text-xs sm:text-sm text-blue-900">
               <p className="font-medium mb-1">How the waitlist works:</p>
               <ul className="list-disc list-inside space-y-1 text-blue-800">

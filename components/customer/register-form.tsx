@@ -371,6 +371,11 @@ export function RegisterForm({ isExistingCustomer = false, campaignId }: Registe
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                 />
                 <span className="text-sm">Text (SMS) only</span>
+                {isExistingCustomer && (
+                  <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded">
+                    SMS reminders are coming soon!
+                  </span>
+                )}
               </label>
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
