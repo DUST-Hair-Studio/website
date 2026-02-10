@@ -375,7 +375,7 @@ export async function POST(request: NextRequest) {
         sent_by: user.id
       }
       // Include send_details if column exists (migration campaign-send-history-send-details.sql)
-      let { error: insertError } = await supabase
+      const { error: insertError } = await supabase
         .from('campaign_send_history')
         .insert({ ...insertPayload, send_details: results })
 

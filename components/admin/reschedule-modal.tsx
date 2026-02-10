@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Booking } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Calendar } from '@/components/ui/calendar'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Calendar as CalendarIcon, Clock, RefreshCw, AlertCircle, Loader2 } from 'lucide-react'
+import { Calendar as CalendarIcon, Clock, RefreshCw, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import WaitlistForm from '@/components/customer/waitlist-form'
 

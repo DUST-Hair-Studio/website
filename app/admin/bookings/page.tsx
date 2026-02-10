@@ -2300,8 +2300,8 @@ export default function AdminBookingsPage() {
                             {selectedBooking.customers.name}
                           </Link>
                           <Badge
-                            variant={(selectedBooking.customer_type_at_booking === 'loyalty' || selectedBooking.customer_type_at_booking === 'existing') ? "default" : "secondary"}
-                            className={`${(selectedBooking.customer_type_at_booking === 'loyalty' || selectedBooking.customer_type_at_booking === 'existing') ? "bg-indigo-100 text-indigo-800" : "bg-green-100 text-green-800"}`}
+                            variant={selectedBooking.customer_type_at_booking === 'loyalty' ? "default" : "secondary"}
+                            className={`${selectedBooking.customer_type_at_booking === 'loyalty' ? "bg-indigo-100 text-indigo-800" : "bg-green-100 text-green-800"}`}
                           >
                             {getCustomerTypeLabel(selectedBooking.customer_type_at_booking)}
                           </Badge>

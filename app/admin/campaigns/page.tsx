@@ -102,7 +102,6 @@ function isMessageHtml(message: string): boolean {
 export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<CampaignConfig[]>([])
   const [selectedCampaign, setSelectedCampaign] = useState<CampaignConfig | null>(null)
-  const [emailMessage, setEmailMessage] = useState('')
   const [isSending, setIsSending] = useState(false)
   const [sendResults, setSendResults] = useState<{total: number; successful: number; failed: number; details: Array<{success: boolean; email: string; error?: string}>} | null>(null)
   const [showCreateForm, setShowCreateForm] = useState(false)
@@ -178,12 +177,6 @@ export default function CampaignsPage() {
   }, [])
 
   useEffect(() => {
-    if (selectedCampaign) {
-      setEmailMessage('')
-    }
-  }, [selectedCampaign])
-
-  useEffect(() => {
     let cancelled = false
     setLoadingSegments(true)
     fetch('/api/admin/segments')
@@ -208,7 +201,7 @@ export default function CampaignsPage() {
       if (!res.ok) throw new Error('Failed to load segment contacts')
       const data = await res.json()
       emails = data.emails || []
-    } catch (err) {
+    } catch {
       toast.error('Failed to load segment contacts')
       return
     }

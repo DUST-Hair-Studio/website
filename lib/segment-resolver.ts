@@ -39,9 +39,9 @@ export async function resolveSegmentEmails(
   const valid = (e: string) => e && e.includes('@')
   const norm = (e: string) => e.trim().toLowerCase()
 
-  let filtered = list.filter((c) => {
+  const filtered = list.filter((c) => {
     if (hasEmail && (!c.email || !valid(c.email))) return false
-    if ((customerType === 'loyalty' || customerType === 'existing') && !c.is_existing_customer) return false
+    if (customerType === 'loyalty' && !c.is_existing_customer) return false
     if (customerType === 'new' && c.is_existing_customer) return false
     const { total, lastDate } = getBookingStats(c)
     if (hasNeverBooked === true && total > 0) return false

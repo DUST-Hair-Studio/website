@@ -6,7 +6,7 @@ import { Calendar } from '@/components/ui/calendar'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Calendar as CalendarIcon, Clock, Search, User, Scissors, AlertCircle, Loader2, Plus, ChevronRight, ChevronLeft, Check } from 'lucide-react'
+import { Calendar as CalendarIcon, Clock, Search, AlertCircle, Loader2, Plus, ChevronRight, ChevronLeft, Check } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Customer {

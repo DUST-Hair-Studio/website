@@ -25,7 +25,7 @@ function formatCampaignMessage(message: string): string {
         const listItems: string[] = []
         while (i < lines.length && (lines[i].startsWith('- ') || /^[•]\s/.test(lines[i]))) {
           const item = lines[i].replace(/^[-•]\s*/, '')
-          listItems.push(`<li>${line.replace(/__([^_]+)__/g, '<u>$1</u>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')}</li>`)
+          listItems.push(`<li>${item.replace(/__([^_]+)__/g, '<u>$1</u>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')}</li>`)
           i++
         }
         parts.push(`<ul class="campaign-list">${listItems.join('')}</ul>`)
@@ -248,7 +248,7 @@ export async function POST(request: NextRequest) {
         recipient_emails: normalizedEmails,
         sent_by: user.id
       }
-      let { error: insertError } = await supabase
+      const { error: insertError } = await supabase
         .from('campaign_send_history')
         .insert({ ...insertPayload, send_details: null })
 

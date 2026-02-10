@@ -238,7 +238,8 @@ function BookPageContent() {
       setAvailableTimes([]) // Clear old times
       fetchAvailableTimes(selectedDate)
     }
-  }, [selectedService]) // Only re-run when service changes, not when date changes (handled in handleDateSelect)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally only run when service changes
+  }, [selectedService])
 
 
   const handleServiceSelect = (service: Service) => {
