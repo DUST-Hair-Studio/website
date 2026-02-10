@@ -7,6 +7,14 @@ import { isFutureAppointment } from '@/lib/timezone-utils'
 
 export async function POST(request: NextRequest) {
   try {
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('SUPABASE_SERVICE_ROLE_KEY is not set (required for booking insert)')
+      return NextResponse.json({
+        error: 'Server configuration error',
+        details: 'SUPABASE_SERVICE_ROLE_KEY is not configured. Add it in Vercel (or your host) environment variables.'
+      }, { status: 500 })
+    }
+
     const supabase = await createServerSupabaseClient()
     
     const body = await request.json()
@@ -295,14 +303,11 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
     console.error('Booking API error:', error)
-    console.error('Error details:', {
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined
-    })
     return NextResponse.json({ 
-      error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Booking failed',
+      details: message
     }, { status: 500 })
   }
 }

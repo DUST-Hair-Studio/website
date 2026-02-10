@@ -663,11 +663,11 @@ export default function AdminBookingsPage() {
   }
 
   const generateCalendarDays = () => {
-    const today = new Date()
-    const currentMonth = today.getMonth()
-    const currentYear = today.getFullYear()
+    // Use calendarStartDate so month view responds to prev/next arrows
+    const currentMonth = calendarStartDate.getMonth()
+    const currentYear = calendarStartDate.getFullYear()
     
-    // Get first day of current month
+    // Get first day of displayed month
     const firstDay = new Date(currentYear, currentMonth, 1)
     const lastDay = new Date(currentYear, currentMonth + 1, 0)
     
@@ -714,7 +714,7 @@ export default function AdminBookingsPage() {
   // Get calendar header text based on view
   const getCalendarHeaderText = () => {
     if (calendarView === 'month') {
-      return new Date().toLocaleDateString('en-US', { 
+      return calendarStartDate.toLocaleDateString('en-US', { 
         month: 'long', 
         year: 'numeric'
       })
@@ -2318,6 +2318,21 @@ export default function AdminBookingsPage() {
                         <span className="text-gray-600">Date & Time</span>
                         <div className="text-right">
                           {formatDateTime(selectedBooking.booking_date, selectedBooking.booking_time)}
+                          {selectedBooking.status !== 'completed' && (
+                            <Button
+                              variant="link"
+                              size="sm"
+                              className="h-auto p-0 text-blue-600 hover:text-blue-800 font-medium text-xs mt-1 block"
+                              onClick={(e: React.MouseEvent) => {
+                                e.stopPropagation()
+                                openRescheduleModal(selectedBooking, e)
+                                setShowBookingDetails(false)
+                              }}
+                            >
+                              <RotateCcw className="w-3 h-3 mr-1 inline" />
+                              Reschedule
+                            </Button>
+                          )}
                         </div>
                       </div>
                       <div className="flex justify-between items-center py-2 md:py-2">

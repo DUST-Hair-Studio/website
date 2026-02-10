@@ -878,7 +878,7 @@ export default function AdminCustomersPage() {
                                 variant={selectedCustomer.is_existing_customer ? "default" : "secondary"}
                                 className={`${selectedCustomer.is_existing_customer ? "bg-indigo-100 text-indigo-800" : "bg-green-100 text-green-800"}`}
                               >
-                                {selectedCustomer.is_existing_customer ? 'Existing' : 'New'}
+                                {selectedCustomer.is_existing_customer ? 'Loyalty' : 'New'}
                               </Badge>
                             </div>
                           </div>
