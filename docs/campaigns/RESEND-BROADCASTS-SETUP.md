@@ -4,6 +4,8 @@
 
 Campaign sends now use Resend **Broadcasts** (Marketing), not the transactional API. Create segments in Admin → Segments, then send campaigns to a segment.
 
+**Background jobs**: Sends run via [Inngest](https://inngest.com). The UI returns immediately ("Campaign queued"); Inngest processes the send in the background. See setup below.
+
 ## Why Broadcasts?
 
 - **Transactional API**: 100 emails/day limit. Used for booking confirmations, reminders, payment links.
@@ -11,10 +13,12 @@ Campaign sends now use Resend **Broadcasts** (Marketing), not the transactional 
 
 ## Resend Broadcasts Flow
 
-1. **Create Segment** – A segment holds the recipient list for this send
-2. **Add Contacts** – Create contacts and add them to the segment
-3. **Create Broadcast** – Subject, HTML body, from address, targeting the segment
-4. **Send Broadcast** – Trigger send (immediate or scheduled)
+The app uses a **single reusable segment** (avoids the 3-segment plan limit):
+
+1. **Get segment** – Uses `RESEND_CAMPAIGN_SEGMENT_ID` env, or finds/creates one named "DUST Campaign"
+2. **Clear segment** – Removes previous recipients
+3. **Add contacts** – Create contacts and add them to the segment
+4. **Create & send broadcast** – Subject, HTML body, from address, targeting the segment
 
 ## API Flow (Resend Node SDK)
 
@@ -73,10 +77,27 @@ Broadcasts support `{{{PROPERTY_NAME}}}` and `{{{PROPERTY_NAME|fallback}}}`. You
 - Copy/paste recipient list from campaign UI
 - No code changes; uses Resend’s built-in broadcast tools
 
+## Troubleshooting "Failed to create broadcast segment"
+
+The app now returns Resend’s error in the toast. Common causes:
+
+1. **Broadcasts not enabled** – Resend Broadcasts may require a paid plan or add-on. Check [Resend Pricing](https://resend.com/pricing) and ensure Broadcasts/Audience is enabled.
+2. **API key permissions** – The `RESEND_API_KEY` must have **Full access** (not only Sending). In [Resend API Keys](https://resend.com/api-keys), create a key with full access and use it for campaign sends.
+3. **First-time setup** – Visit [Resend Audience](https://resend.com/audience) and ensure your account has Broadcasts/Audience set up. Some accounts need to enable it in the dashboard first.
+
+## Optional: RESEND_CAMPAIGN_SEGMENT_ID
+
+Set this env var to the ID of your campaign segment if you created it manually in Resend. Otherwise the app will find or create a segment named "DUST Campaign".
+
+## Inngest setup
+
+- **Local dev**: Run `npx inngest-cli@latest dev` alongside `npm run dev`. Inngest Dev Server UI: http://localhost:8288
+- **Production**: Connect your app at [Inngest Cloud](https://app.inngest.com). Add `INNGEST_SIGNING_KEY` and `INNGEST_EVENT_KEY` to Vercel env vars. No separate infrastructure needed.
+
 ## Considerations
 
 1. **Contact creation** – Resend has 1,000 free Marketing contacts. Contacts persist across sends.
-2. **Batch size** – Creating hundreds of contacts + adding to segment is sequential; expect 1–2 seconds per contact. Consider background job for large lists.
+2. **Batch size** – Creating hundreds of contacts + adding to segment is sequential (rate limited). Runs in background via Inngest.
 3. **Unsubscribe** – Broadcasts include `{{{RESEND_UNSUBSCRIBE_URL}}}`. Add this to the HTML template for compliance.
 4. **Duplicate contacts** – Creating a contact that already exists may upsert; verify Resend’s behavior.
 5. **Segment lifecycle** – Segments can be reused or created per campaign. Per-campaign segments keep sends isolated.

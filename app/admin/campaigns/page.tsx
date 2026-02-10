@@ -233,12 +233,33 @@ export default function CampaignsPage() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to send campaign')
+        const msg = data.details ? `${data.error}: ${data.details}` : (data.error || 'Failed to send campaign')
+        throw new Error(msg)
+      }
+
+      if (response.status === 202 && data.jobId) {
+        setIsSending(false)
+        toast.success(data.message || 'Campaign queued. Sending in background.')
+        const pollJob = async () => {
+          const res = await fetch(`/api/admin/campaign-send-job/${data.jobId}`)
+          const job = await res.json().catch(() => null)
+          if (!job) return
+          if (job.status === 'completed' && job.result) {
+            setSendResults(job.result)
+            toast.success(`Campaign sent to ${job.result.total || 0} recipients via Broadcasts`)
+            if (detailsCampaign && detailsCampaign.id === campaign.id) fetchCampaignHistory(campaign.id)
+          } else if (job.status === 'failed') {
+            toast.error(job.errorMessage || 'Campaign send failed')
+          } else {
+            setTimeout(pollJob, 2000)
+          }
+        }
+        pollJob()
+        return
       }
 
       setSendResults(data.results)
       toast.success(data.message || `Campaign sent to ${data.results?.total || 0} recipients via Broadcasts`)
-      // Refresh campaign history if viewing that campaign's details
       if (detailsCampaign && detailsCampaign.id === campaign.id) {
         fetchCampaignHistory(campaign.id)
       }
@@ -269,7 +290,30 @@ export default function CampaignsPage() {
         })
       })
       const data = await response.json()
-      if (!response.ok) throw new Error(data.error || 'Failed to resend')
+      if (!response.ok) {
+        const msg = data.details ? `${data.error}: ${data.details}` : (data.error || 'Failed to resend')
+        throw new Error(msg)
+      }
+      if (response.status === 202 && data.jobId) {
+        setIsSending(false)
+        toast.success(data.message || 'Resend queued. Sending in background.')
+        const pollJob = async () => {
+          const res = await fetch(`/api/admin/campaign-send-job/${data.jobId}`)
+          const job = await res.json().catch(() => null)
+          if (!job) return
+          if (job.status === 'completed' && job.result) {
+            setSendResults(job.result)
+            toast.success(`Resend complete: ${job.result.total || 0} sent via Broadcasts`)
+            if (detailsCampaign && detailsCampaign.id === campaign.id) fetchCampaignHistory(campaign.id)
+          } else if (job.status === 'failed') {
+            toast.error(job.errorMessage || 'Resend failed')
+          } else {
+            setTimeout(pollJob, 2000)
+          }
+        }
+        pollJob()
+        return
+      }
       setSendResults(data.results)
       toast.success(data.message || `Resend complete: ${data.results?.total || 0} sent via Broadcasts`)
       if (detailsCampaign && detailsCampaign.id === campaign.id) {
