@@ -272,7 +272,7 @@ export default function SegmentsPage() {
                 id="seg-name"
                 value={formData.name}
                 onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
-                placeholder="e.g. Existing customers"
+                placeholder="e.g. Loyalty customers"
               />
             </div>
             <div>

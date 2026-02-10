@@ -238,7 +238,7 @@ export default function AdminServicesPage() {
             <DialogHeader>
               <DialogTitle>Create New Service</DialogTitle>
               <DialogDescription>
-                Add a new service with dual pricing for new and existing customers.
+                Add a new service with dual pricing for new and loyalty customers.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -316,7 +316,7 @@ export default function AdminServicesPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="existing_customer_price" className="text-sm font-medium">
-                      Existing Customer Price <span className="text-red-500">*</span>
+                      Loyalty Customer Price <span className="text-red-500">*</span>
                     </Label>
                     <Input
                       id="existing_customer_price"
@@ -355,7 +355,7 @@ export default function AdminServicesPage() {
                       />
                     </div>
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="is_existing_customer" className="text-sm font-medium">Available to Existing Customers</Label>
+                      <Label htmlFor="is_existing_customer" className="text-sm font-medium">Available to Loyalty Customers</Label>
                       <Switch
                         id="is_existing_customer"
                         checked={formData.is_existing_customer}
@@ -500,7 +500,7 @@ export default function AdminServicesPage() {
                     <p className="text-lg font-bold text-green-600">{formatPrice(service.new_customer_price)}</p>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <p className="text-sm font-medium text-gray-600">Existing Customer Price</p>
+                    <p className="text-sm font-medium text-gray-600">Loyalty Customer Price</p>
                     <p className="text-lg font-bold text-indigo-600">{formatPrice(service.existing_customer_price)}</p>
                   </div>
                   <div className="py-2">
@@ -510,7 +510,7 @@ export default function AdminServicesPage() {
                         <Badge className="bg-green-100 text-green-800">New Customers</Badge>
                       )}
                       {service.is_existing_customer && (
-                        <Badge className="bg-indigo-100 text-indigo-800">Existing Customers</Badge>
+                        <Badge className="bg-indigo-100 text-indigo-800">Loyalty Customers</Badge>
                       )}
                     </div>
                   </div>
@@ -527,7 +527,7 @@ export default function AdminServicesPage() {
                     <p className="text-lg font-bold text-green-600">{formatPrice(service.new_customer_price)}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Existing Customer Price</p>
+                    <p className="text-sm font-medium text-gray-600">Loyalty Customer Price</p>
                     <p className="text-lg font-bold text-indigo-600">{formatPrice(service.existing_customer_price)}</p>
                   </div>
                   <div>
@@ -537,7 +537,7 @@ export default function AdminServicesPage() {
                         <Badge className="w-fit bg-green-100 text-green-800">New Customers</Badge>
                       )}
                       {service.is_existing_customer && (
-                        <Badge className="w-fit bg-indigo-100 text-indigo-800">Existing Customers</Badge>
+                        <Badge className="w-fit bg-indigo-100 text-indigo-800">Loyalty Customers</Badge>
                       )}
                     </div>
                   </div>
@@ -653,7 +653,7 @@ export default function AdminServicesPage() {
                         <p className="text-lg font-bold text-gray-500">{formatPrice(service.new_customer_price)}</p>
                       </div>
                       <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                        <p className="text-sm font-medium text-gray-600">Existing Customer Price</p>
+                        <p className="text-sm font-medium text-gray-600">Loyalty Customer Price</p>
                         <p className="text-lg font-bold text-gray-500">{formatPrice(service.existing_customer_price)}</p>
                       </div>
                       <div className="py-2">
@@ -663,7 +663,7 @@ export default function AdminServicesPage() {
                             <Badge className="bg-green-100 text-green-800">New Customers</Badge>
                           )}
                           {service.is_existing_customer && (
-                            <Badge className="bg-indigo-100 text-indigo-800">Existing Customers</Badge>
+                            <Badge className="bg-indigo-100 text-indigo-800">Loyalty Customers</Badge>
                           )}
                         </div>
                       </div>
@@ -680,7 +680,7 @@ export default function AdminServicesPage() {
                         <p className="text-lg font-bold text-gray-500">{formatPrice(service.new_customer_price)}</p>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-600">Existing Customer Price</p>
+                        <p className="text-sm font-medium text-gray-600">Loyalty Customer Price</p>
                         <p className="text-lg font-bold text-gray-500">{formatPrice(service.existing_customer_price)}</p>
                       </div>
                       <div>
@@ -690,7 +690,7 @@ export default function AdminServicesPage() {
                             <Badge className="w-fit bg-green-100 text-green-800">New Customers</Badge>
                           )}
                           {service.is_existing_customer && (
-                            <Badge className="w-fit bg-indigo-100 text-indigo-800">Existing Customers</Badge>
+                            <Badge className="w-fit bg-indigo-100 text-indigo-800">Loyalty Customers</Badge>
                           )}
                         </div>
                       </div>
@@ -793,7 +793,7 @@ export default function AdminServicesPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-existing_customer_price" className="text-sm font-medium">
-                    Existing Customer Price <span className="text-red-500">*</span>
+                    Loyalty Customer Price <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="edit-existing_customer_price"
@@ -832,7 +832,7 @@ export default function AdminServicesPage() {
                     />
                   </div>
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="edit-is_existing_customer" className="text-sm font-medium">Available to Existing Customers</Label>
+                    <Label htmlFor="edit-is_existing_customer" className="text-sm font-medium">Available to Loyalty Customers</Label>
                     <Switch
                       id="edit-is_existing_customer"
                       checked={formData.is_existing_customer}

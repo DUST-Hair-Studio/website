@@ -470,10 +470,17 @@ export default function AdminBookingsPage() {
   }
 
 
+  const getCustomerTypeLabel = (customerType: string) => {
+    if (customerType === 'loyalty' || customerType === 'existing') return 'Loyalty'
+    if (customerType === 'new') return 'New'
+    return customerType || '—'
+  }
+
   const getCustomerTypeColor = (customerType: string) => {
     switch (customerType) {
       case 'new': return 'bg-green-100 text-green-800 border-green-200'
-      case 'loyalty': return 'bg-indigo-100 text-indigo-800 border-indigo-200'
+      case 'loyalty':
+      case 'existing': return 'bg-indigo-100 text-indigo-800 border-indigo-200'
       default: return 'bg-gray-100 text-gray-800 border-gray-200'
     }
   }
@@ -481,7 +488,8 @@ export default function AdminBookingsPage() {
   const getCustomerTypeColorForCalendar = (customerType: string) => {
     switch (customerType) {
       case 'new': return 'bg-green-100 text-green-800 hover:bg-green-200'
-      case 'loyalty': return 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200'
+      case 'loyalty':
+      case 'existing': return 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200'
       default: return 'bg-gray-100 text-gray-800 hover:bg-gray-200'
     }
   }
@@ -489,7 +497,8 @@ export default function AdminBookingsPage() {
   const getCustomerTypeDotColor = (customerType: string) => {
     switch (customerType) {
       case 'new': return 'bg-green-400'
-      case 'loyalty': return 'bg-blue-500'
+      case 'loyalty':
+      case 'existing': return 'bg-blue-500'
       default: return 'bg-gray-400'
     }
   }
@@ -960,7 +969,7 @@ export default function AdminBookingsPage() {
                         <div className="flex justify-between items-start">
                           <div className="font-medium text-gray-900">{booking.customers.name}</div>
                           <Badge className={`${getCustomerTypeColor(booking.customer_type_at_booking)} text-xs px-2 py-1`}>
-                            {booking.customer_type_at_booking}
+                            {getCustomerTypeLabel(booking.customer_type_at_booking)}
                           </Badge>
                         </div>
                       </div>
@@ -1183,7 +1192,7 @@ export default function AdminBookingsPage() {
                             <div>
                               <div className="text-sm font-medium text-gray-900">{booking.customers.name}</div>
                               <Badge className={`${getCustomerTypeColor(booking.customer_type_at_booking)} text-xs px-2 py-1 mt-1`}>
-                                {booking.customer_type_at_booking}
+                                {getCustomerTypeLabel(booking.customer_type_at_booking)}
                               </Badge>
                             </div>
                           </td>
@@ -1332,7 +1341,7 @@ export default function AdminBookingsPage() {
                             <div>
                               <div className="text-sm font-medium text-gray-900">{booking.customers.name}</div>
                               <Badge className={`${getCustomerTypeColor(booking.customer_type_at_booking)} text-xs px-2 py-1 mt-1`}>
-                                {booking.customer_type_at_booking}
+                                {getCustomerTypeLabel(booking.customer_type_at_booking)}
                               </Badge>
                             </div>
                           </td>
@@ -1795,7 +1804,7 @@ export default function AdminBookingsPage() {
                                 <div className="flex justify-between items-start">
                                   <div className="font-medium text-gray-900">{booking.customers.name}</div>
                                   <Badge className={`${getCustomerTypeColor(booking.customer_type_at_booking)} text-xs px-2 py-1`}>
-                                    {booking.customer_type_at_booking}
+                                    {getCustomerTypeLabel(booking.customer_type_at_booking)}
                                   </Badge>
                                 </div>
                               </div>
@@ -2008,7 +2017,7 @@ export default function AdminBookingsPage() {
                                   <div>
                                     <div className="text-sm font-medium text-gray-900">{booking.customers.name}</div>
                                     <Badge className={`${getCustomerTypeColor(booking.customer_type_at_booking)} text-xs px-2 py-1 mt-1`}>
-                                      {booking.customer_type_at_booking}
+                                      {getCustomerTypeLabel(booking.customer_type_at_booking)}
                                     </Badge>
                                   </div>
                                 </td>
@@ -2291,10 +2300,10 @@ export default function AdminBookingsPage() {
                             {selectedBooking.customers.name}
                           </Link>
                           <Badge
-                            variant={selectedBooking.customer_type_at_booking === 'loyalty' ? "default" : "secondary"}
-                            className={`${selectedBooking.customer_type_at_booking === 'loyalty' ? "bg-indigo-100 text-indigo-800" : "bg-green-100 text-green-800"}`}
+                            variant={(selectedBooking.customer_type_at_booking === 'loyalty' || selectedBooking.customer_type_at_booking === 'existing') ? "default" : "secondary"}
+                            className={`${(selectedBooking.customer_type_at_booking === 'loyalty' || selectedBooking.customer_type_at_booking === 'existing') ? "bg-indigo-100 text-indigo-800" : "bg-green-100 text-green-800"}`}
                           >
-                            {selectedBooking.customer_type_at_booking}
+                            {getCustomerTypeLabel(selectedBooking.customer_type_at_booking)}
                           </Badge>
                         </div>
                       </div>
