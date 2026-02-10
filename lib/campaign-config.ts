@@ -3,7 +3,7 @@ export interface CampaignConfig {
   name: string
   description: string
   registrationUrl: string
-  customerType: 'new' | 'existing' | 'both'
+  customerType: 'new' | 'loyalty' | 'both'
   isActive: boolean
   buttonText?: string
   emailTemplate: {
@@ -25,7 +25,7 @@ export const CAMPAIGNS: Record<string, CampaignConfig> = {
     name: 'Existing Customer Registration 2025',
     description: 'Campaign to convert existing customers to registered users with grandfathered pricing',
     registrationUrl: '/register/existing',
-    customerType: 'existing',
+    customerType: 'loyalty',
     isActive: true,
     emailTemplate: {
       subject: 'Important: Your pricing is changing (but not for you)',

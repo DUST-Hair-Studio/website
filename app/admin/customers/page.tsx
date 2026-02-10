@@ -40,7 +40,7 @@ export default function AdminCustomersPage() {
   const [customers, setCustomers] = useState<CustomerWithStats[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [filterType, setFilterType] = useState<'all' | 'new' | 'existing'>('all')
+  const [filterType, setFilterType] = useState<'all' | 'new' | 'loyalty'>('all')
   const [selectedCustomers, setSelectedCustomers] = useState<Set<string>>(new Set())
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerWithStats | null>(null)
@@ -266,7 +266,7 @@ export default function AdminCustomersPage() {
     const matchesFilter = 
       filterType === 'all' ||
       (filterType === 'new' && !customer.is_existing_customer) ||
-      (filterType === 'existing' && customer.is_existing_customer)
+      (filterType === 'loyalty' && customer.is_existing_customer)
     
     return matchesSearch && matchesFilter
   })
@@ -354,7 +354,7 @@ export default function AdminCustomersPage() {
       ))
 
       setSelectedCustomers(new Set())
-      toast.success(`Updated ${data.customers.length} customers to ${isExisting ? 'existing' : 'new'} status`)
+      toast.success(`Updated ${data.customers.length} customers to ${isExisting ? 'loyalty' : 'new'} status`)
     } catch (error) {
       console.error('Error bulk updating customers:', error)
       toast.error('Failed to update customers')
@@ -513,7 +513,7 @@ export default function AdminCustomersPage() {
                 <div className="h-5 w-5 sm:h-6 sm:w-6 bg-green-50 rounded-lg flex items-center justify-center border border-green-200">
                   <User className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" strokeWidth={1.5} />
                 </div>
-                <div className="text-xs sm:text-sm text-gray-600">Existing Customers</div>
+                <div className="text-xs sm:text-sm text-gray-600">Loyalty Customers</div>
               </div>
             </div>
           </CardContent>
@@ -552,12 +552,12 @@ export default function AdminCustomersPage() {
           <Filter className="w-4 h-4 text-gray-500" />
           <select
             value={filterType}
-            onChange={(e) => setFilterType(e.target.value as 'all' | 'new' | 'existing')}
+            onChange={(e) => setFilterType(e.target.value as 'all' | 'new' | 'loyalty')}
             className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">All Customers</option>
             <option value="new">New Customers</option>
-            <option value="existing">Existing Customers</option>
+            <option value="loyalty">Loyalty Customers</option>
           </select>
         </div>
       </div>
@@ -655,7 +655,7 @@ export default function AdminCustomersPage() {
                         variant={customer.is_existing_customer ? "default" : "secondary"}
                         className={customer.is_existing_customer ? "bg-indigo-100 text-indigo-800" : "bg-green-100 text-green-800"}
                       >
-                        {customer.is_existing_customer ? 'Existing' : 'New'}
+                        {customer.is_existing_customer ? 'Loyalty' : 'New'}
                       </Badge>
                     </div>
                     
@@ -762,7 +762,7 @@ export default function AdminCustomersPage() {
                             variant={customer.is_existing_customer ? "default" : "secondary"}
                             className={customer.is_existing_customer ? "bg-indigo-100 text-indigo-800" : "bg-green-100 text-green-800"}
                           >
-                            {customer.is_existing_customer ? 'Existing' : 'New'}
+                            {customer.is_existing_customer ? 'Loyalty' : 'New'}
                           </Badge>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
@@ -1192,7 +1192,7 @@ export default function AdminCustomersPage() {
                             variant={selectedCustomer?.is_existing_customer ? "default" : "secondary"}
                             className={`${selectedCustomer?.is_existing_customer ? "bg-indigo-100 text-indigo-800" : "bg-green-100 text-green-800"}`}
                           >
-                            {selectedCustomer?.is_existing_customer ? 'existing' : 'new'}
+                            {selectedCustomer?.is_existing_customer ? 'loyalty' : 'new'}
                           </Badge>
                         </div>
                       </div>

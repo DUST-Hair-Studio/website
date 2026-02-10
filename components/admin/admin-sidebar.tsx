@@ -16,7 +16,8 @@ import {
   LogOut,
   Home,
   ListChecks,
-  Mail
+  Mail,
+  Layers
 } from 'lucide-react'
 
 export function AdminSidebar() {
@@ -84,6 +85,7 @@ export function AdminSidebar() {
     { href: '/admin/customers', label: 'Customers', icon: Users },
     { href: '/admin/services', label: 'Services', icon: Scissors },
     { href: '/admin/reminders', label: 'Reminders', icon: Bell },
+    { href: '/admin/segments', label: 'Segments', icon: Layers },
     { href: '/admin/campaigns', label: 'Campaigns', icon: Mail },
     { href: '/admin/settings', label: 'Settings', icon: Settings },
   ]

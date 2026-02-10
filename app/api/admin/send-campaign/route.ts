@@ -362,20 +362,30 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Log campaign send to history
+    // Log campaign send to history (include per-recipient details for drill-down)
     try {
-      await supabase
+      const insertPayload: Record<string, unknown> = {
+        campaign_id: campaignName || 'unknown',
+        campaign_name: campaignName || 'Unknown Campaign',
+        subject: subject,
+        total_recipients: emailList.length,
+        successful_sends: successCount,
+        failed_sends: errorCount,
+        recipient_emails: emailList,
+        sent_by: user.id
+      }
+      // Include send_details if column exists (migration campaign-send-history-send-details.sql)
+      let { error: insertError } = await supabase
         .from('campaign_send_history')
-        .insert({
-          campaign_id: campaignName || 'unknown',
-          campaign_name: campaignName || 'Unknown Campaign',
-          subject: subject,
-          total_recipients: emailList.length,
-          successful_sends: successCount,
-          failed_sends: errorCount,
-          recipient_emails: emailList,
-          sent_by: user.id
-        })
+        .insert({ ...insertPayload, send_details: results })
+
+      if (insertError?.code === '42703') {
+        // Column "send_details" does not exist - retry without it
+        const { error: retryError } = await supabase.from('campaign_send_history').insert(insertPayload)
+        if (retryError) console.warn('Failed to log campaign send (retry):', retryError)
+      } else if (insertError) {
+        console.warn('Failed to log campaign send:', insertError)
+      }
     } catch (logError) {
       console.warn('Failed to log campaign send:', logError)
     }

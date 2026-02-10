@@ -35,6 +35,10 @@ Thanks for your continued support!
 2. **Modified Registration Form**: Accepts `isExistingCustomer` prop
 3. **Campaign Tracking**: Database tables and API endpoints for analytics
 4. **Email Template**: HTML template ready for use
+5. **Drill-down & Resend**: View per-recipient sent/failed details and resend to failed recipients (run `database-migrations/campaign-send-history-send-details.sql` for full support)
+
+### ✅ Campaign Blasts via Resend Broadcasts
+Campaign sends use Resend **Broadcasts** (Marketing), avoiding the 100/day transactional limit. Create segments in **Admin → Segments**, then send campaigns to a segment from the Campaigns page.
 
 ### 🔧 Implementation Steps
 

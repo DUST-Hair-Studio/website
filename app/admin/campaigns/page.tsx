@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,9 +18,23 @@ const RichTextEditor = dynamic(() => import('@/components/ui/rich-text-editor').
     </div>
   ),
 })
-import { Loader2, Mail, Plus, Edit, Trash2, Send, BarChart3, X, Calendar, Users, CheckCircle, XCircle } from 'lucide-react'
+import { Loader2, Mail, Plus, Edit, Trash2, Send, BarChart3, X, Calendar, Users, CheckCircle, XCircle, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { getActiveCampaigns, type CampaignConfig } from '@/lib/campaign-config'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+
+interface SendDetailItem {
+  email: string
+  success: boolean
+  error?: string
+}
 
 interface SendHistoryItem {
   id: string
@@ -30,6 +45,7 @@ interface SendHistoryItem {
   successful_sends: number
   failed_sends: number
   recipient_emails: string[]
+  send_details?: SendDetailItem[] | null
   sent_at: string
 }
 
@@ -86,7 +102,6 @@ function isMessageHtml(message: string): boolean {
 export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<CampaignConfig[]>([])
   const [selectedCampaign, setSelectedCampaign] = useState<CampaignConfig | null>(null)
-  const [emailList, setEmailList] = useState('')
   const [emailMessage, setEmailMessage] = useState('')
   const [isSending, setIsSending] = useState(false)
   const [sendResults, setSendResults] = useState<{total: number; successful: number; failed: number; details: Array<{success: boolean; email: string; error?: string}>} | null>(null)
@@ -102,21 +117,22 @@ export default function CampaignsPage() {
     name: '',
     description: '',
     registrationUrl: '',
-    customerType: 'both' as 'new' | 'existing' | 'both', // default for API; only set when sending
+    customerType: 'both' as 'new' | 'loyalty' | 'both', // default for API; only set when sending
     subject: '',
     message: '',
     buttonText: ''
   })
-  const [sendRecipientMode, setSendRecipientMode] = useState<'all' | 'existing' | 'new' | 'manual'>('manual')
-  const [recipientData, setRecipientData] = useState<{
-    allCount: number
-    existingCount: number
-    newCount: number
-    allEmails: string[]
-    existingEmails: string[]
-    newEmails: string[]
+  const [segments, setSegments] = useState<Array<{ id: string; name: string; type: string; contactCount: number }>>([])
+  const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null)
+  const [loadingSegments, setLoadingSegments] = useState(false)
+
+  // Drill-down modal for sent/failed details
+  const [drillDownOpen, setDrillDownOpen] = useState(false)
+  const [drillDownData, setDrillDownData] = useState<{
+    details: SendDetailItem[]
+    campaign: CampaignConfig
+    label?: string
   } | null>(null)
-  const [loadingRecipients, setLoadingRecipients] = useState(false)
 
   const fetchCampaignHistory = useCallback(async (campaignId: string) => {
     setLoadingCampaignHistory(true)
@@ -168,57 +184,45 @@ export default function CampaignsPage() {
   }, [selectedCampaign])
 
   useEffect(() => {
-    if (!selectedCampaign) {
-      setRecipientData(null)
-      return
-    }
     let cancelled = false
-    setLoadingRecipients(true)
-    fetch('/api/admin/campaign-recipients')
+    setLoadingSegments(true)
+    fetch('/api/admin/segments')
       .then((res) => res.ok ? res.json() : null)
       .then((data) => {
-        if (!cancelled && data) setRecipientData(data)
+        if (!cancelled && data?.segments) setSegments(data.segments)
       })
-      .catch(() => { if (!cancelled) setRecipientData(null) })
-      .finally(() => { if (!cancelled) setLoadingRecipients(false) })
+      .catch(() => { if (!cancelled) setSegments([]) })
+      .finally(() => { if (!cancelled) setLoadingSegments(false) })
     return () => { cancelled = true }
   }, [selectedCampaign])
 
   const handleSendCampaign = async (campaign: CampaignConfig) => {
+    if (!selectedSegmentId) {
+      toast.error('Please select a segment.')
+      return
+    }
+
     let emails: string[]
-    if (sendRecipientMode === 'manual') {
-      if (!emailList.trim()) {
-        toast.error('Please enter email addresses or choose a different recipient group.')
-        return
-      }
-      emails = emailList
-        .split(/[,\n]/)
-        .map((e) => e.trim())
-        .filter((e) => e && e.includes('@'))
-      if (emails.length === 0) {
-        toast.error('No valid email addresses found')
-        return
-      }
-    } else {
-      if (!recipientData) {
-        toast.error('Recipient list is still loading. Please try again.')
-        return
-      }
-      if (sendRecipientMode === 'all') emails = recipientData.allEmails
-      else if (sendRecipientMode === 'existing') emails = recipientData.existingEmails
-      else emails = recipientData.newEmails
-      if (emails.length === 0) {
-        toast.error(`No recipients in the "${sendRecipientMode}" group.`)
-        return
-      }
+    try {
+      const res = await fetch(`/api/admin/segments/${selectedSegmentId}/contacts`)
+      if (!res.ok) throw new Error('Failed to load segment contacts')
+      const data = await res.json()
+      emails = data.emails || []
+    } catch (err) {
+      toast.error('Failed to load segment contacts')
+      return
+    }
+
+    if (emails.length === 0) {
+      toast.error('This segment has no contacts.')
+      return
     }
 
     setIsSending(true)
     setSendResults(null)
 
     try {
-
-      const response = await fetch('/api/admin/send-campaign', {
+      const response = await fetch('/api/admin/send-campaign-broadcast', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -240,7 +244,7 @@ export default function CampaignsPage() {
       }
 
       setSendResults(data.results)
-      toast.success(`Campaign sent! ${data.results.successful} successful, ${data.results.failed} failed`)
+      toast.success(data.message || `Campaign sent to ${data.results?.total || 0} recipients via Broadcasts`)
       // Refresh campaign history if viewing that campaign's details
       if (detailsCampaign && detailsCampaign.id === campaign.id) {
         fetchCampaignHistory(campaign.id)
@@ -248,6 +252,39 @@ export default function CampaignsPage() {
     } catch (error) {
       console.error('Error sending campaign:', error)
       toast.error(error instanceof Error ? error.message : 'Failed to send campaign')
+    } finally {
+      setIsSending(false)
+    }
+  }
+
+  const handleResendToFailed = async (campaign: CampaignConfig, failedEmails: string[]) => {
+    if (failedEmails.length === 0) return
+    setIsSending(true)
+    setDrillDownOpen(false)
+    setDrillDownData(null)
+    try {
+      const response = await fetch('/api/admin/send-campaign-broadcast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          emailList: failedEmails,
+          subject: campaign.emailTemplate.subject,
+          message: campaign.emailTemplate.message,
+          campaignName: campaign.id,
+          registrationUrl: campaign.registrationUrl,
+          buttonText: campaign.buttonText ?? ''
+        })
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Failed to resend')
+      setSendResults(data.results)
+      toast.success(data.message || `Resend complete: ${data.results?.total || 0} sent via Broadcasts`)
+      if (detailsCampaign && detailsCampaign.id === campaign.id) {
+        fetchCampaignHistory(campaign.id)
+      }
+    } catch (error) {
+      console.error('Error resending to failed:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to resend')
     } finally {
       setIsSending(false)
     }
@@ -296,7 +333,7 @@ export default function CampaignsPage() {
         name: '',
         description: '',
         registrationUrl: '',
-        customerType: 'existing',
+        customerType: 'loyalty',
         subject: '',
         message: '',
         buttonText: ''
@@ -395,7 +432,7 @@ export default function CampaignsPage() {
                           name: campaign.name,
                           description: campaign.description || '',
                           registrationUrl: campaign.registrationUrl || '',
-                          customerType: campaign.customerType || 'existing',
+                          customerType: campaign.customerType || 'loyalty',
                           subject: campaign.emailTemplate?.subject || '',
                           message: campaign.emailTemplate?.message || '',
                           buttonText: campaign.buttonText ?? ''
@@ -451,87 +488,30 @@ export default function CampaignsPage() {
             <CardContent className="space-y-6">
               <div className="space-y-2">
                 <Label>Recipients</Label>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSendRecipientMode('all')}
-                    className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-                      sendRecipientMode === 'all'
-                        ? 'border-gray-900 bg-gray-900 text-white'
-                        : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    All
-                    {loadingRecipients ? (
-                      <span className="text-xs opacity-80">…</span>
+                <Select
+                  value={selectedSegmentId ?? ''}
+                  onValueChange={(v) => setSelectedSegmentId(v || null)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a segment" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {loadingSegments ? (
+                      <SelectItem value="_loading" disabled>Loading segments…</SelectItem>
+                    ) : segments.length === 0 ? (
+                      <SelectItem value="_empty" disabled>No segments yet</SelectItem>
                     ) : (
-                      <span className="text-xs opacity-80">({recipientData?.allCount ?? 0})</span>
+                      segments.map((seg) => (
+                        <SelectItem key={seg.id} value={seg.id}>
+                          {seg.name} ({seg.contactCount} contacts)
+                        </SelectItem>
+                      ))
                     )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSendRecipientMode('existing')}
-                    className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-                      sendRecipientMode === 'existing'
-                        ? 'border-gray-900 bg-gray-900 text-white'
-                        : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    Existing
-                    {loadingRecipients ? (
-                      <span className="text-xs opacity-80">…</span>
-                    ) : (
-                      <span className="text-xs opacity-80">({recipientData?.existingCount ?? 0})</span>
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSendRecipientMode('new')}
-                    className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-                      sendRecipientMode === 'new'
-                        ? 'border-gray-900 bg-gray-900 text-white'
-                        : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    New
-                    {loadingRecipients ? (
-                      <span className="text-xs opacity-80">…</span>
-                    ) : (
-                      <span className="text-xs opacity-80">({recipientData?.newCount ?? 0})</span>
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSendRecipientMode('manual')}
-                    className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-                      sendRecipientMode === 'manual'
-                        ? 'border-gray-900 bg-gray-900 text-white'
-                        : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    Manual
-                    {sendRecipientMode === 'manual' && emailList.trim() && (
-                      <span className="text-xs opacity-80">
-                        ({emailList.split(/[,\n]/).filter((e) => e.trim() && e.includes('@')).length})
-                      </span>
-                    )}
-                  </button>
-                </div>
-                {sendRecipientMode === 'manual' && (
-                  <div className="mt-2 space-y-1">
-                    <Textarea
-                      id="emailList"
-                      placeholder="Enter email addresses (one per line or comma separated)"
-                      value={emailList}
-                      onChange={(e) => setEmailList(e.target.value)}
-                      rows={4}
-                      className="font-mono text-sm"
-                    />
-                    <p className="text-xs text-gray-500">
-                      {emailList.split(/[,\n]/).filter((e) => e.trim()).length} address(es) entered
-                    </p>
-                  </div>
-                )}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500">
+                  Create and manage segments in <Link href="/admin/segments" className="underline hover:no-underline">Segments</Link>. Campaigns are sent via Resend Broadcasts (no daily limit).
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -571,12 +551,9 @@ export default function CampaignsPage() {
                 onClick={() => handleSendCampaign(selectedCampaign)}
                 disabled={
                   isSending ||
-                  (sendRecipientMode === 'manual' && !emailList.trim()) ||
-                  (sendRecipientMode !== 'manual' &&
-                    (loadingRecipients ||
-                      (sendRecipientMode === 'all' && (recipientData?.allCount ?? 0) === 0) ||
-                      (sendRecipientMode === 'existing' && (recipientData?.existingCount ?? 0) === 0) ||
-                      (sendRecipientMode === 'new' && (recipientData?.newCount ?? 0) === 0)))
+                  !selectedSegmentId ||
+                  loadingSegments ||
+                  (segments.find((s) => s.id === selectedSegmentId)?.contactCount ?? 0) === 0
                 }
                 className="w-full"
               >
@@ -759,10 +736,15 @@ export default function CampaignsPage() {
         )}
 
         {/* Send Results */}
-        {sendResults && (
+        {sendResults && selectedCampaign && (
           <Card className="min-w-0">
             <CardHeader>
               <CardTitle className="text-base sm:text-lg">Send Results</CardTitle>
+              <CardDescription>
+                {sendResults.details && sendResults.details.length > 0
+                  ? 'Click Successful or Failed to view details and resend to failed recipients.'
+                  : null}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-4">
@@ -770,14 +752,50 @@ export default function CampaignsPage() {
                   <div className="text-2xl font-bold text-gray-900">{sendResults.total}</div>
                   <div className="text-sm text-gray-600">Total</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">{sendResults.successful}</div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (sendResults.details && selectedCampaign) {
+                      setDrillDownData({
+                        details: sendResults.details.map((d) => ({ email: d.email, success: d.success, error: d.error })),
+                        campaign: selectedCampaign,
+                        label: 'Latest send'
+                      })
+                      setDrillDownOpen(true)
+                    }
+                  }}
+                  className={`text-center rounded-lg p-2 -m-2 transition-colors ${
+                    sendResults.details ? 'hover:bg-gray-50 cursor-pointer' : ''
+                  }`}
+                >
+                  <div className="text-2xl font-bold text-green-600 flex items-center justify-center gap-1">
+                    <CheckCircle className="h-5 w-5" />
+                    {sendResults.successful}
+                  </div>
                   <div className="text-sm text-gray-600">Successful</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-red-600">{sendResults.failed}</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (sendResults.details && selectedCampaign) {
+                      setDrillDownData({
+                        details: sendResults.details.map((d) => ({ email: d.email, success: d.success, error: d.error })),
+                        campaign: selectedCampaign,
+                        label: 'Latest send'
+                      })
+                      setDrillDownOpen(true)
+                    }
+                  }}
+                  className={`text-center rounded-lg p-2 -m-2 transition-colors ${
+                    sendResults.details ? 'hover:bg-gray-50 cursor-pointer' : ''
+                  }`}
+                >
+                  <div className="text-2xl font-bold text-red-600 flex items-center justify-center gap-1">
+                    <XCircle className="h-5 w-5" />
+                    {sendResults.failed}
+                  </div>
                   <div className="text-sm text-gray-600">Failed</div>
-                </div>
+                </button>
               </div>
             </CardContent>
           </Card>
@@ -880,45 +898,84 @@ export default function CampaignsPage() {
               {campaignHistory.length > 0 && (
                 <div>
                   <h3 className="font-semibold text-lg mb-3">Send History</h3>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Click a send with failures to view details and resend to failed recipients.
+                  </p>
                   <div className="space-y-3">
-                    {campaignHistory.map((send) => (
-                      <div key={send.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                        <div className="flex justify-between items-start mb-3">
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Calendar className="h-4 w-4" />
-                            {new Date(send.sent_at).toLocaleDateString('en-US', {
-                              weekday: 'short',
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                              hour: 'numeric',
-                              minute: '2-digit'
-                            })}
+                    {campaignHistory.map((send) => {
+                      const hasDetails = send.send_details && Array.isArray(send.send_details) && send.send_details.length > 0
+                      const canDrillDown = (send.failed_sends > 0 || send.successful_sends > 0) && hasDetails
+                      return (
+                        <button
+                          key={send.id}
+                          type="button"
+                          onClick={() => {
+                            if (canDrillDown && detailsCampaign) {
+                              setDrillDownData({
+                                details: send.send_details as SendDetailItem[],
+                                campaign: detailsCampaign,
+                                label: new Date(send.sent_at).toLocaleDateString('en-US', {
+                                  weekday: 'short',
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: 'numeric',
+                                  minute: '2-digit'
+                                })
+                              })
+                              setDrillDownOpen(true)
+                            }
+                          }}
+                          className={`w-full text-left border rounded-lg p-4 transition-colors ${
+                            canDrillDown
+                              ? 'hover:bg-gray-50 cursor-pointer'
+                              : 'cursor-default'
+                          }`}
+                        >
+                          <div className="flex justify-between items-start mb-3">
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                              <Calendar className="h-4 w-4" />
+                              {new Date(send.sent_at).toLocaleDateString('en-US', {
+                                weekday: 'short',
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                                hour: 'numeric',
+                                minute: '2-digit'
+                              })}
+                            </div>
+                            {canDrillDown && (
+                              <ChevronRight className="h-4 w-4 text-gray-400 shrink-0" />
+                            )}
                           </div>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                          <div className="flex items-center gap-1.5">
-                            <Users className="h-4 w-4 text-gray-400 shrink-0" />
-                            <span className="text-sm"><strong>{send.total_recipients}</strong> recipients</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
-                            <span className="text-sm text-green-700"><strong>{send.successful_sends}</strong> sent</span>
-                          </div>
-                          {send.failed_sends > 0 && (
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                             <div className="flex items-center gap-1.5">
-                              <XCircle className="h-4 w-4 text-red-500 shrink-0" />
-                              <span className="text-sm text-red-700"><strong>{send.failed_sends}</strong> failed</span>
+                              <Users className="h-4 w-4 text-gray-400 shrink-0" />
+                              <span className="text-sm"><strong>{send.total_recipients}</strong> recipients</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
+                              <span className="text-sm text-green-700"><strong>{send.successful_sends}</strong> sent</span>
+                            </div>
+                            {send.failed_sends > 0 && (
+                              <div className="flex items-center gap-1.5">
+                                <XCircle className="h-4 w-4 text-red-500 shrink-0" />
+                                <span className="text-sm text-red-700"><strong>{send.failed_sends}</strong> failed</span>
+                              </div>
+                            )}
+                          </div>
+                          {!hasDetails && send.failed_sends > 0 && (
+                            <p className="mt-2 text-xs text-amber-600">
+                              Per-recipient details not stored for this send. Run the migration in database-migrations/campaign-send-history-send-details.sql for future sends.
+                            </p>
+                          )}
+                          {send.subject !== detailsCampaign.emailTemplate.subject && (
+                            <div className="mt-2 text-xs text-gray-500">
+                              Subject: {send.subject}
                             </div>
                           )}
-                        </div>
-                        {send.subject !== detailsCampaign.emailTemplate.subject && (
-                          <div className="mt-2 text-xs text-gray-500">
-                            Subject: {send.subject}
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
               )}
@@ -945,7 +1002,7 @@ export default function CampaignsPage() {
                         name: detailsCampaign.name,
                         description: detailsCampaign.description || '',
                         registrationUrl: detailsCampaign.registrationUrl || '',
-                        customerType: detailsCampaign.customerType || 'existing',
+                        customerType: detailsCampaign.customerType || 'loyalty',
                         subject: detailsCampaign.emailTemplate?.subject || '',
                         message: detailsCampaign.emailTemplate?.message || '',
                         buttonText: detailsCampaign.buttonText ?? ''
@@ -962,6 +1019,87 @@ export default function CampaignsPage() {
           </div>
         </>
       )}
+
+      {/* Drill-down modal: sent/failed details and resend */}
+      <Dialog open={drillDownOpen} onOpenChange={setDrillDownOpen}>
+        <DialogContent className="max-h-[85vh] overflow-hidden flex flex-col sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Send Details{drillDownData?.label ? ` — ${drillDownData.label}` : ''}</DialogTitle>
+            <DialogDescription>
+              View which emails succeeded or failed and resend to failed recipients.
+            </DialogDescription>
+          </DialogHeader>
+          {drillDownData && (
+            <div className="flex-1 overflow-y-auto space-y-4 -mx-1 px-1">
+              {drillDownData.details.filter((d) => !d.success).length > 0 && (
+                <div>
+                  <h4 className="font-medium text-red-700 mb-2 flex items-center gap-2">
+                    <XCircle className="h-4 w-4" />
+                    Failed ({drillDownData.details.filter((d) => !d.success).length})
+                  </h4>
+                  <div className="max-h-48 overflow-y-auto rounded border border-red-100 bg-red-50/50 p-3 space-y-2">
+                    {drillDownData.details
+                      .filter((d) => !d.success)
+                      .map((d, i) => (
+                        <div key={i} className="text-sm">
+                          <div className="font-mono text-red-900 break-all">{d.email}</div>
+                          {d.error && (
+                            <div className="text-xs text-red-600 mt-0.5">{d.error}</div>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+              {drillDownData.details.filter((d) => d.success).length > 0 && (
+                <div>
+                  <h4 className="font-medium text-green-700 mb-2 flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4" />
+                    Delivered ({drillDownData.details.filter((d) => d.success).length})
+                  </h4>
+                  <div className="max-h-32 overflow-y-auto rounded border border-green-100 bg-green-50/50 p-3 space-y-1">
+                    {drillDownData.details
+                      .filter((d) => d.success)
+                      .map((d, i) => (
+                        <div key={i} className="text-sm font-mono text-green-900 break-all">
+                          {d.email}
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            {drillDownData && drillDownData.details.filter((d) => !d.success).length > 0 && (
+              <Button
+                onClick={() =>
+                  handleResendToFailed(
+                    drillDownData!.campaign,
+                    drillDownData!.details.filter((d) => !d.success).map((d) => d.email)
+                  )
+                }
+                disabled={isSending}
+              >
+                {isSending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Resending…
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 mr-2" />
+                    Resend to {drillDownData!.details.filter((d) => !d.success).length} failed
+                  </>
+                )}
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => setDrillDownOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

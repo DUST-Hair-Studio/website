@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
       booking_time: time,
       duration_minutes: service.duration_minutes,
       price_charged: priceCharged,
-      customer_type_at_booking: isExistingCustomer ? 'existing' : 'new',
+      customer_type_at_booking: isExistingCustomer ? 'loyalty' : 'new',
       payment_status: priceCharged === 0 ? 'paid' : 'pending', // Free appointments are automatically "paid"
       status: 'confirmed',
       sms_confirmation_sent: false,

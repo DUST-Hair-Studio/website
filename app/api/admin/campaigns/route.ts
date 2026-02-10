@@ -77,7 +77,7 @@ export async function GET() {
       name: campaign.name,
       description: campaign.description || '',
       registrationUrl: campaign.registration_url || '',
-      customerType: campaign.customer_type || 'existing',
+      customerType: campaign.customer_type || 'loyalty',
       isActive: campaign.is_active,
       buttonText: campaign.button_text ?? '',
       emailTemplate: {

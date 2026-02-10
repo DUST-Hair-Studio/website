@@ -473,7 +473,7 @@ export default function AdminBookingsPage() {
   const getCustomerTypeColor = (customerType: string) => {
     switch (customerType) {
       case 'new': return 'bg-green-100 text-green-800 border-green-200'
-      case 'existing': return 'bg-indigo-100 text-indigo-800 border-indigo-200'
+      case 'loyalty': return 'bg-indigo-100 text-indigo-800 border-indigo-200'
       default: return 'bg-gray-100 text-gray-800 border-gray-200'
     }
   }
@@ -481,7 +481,7 @@ export default function AdminBookingsPage() {
   const getCustomerTypeColorForCalendar = (customerType: string) => {
     switch (customerType) {
       case 'new': return 'bg-green-100 text-green-800 hover:bg-green-200'
-      case 'existing': return 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200'
+      case 'loyalty': return 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200'
       default: return 'bg-gray-100 text-gray-800 hover:bg-gray-200'
     }
   }
@@ -489,7 +489,7 @@ export default function AdminBookingsPage() {
   const getCustomerTypeDotColor = (customerType: string) => {
     switch (customerType) {
       case 'new': return 'bg-green-400'
-      case 'existing': return 'bg-blue-500'
+      case 'loyalty': return 'bg-blue-500'
       default: return 'bg-gray-400'
     }
   }
@@ -1552,7 +1552,7 @@ export default function AdminBookingsPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                      <span className="text-gray-600">Existing Customer</span>
+                      <span className="text-gray-600">Loyalty Customer</span>
                     </div>
                   </div>
                 </div>
@@ -2291,8 +2291,8 @@ export default function AdminBookingsPage() {
                             {selectedBooking.customers.name}
                           </Link>
                           <Badge
-                            variant={selectedBooking.customer_type_at_booking === 'existing' ? "default" : "secondary"}
-                            className={`${selectedBooking.customer_type_at_booking === 'existing' ? "bg-indigo-100 text-indigo-800" : "bg-green-100 text-green-800"}`}
+                            variant={selectedBooking.customer_type_at_booking === 'loyalty' ? "default" : "secondary"}
+                            className={`${selectedBooking.customer_type_at_booking === 'loyalty' ? "bg-indigo-100 text-indigo-800" : "bg-green-100 text-green-800"}`}
                           >
                             {selectedBooking.customer_type_at_booking}
                           </Badge>

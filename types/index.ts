@@ -53,7 +53,7 @@ export interface Booking {
   booking_time: string;
   duration_minutes: number;
   price_charged: number; // in cents
-  customer_type_at_booking: 'new' | 'existing';
+  customer_type_at_booking: 'new' | 'loyalty';
   payment_status: 'pending' | 'paid' | 'refunded';
   google_calendar_event_id?: string;
   // Square payment links (generated for admin use only)

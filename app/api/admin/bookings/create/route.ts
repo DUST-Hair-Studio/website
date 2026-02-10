@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
       booking_time: time24,
       duration_minutes: service.duration_minutes,
       price_charged: priceCharged,
-      customer_type_at_booking: isExistingCustomer ? 'existing' : 'new',
+      customer_type_at_booking: isExistingCustomer ? 'loyalty' : 'new',
       payment_status: priceCharged === 0 ? 'paid' : 'pending',
       status: 'confirmed',
       public_notes: publicNotes || null,

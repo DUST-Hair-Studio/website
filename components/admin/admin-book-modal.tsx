@@ -477,7 +477,7 @@ export default function AdminBookModal({
                             ? 'bg-green-100 text-green-700' 
                             : 'bg-blue-100 text-blue-700'
                         }`}>
-                          {customer.is_existing_customer ? 'Existing' : 'New'}
+                          {customer.is_existing_customer ? 'Loyalty' : 'New'}
                         </span>
                       </div>
                     </button>
@@ -501,7 +501,7 @@ export default function AdminBookModal({
                 </div>
               ) : filteredServices.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
-                  <p>No services available for {selectedCustomer?.is_existing_customer ? 'existing' : 'new'} customers.</p>
+                  <p>No services available for {selectedCustomer?.is_existing_customer ? 'loyalty' : 'new'} customers.</p>
                 </div>
               ) : (
                 filteredServices.map(service => {
