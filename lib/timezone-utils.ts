@@ -54,6 +54,22 @@ export async function createBusinessDateTime(dateString: string, timeString: str
 }
 
 /**
+ * Sync version: creates a Date from date+time interpreted in the given timezone.
+ * Use this when you already have the timezone (e.g. from business settings) to avoid wrong display on servers in UTC.
+ * @param dateString - YYYY-MM-DD
+ * @param timeString - HH:MM:SS or HH:MM
+ * @param timezone - IANA timezone (e.g. America/Los_Angeles)
+ */
+export function createBusinessDateTimeSync(dateString: string, timeString: string, timezone: string): Date {
+  const fullTimeString = timeString.includes(':') && timeString.split(':').length === 2
+    ? `${timeString}:00`
+    : timeString
+  const dateToCheck = new Date(`${dateString}T12:00:00`)
+  const isoString = `${dateString}T${fullTimeString}${getTimezoneOffsetString(timezone, dateToCheck)}`
+  return new Date(isoString)
+}
+
+/**
  * Helper function to get timezone offset string
  * @param timezone - The timezone identifier
  * @param date - The date to check (for DST calculation)

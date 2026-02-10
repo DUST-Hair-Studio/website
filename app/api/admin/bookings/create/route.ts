@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
       booking_time: time24,
       duration_minutes: service.duration_minutes,
       price_charged: priceCharged,
-      customer_type_at_booking: isExistingCustomer ? 'loyalty' : 'new',
+      customer_type_at_booking: isExistingCustomer ? 'existing' : 'new', // DB constraint allows 'new'|'existing'; UI displays 'existing' as Loyalty
       payment_status: priceCharged === 0 ? 'paid' : 'pending',
       status: 'confirmed',
       public_notes: publicNotes || null,
@@ -114,9 +114,10 @@ export async function POST(request: NextRequest) {
 
     if (bookingError) {
       console.error('Admin booking creation error:', bookingError)
+      const details = bookingError.message || String(bookingError)
       return NextResponse.json({ 
         error: 'Failed to create booking', 
-        details: bookingError.message 
+        details 
       }, { status: 500 })
     }
 

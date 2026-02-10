@@ -47,6 +47,7 @@ function BookPageContent() {
   const [waitlistEnabled, setWaitlistEnabled] = useState(true)
   
   const [step, setStep] = useState(1) // 1: Service, 2: Date/Time, 3: Details, 4: Confirmation
+  const [bookingError, setBookingError] = useState<string | null>(null)
 
   // Handle authentication state changes - MUST be before other useEffects
   useEffect(() => {
@@ -287,6 +288,7 @@ function BookPageContent() {
     }
 
     setIsSubmitting(true)
+    setBookingError(null)
     try {
       // Format date as YYYY-MM-DD in local timezone to avoid UTC conversion issues
       const year = selectedDate.getFullYear()
@@ -314,15 +316,15 @@ function BookPageContent() {
       if (response.ok) {
         setStep(4)
       } else {
-        console.error('Booking failed:', result.error)
-        console.error('Error details:', result.details)
-        console.error('Error code:', result.code)
-        
-        // Show user-friendly error message
+        const fullError = [result.error, result.details].filter(Boolean).join(': ')
+        const withCode = result.code ? `${fullError} (code: ${result.code})` : fullError
+        setBookingError(withCode || 'Booking failed. Please try again.')
         toast.error(result.details || result.error || 'Booking failed. Please try again.')
       }
     } catch (error) {
-      console.error('Error creating booking:', error)
+      const msg = error instanceof Error ? error.message : 'Booking failed. Please try again.'
+      setBookingError(msg)
+      toast.error(msg)
     } finally {
       setIsSubmitting(false)
     }
@@ -385,6 +387,14 @@ function BookPageContent() {
           <p className="text-gray-600">Choose your service and preferred time</p>
         </div>
 
+        {bookingError && (
+          <div className="max-w-2xl mx-auto mb-6 p-4 bg-red-50 border-2 border-red-300 rounded-lg">
+            <p className="font-semibold text-red-800 mb-1">Booking failed</p>
+            <p className="text-red-700 text-sm font-mono whitespace-pre-wrap break-words">{bookingError}</p>
+            <p className="text-red-600 text-xs mt-2">Copy the text above and share it to debug. You can try again or close this message.</p>
+            <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => setBookingError(null)}>Dismiss</Button>
+          </div>
+        )}
 
         {/* Step 1: Service Selection */}
         {step === 1 && (

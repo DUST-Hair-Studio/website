@@ -1,4 +1,5 @@
 import { createAdminSupabaseClient } from './supabase-server'
+import { createBusinessDateTimeSync } from './timezone-utils'
 
 export interface BookingData {
   id: string
@@ -39,9 +40,15 @@ export class ReminderScheduler {
         return
       }
 
-      // Calculate appointment datetime
-      const appointmentDateTime = new Date(`${booking.booking_date}T${booking.booking_time}`)
-      
+      // Appointment time is stored as business-timezone local; interpret it in that zone (not server UTC)
+      const { data: tzRow } = await this.supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'business_timezone')
+        .single()
+      const timezone = (tzRow?.value as string) || 'America/Los_Angeles'
+      const appointmentDateTime = createBusinessDateTimeSync(booking.booking_date, booking.booking_time, timezone)
+
       // Schedule each template
       for (const template of templates) {
         await this.scheduleReminder(booking, template, appointmentDateTime)

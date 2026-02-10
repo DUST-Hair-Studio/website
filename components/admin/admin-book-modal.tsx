@@ -81,6 +81,7 @@ export default function AdminBookModal({
 
   // Submission state
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
 
   const steps: { id: Step; label: string }[] = [
     { id: 'customer', label: 'Customer' },
@@ -101,6 +102,7 @@ export default function AdminBookModal({
       setSelectedDate(undefined)
       setSelectedTime('')
       setTimeSlotsWithConflicts([])
+      setCreateError(null)
       setPublicNotes('')
     }
   }, [isOpen])
@@ -307,6 +309,7 @@ export default function AdminBookModal({
     }
 
     setIsSubmitting(true)
+    setCreateError(null)
     try {
       const year = selectedDate.getFullYear()
       const month = String(selectedDate.getMonth() + 1).padStart(2, '0')
@@ -326,8 +329,11 @@ export default function AdminBookModal({
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to create booking')
+        const errorData = await response.json().catch(() => ({}))
+        const message = errorData.details
+          ? `${errorData.error || 'Failed to create booking'}: ${errorData.details}`
+          : (errorData.error || 'Failed to create booking')
+        throw new Error(message)
       }
 
       toast.success(`Booking created for ${selectedCustomer.name}`)
@@ -338,8 +344,9 @@ export default function AdminBookModal({
       
       onClose()
     } catch (error) {
-      console.error('Error creating booking:', error)
-      toast.error(error instanceof Error ? error.message : 'Failed to create booking')
+      const msg = error instanceof Error ? error.message : 'Failed to create booking'
+      setCreateError(msg)
+      toast.error(msg)
     } finally {
       setIsSubmitting(false)
     }

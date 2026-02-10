@@ -1,5 +1,6 @@
 import { Resend } from 'resend'
 import { createAdminSupabaseClient } from './supabase-server'
+import { createBusinessDateTimeSync } from './timezone-utils'
 
 // Only initialize Resend if API key is available
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
@@ -95,7 +96,11 @@ export class EmailService {
   ): string {
     if (!template || typeof template !== 'string') return ''
     const tz = businessSettings?.timezone ?? 'America/Los_Angeles'
-    const appointmentDate = new Date(booking.booking_date).toLocaleDateString('en-US', {
+    // Interpret booking_date/booking_time as business-timezone local time (PST), not server UTC
+    const appointmentDateObj = createBusinessDateTimeSync(booking.booking_date, '00:00:00', tz)
+    const appointmentDateTimeObj = createBusinessDateTimeSync(booking.booking_date, booking.booking_time, tz)
+
+    const appointmentDate = appointmentDateObj.toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -103,14 +108,14 @@ export class EmailService {
       timeZone: tz
     })
 
-    const appointmentTime = new Date(`${booking.booking_date}T${booking.booking_time}`).toLocaleTimeString('en-US', {
+    const appointmentTime = appointmentDateTimeObj.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
       timeZone: tz
     })
 
-    const appointmentDateTime = new Date(`${booking.booking_date}T${booking.booking_time}`).toLocaleString('en-US', {
+    const appointmentDateTime = appointmentDateTimeObj.toLocaleString('en-US', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -435,22 +440,25 @@ export class EmailService {
       let message = this.replaceTemplateVariables(template.message, booking, businessSettings)
       console.log('✅ [RESCHEDULE EMAIL] Variables replaced in template')
 
-      // Add old date/time info if provided
+      // Add old date/time info if provided (interpret as business timezone)
       if (oldDate && oldTime) {
         console.log('📅 [RESCHEDULE EMAIL] Old date/time provided:', { oldDate, oldTime })
-        const oldAppointmentDate = new Date(oldDate).toLocaleDateString('en-US', {
+        const tz = businessSettings.timezone
+        const oldDateObj = createBusinessDateTimeSync(oldDate, '00:00:00', tz)
+        const oldDateTimeObj = createBusinessDateTimeSync(oldDate, oldTime, tz)
+        const oldAppointmentDate = oldDateObj.toLocaleDateString('en-US', {
           weekday: 'long',
           year: 'numeric',
           month: 'long',
           day: 'numeric',
-          timeZone: businessSettings.timezone
+          timeZone: tz
         })
 
-        const oldAppointmentTime = new Date(`${oldDate}T${oldTime}`).toLocaleTimeString('en-US', {
+        const oldAppointmentTime = oldDateTimeObj.toLocaleTimeString('en-US', {
           hour: 'numeric',
           minute: '2-digit',
           hour12: true,
-          timeZone: businessSettings.timezone
+          timeZone: tz
         })
 
         console.log('📅 [RESCHEDULE EMAIL] Formatted old date/time:', { oldAppointmentDate, oldAppointmentTime })
@@ -540,13 +548,10 @@ export class EmailService {
         return false
       }
 
-      // Format dates for display - avoid timezone conversion by parsing manually
+      // Format dates for display (interpret YYYY-MM-DD as business-timezone date)
       const formatDateForEmail = (dateString: string, timezone: string) => {
-        // Parse YYYY-MM-DD format directly without timezone conversion
-        const [year, month, day] = dateString.split('-').map(Number)
-        const date = new Date(year, month - 1, day) // month is 0-indexed
-        
-        return date.toLocaleDateString('en-US', {
+        const dateObj = createBusinessDateTimeSync(dateString, '00:00:00', timezone)
+        return dateObj.toLocaleDateString('en-US', {
           weekday: 'long',
           year: 'numeric',
           month: 'long',
@@ -660,19 +665,22 @@ ${businessSettings.business_phone}`
         return false
       }
 
-      const appointmentDate = new Date(paymentData.booking_date).toLocaleDateString('en-US', {
+      const tz = businessSettings.timezone
+      const paymentDateObj = createBusinessDateTimeSync(paymentData.booking_date, '00:00:00', tz)
+      const paymentDateTimeObj = createBusinessDateTimeSync(paymentData.booking_date, paymentData.booking_time, tz)
+      const appointmentDate = paymentDateObj.toLocaleDateString('en-US', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
         day: 'numeric',
-        timeZone: businessSettings.timezone
+        timeZone: tz
       })
 
-      const appointmentTime = new Date(`${paymentData.booking_date}T${paymentData.booking_time}`).toLocaleTimeString('en-US', {
+      const appointmentTime = paymentDateTimeObj.toLocaleTimeString('en-US', {
         hour: 'numeric',
         minute: '2-digit',
         hour12: true,
-        timeZone: businessSettings.timezone
+        timeZone: tz
       })
 
       const formattedPrice = (paymentData.price_charged / 100).toFixed(2)

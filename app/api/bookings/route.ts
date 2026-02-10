@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
     const priceCharged = isExistingCustomer ? service.existing_customer_price : service.new_customer_price
 
 
-    // Create booking
+    // Create booking (use admin client so RLS does not block; we already validated user and customerId)
     const bookingData = {
       customer_id: customerId,
       service_id: serviceId,
@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
       booking_time: time,
       duration_minutes: service.duration_minutes,
       price_charged: priceCharged,
-      customer_type_at_booking: isExistingCustomer ? 'loyalty' : 'new',
+      customer_type_at_booking: isExistingCustomer ? 'existing' : 'new', // DB constraint allows 'new'|'existing'; UI displays 'existing' as Loyalty
       payment_status: priceCharged === 0 ? 'paid' : 'pending', // Free appointments are automatically "paid"
       status: 'confirmed',
       sms_confirmation_sent: false,
@@ -198,7 +198,7 @@ export async function POST(request: NextRequest) {
       sms_followup_sent: false
     }
 
-    const { data: booking, error: bookingError } = await supabase
+    const { data: booking, error: bookingError } = await adminSupabase
       .from('bookings')
       .insert(bookingData)
       .select(`
