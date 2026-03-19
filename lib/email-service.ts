@@ -240,10 +240,13 @@ export class EmailService {
     const bookingId = booking?.id ?? ''
 
     // Replace longer placeholders first so substrings aren't corrupted (e.g. {appointment_datetime} before {appointment_date})
+    // {date}/{time} match legacy settings copy (e.g. confirmation_message / reminder_message)
     return template
       .replace(/{appointment_datetime}/g, appointmentDateTime)
       .replace(/{appointment_date}/g, appointmentDate)
       .replace(/{appointment_time}/g, appointmentTime)
+      .replace(/{date}/g, appointmentDate)
+      .replace(/{time}/g, appointmentTime)
       .replace(/{business_email}/g, businessEmail)
       .replace(/{email}/g, businessEmail)
       .replace(/{customer_email}/g, customerEmail)

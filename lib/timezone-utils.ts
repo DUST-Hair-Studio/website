@@ -7,6 +7,35 @@
 export const DEFAULT_BUSINESS_TIMEZONE = 'America/Los_Angeles'
 
 /**
+ * Normalizes booking_time values for ISO construction.
+ * Customer slots use 12-hour strings (e.g. "2:00 PM"); admin/API often use "HH:MM" or "HH:MM:SS".
+ */
+export function normalizeBookingTimeForIso(timeString: string): string {
+  const t = timeString.trim()
+  const m12 = t.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)\s*$/i)
+  if (m12) {
+    let h = parseInt(m12[1], 10)
+    const min = m12[2]
+    const sec = (m12[3] ?? '00').padStart(2, '0')
+    const ap = m12[4].toUpperCase()
+    if (ap === 'PM' && h !== 12) h += 12
+    if (ap === 'AM' && h === 12) h = 0
+    return `${String(h).padStart(2, '0')}:${min}:${sec}`
+  }
+  const m24 = t.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/)
+  if (m24) {
+    const h = String(parseInt(m24[1], 10)).padStart(2, '0')
+    const min = m24[2]
+    const sec = (m24[3] ?? '00').padStart(2, '0')
+    return `${h}:${min}:${sec}`
+  }
+  if (t.includes(':') && t.split(':').length === 2 && !/\b(AM|PM)\b/i.test(t)) {
+    return `${t}:00`
+  }
+  return t
+}
+
+/**
  * Gets the configured business timezone from the database (server-side only)
  * @returns Promise<string> - The business timezone
  */
@@ -36,20 +65,10 @@ export async function getBusinessTimezone(): Promise<string> {
  * @returns Date object representing the local time in business timezone
  */
 export async function createBusinessDateTime(dateString: string, timeString: string, timezone?: string): Promise<Date> {
-  // Ensure time string has seconds if not provided
-  const fullTimeString = timeString.includes(':') && timeString.split(':').length === 2 
-    ? `${timeString}:00` 
-    : timeString
-  
-  // Get the business timezone
   const businessTimezone = timezone || await getBusinessTimezone()
-  
-  // Create a date object to check DST for the specific date
-  const dateToCheck = new Date(`${dateString}T${fullTimeString}`)
-  
-  // Create date string in ISO format with proper timezone offset (including DST)
+  const fullTimeString = normalizeBookingTimeForIso(timeString)
+  const dateToCheck = new Date(`${dateString}T12:00:00`)
   const isoString = `${dateString}T${fullTimeString}${getTimezoneOffsetString(businessTimezone, dateToCheck)}`
-  
   return new Date(isoString)
 }
 
@@ -61,9 +80,7 @@ export async function createBusinessDateTime(dateString: string, timeString: str
  * @param timezone - IANA timezone (e.g. America/Los_Angeles)
  */
 export function createBusinessDateTimeSync(dateString: string, timeString: string, timezone: string): Date {
-  const fullTimeString = timeString.includes(':') && timeString.split(':').length === 2
-    ? `${timeString}:00`
-    : timeString
+  const fullTimeString = normalizeBookingTimeForIso(timeString)
   const dateToCheck = new Date(`${dateString}T12:00:00`)
   const isoString = `${dateString}T${fullTimeString}${getTimezoneOffsetString(timezone, dateToCheck)}`
   return new Date(isoString)
