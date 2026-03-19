@@ -176,7 +176,7 @@ export async function formatEmailDateTime(
   timezone?: string
 ): Promise<string> {
   const businessTimezone = timezone || await getBusinessTimezone()
-  const dateTime = new Date(`${dateString}T${timeString}`)
+  const dateTime = createBusinessDateTimeSync(dateString, timeString, businessTimezone)
   
   const options: Intl.DateTimeFormatOptions = {
     timeZone: businessTimezone,
@@ -229,7 +229,7 @@ export async function formatEmailTime(
   timezone?: string
 ): Promise<string> {
   const businessTimezone = timezone || await getBusinessTimezone()
-  const dateTime = new Date(`${dateString}T${timeString}`)
+  const dateTime = createBusinessDateTimeSync(dateString, timeString, businessTimezone)
   
   const options: Intl.DateTimeFormatOptions = {
     timeZone: businessTimezone,
@@ -298,36 +298,16 @@ export async function calculateEndTime(
  * @param timezone - Optional timezone override
  * @returns Promise<boolean> - true if the appointment is in the future
  */
-export async function isFutureAppointment(dateString: string, timeString: string): Promise<boolean> {
+export async function isFutureAppointment(dateString: string, timeString: string, timezone?: string): Promise<boolean> {
   try {
-    // Ensure time string has seconds if not provided
-    const fullTimeString = timeString.includes(':') && timeString.split(':').length === 2 
-      ? `${timeString}:00` 
-      : timeString
-    
-    // Create appointment date in local timezone (business timezone)
-    const appointmentDateTime = new Date(`${dateString}T${fullTimeString}`)
+    const businessTimezone = timezone || await getBusinessTimezone()
+    const appointmentDateTime = createBusinessDateTimeSync(dateString, timeString, businessTimezone)
     const now = new Date()
-    
-    // Add a buffer to account for timezone differences and processing time
-    const bufferMinutes = 10 // Increased buffer
-    const bufferTime = new Date(now.getTime() - bufferMinutes * 60000) // Subtract buffer instead of adding
-    
-    // Debug logging
-    console.log('🔍 Timezone validation:', {
-      dateString,
-      timeString,
-      fullTimeString,
-      appointmentDateTime: appointmentDateTime.toISOString(),
-      now: now.toISOString(),
-      bufferTime: bufferTime.toISOString(),
-      isFuture: appointmentDateTime > bufferTime
-    })
-    
+    const bufferMinutes = 10
+    const bufferTime = new Date(now.getTime() - bufferMinutes * 60000)
     return appointmentDateTime > bufferTime
   } catch (error) {
     console.error('Error in isFutureAppointment:', error)
-    // If there's an error, default to allowing the appointment
     return true
   }
 }

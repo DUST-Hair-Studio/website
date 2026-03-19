@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminSupabaseClient, createServerSupabaseClient } from '@/lib/supabase-server'
+import { createBusinessDateTimeSync } from '@/lib/timezone-utils'
 import { GoogleCalendarService } from '@/lib/google-calendar'
 
 /**
@@ -510,12 +511,13 @@ async function sendWaitlistNotification(
 
     const appointmentDate = formatDateForEmail(availableDate, businessSettings.timezone)
 
-    const appointmentTime = new Date(`${availableDate}T${availableTime}`).toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-      timeZone: businessSettings.timezone
-    })
+    const appointmentTime = createBusinessDateTimeSync(availableDate, availableTime, businessSettings.timezone)
+      .toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: businessSettings.timezone
+      })
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
     const bookingLink = `${baseUrl}/book?serviceId=${request.service_id}&date=${availableDate}&waitlist_id=${request.id}`

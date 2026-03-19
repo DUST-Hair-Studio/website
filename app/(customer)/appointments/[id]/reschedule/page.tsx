@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Calendar } from '@/components/ui/calendar'
 import { ArrowLeft, Calendar as CalendarIcon, Clock, RefreshCw, AlertCircle } from 'lucide-react'
+import { createBusinessDateTime, DEFAULT_BUSINESS_TIMEZONE } from '@/lib/timezone-utils-client'
 import { useRouter, useParams } from 'next/navigation'
 import { toast } from 'sonner'
 
@@ -83,7 +84,7 @@ export default function ReschedulePage() {
 
   const canReschedule = (booking: BookingWithDetails) => {
     const now = new Date()
-    const bookingDateTime = new Date(`${booking.booking_date}T${booking.booking_time}`)
+    const bookingDateTime = createBusinessDateTime(booking.booking_date, booking.booking_time, DEFAULT_BUSINESS_TIMEZONE)
     return bookingDateTime > now && booking.status === 'confirmed'
   }
 

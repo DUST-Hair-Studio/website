@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/auth-context'
 import { Booking } from '@/types'
 import { WaitlistRequestWithDetails } from '@/types'
 import { Button } from '@/components/ui/button'
-import { formatBusinessDateTime } from '@/lib/timezone-utils-client'
+import { formatBusinessDateTime, createBusinessDateTime, DEFAULT_BUSINESS_TIMEZONE } from '@/lib/timezone-utils-client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
@@ -135,7 +135,7 @@ export default function MyAppointmentsPage() {
   }
 
   const getBookingTimestamp = (booking: BookingWithDetails) => {
-    return new Date(`${booking.booking_date}T${booking.booking_time}`).getTime()
+    return createBusinessDateTime(booking.booking_date, booking.booking_time, DEFAULT_BUSINESS_TIMEZONE).getTime()
   }
 
   const getWaitlistStatusBadge = (status: string) => {
@@ -153,7 +153,7 @@ export default function MyAppointmentsPage() {
 
   const isUpcoming = (bookingDate: string, bookingTime: string) => {
     const now = new Date()
-    const bookingDateTime = new Date(`${bookingDate}T${bookingTime}`)
+    const bookingDateTime = createBusinessDateTime(bookingDate, bookingTime, DEFAULT_BUSINESS_TIMEZONE)
     return bookingDateTime > now
   }
 

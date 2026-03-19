@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
+import { createBusinessDateTime, DEFAULT_BUSINESS_TIMEZONE } from '@/lib/timezone-utils-client'
 import { useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -90,28 +91,22 @@ function BookingConfirmationContent() {
   }
 
   const formatDateTime = (date: string, time: string) => {
-    // Create the actual date-time and format it properly with timezone
-    const dateTime = new Date(`${date}T${time}`)
-    
-    // Format date part with timezone
+    const dateTime = createBusinessDateTime(date, time, DEFAULT_BUSINESS_TIMEZONE)
     const dateOptions: Intl.DateTimeFormatOptions = {
-      timeZone: 'America/Los_Angeles',
+      timeZone: DEFAULT_BUSINESS_TIMEZONE,
       weekday: 'long',
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     }
     const formattedDate = dateTime.toLocaleDateString('en-US', dateOptions)
-    
-    // Format time to 12-hour format with AM/PM
     const timeOptions: Intl.DateTimeFormatOptions = {
-      timeZone: 'America/Los_Angeles',
+      timeZone: DEFAULT_BUSINESS_TIMEZONE,
       hour: 'numeric',
       minute: '2-digit',
       hour12: true
     }
     const formattedTime = dateTime.toLocaleTimeString('en-US', timeOptions)
-    
     return `${formattedDate} at ${formattedTime}`
   }
 

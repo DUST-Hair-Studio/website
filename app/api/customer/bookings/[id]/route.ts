@@ -264,7 +264,7 @@ export async function PUT(
           converted: time24Hour
         })
         
-        const startDate = new Date(`${booking_date}T${time24Hour}`)
+        const startDate = await createBusinessDateTime(booking_date, time24Hour)
         const endDate = new Date(startDate.getTime() + currentBooking.services.duration_minutes * 60000)
         
         console.log('🔍 Parsed dates:', {

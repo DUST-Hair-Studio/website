@@ -7,6 +7,35 @@
 export const DEFAULT_BUSINESS_TIMEZONE = 'America/Los_Angeles'
 
 /**
+ * Normalizes booking_time values for ISO construction.
+ * Customer slots use 12-hour strings (e.g. "2:00 PM"); admin/API often use "HH:MM" or "HH:MM:SS".
+ */
+export function normalizeBookingTimeForIso(timeString: string): string {
+  const t = timeString.trim()
+  const m12 = t.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)\s*$/i)
+  if (m12) {
+    let h = parseInt(m12[1], 10)
+    const min = m12[2]
+    const sec = (m12[3] ?? '00').padStart(2, '0')
+    const ap = m12[4].toUpperCase()
+    if (ap === 'PM' && h !== 12) h += 12
+    if (ap === 'AM' && h === 12) h = 0
+    return `${String(h).padStart(2, '0')}:${min}:${sec}`
+  }
+  const m24 = t.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/)
+  if (m24) {
+    const h = String(parseInt(m24[1], 10)).padStart(2, '0')
+    const min = m24[2]
+    const sec = (m24[3] ?? '00').padStart(2, '0')
+    return `${h}:${min}:${sec}`
+  }
+  if (t.includes(':') && t.split(':').length === 2 && !/\b(AM|PM)\b/i.test(t)) {
+    return `${t}:00`
+  }
+  return t
+}
+
+/**
  * Creates a Date object in the specified timezone from date and time strings
  * @param dateString - Date in YYYY-MM-DD format
  * @param timeString - Time in HH:MM:SS or HH:MM format
@@ -14,17 +43,9 @@ export const DEFAULT_BUSINESS_TIMEZONE = 'America/Los_Angeles'
  * @returns Date object representing the local time in the specified timezone
  */
 export function createBusinessDateTime(dateString: string, timeString: string, timezone: string = DEFAULT_BUSINESS_TIMEZONE): Date {
-  // Ensure time string has seconds if not provided
-  const fullTimeString = timeString.includes(':') && timeString.split(':').length === 2 
-    ? `${timeString}:00` 
-    : timeString
-  
-  // Create a date object to check DST for the specific date
-  const dateToCheck = new Date(`${dateString}T${fullTimeString}`)
-  
-  // Create date string in ISO format with proper timezone offset (including DST)
+  const fullTimeString = normalizeBookingTimeForIso(timeString)
+  const dateToCheck = new Date(`${dateString}T12:00:00`)
   const isoString = `${dateString}T${fullTimeString}${getTimezoneOffsetString(timezone, dateToCheck)}`
-  
   return new Date(isoString)
 }
 

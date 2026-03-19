@@ -111,7 +111,7 @@ export default function WaitlistForm({
           onClick={() => setIsOpen(true)}
           className="w-full text-wrap whitespace-normal h-auto py-3"
         >
-          <Bell className="w-4 h-4 mr-2 flex-shrink-0" />
+          <Bell className="w-4 h-4 mr-2 shrink-0" />
           <span className="text-center">Join Waitlist</span>
         </Button>
 
@@ -227,7 +227,7 @@ export default function WaitlistForm({
         onClick={() => setIsOpen(true)}
         className="w-full text-wrap whitespace-normal h-auto py-3"
       >
-        <Bell className="w-4 h-4 mr-2 flex-shrink-0" />
+        <Bell className="w-4 h-4 mr-2 shrink-0" />
         <span className="text-center">Join Waitlist</span>
       </Button>
 

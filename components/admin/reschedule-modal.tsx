@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createBusinessDateTime, DEFAULT_BUSINESS_TIMEZONE } from '@/lib/timezone-utils-client'
 import { Booking } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -116,7 +117,7 @@ export default function RescheduleModal({
 
   const canReschedule = (booking: BookingWithDetails) => {
     const now = new Date()
-    const bookingDateTime = new Date(`${booking.booking_date}T${booking.booking_time}`)
+    const bookingDateTime = createBusinessDateTime(booking.booking_date, booking.booking_time, DEFAULT_BUSINESS_TIMEZONE)
     return bookingDateTime > now && booking.status === 'confirmed'
   }
 
@@ -266,7 +267,7 @@ export default function RescheduleModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="!max-w-none w-[90vw] sm:w-[75vw] max-h-[90vh] overflow-y-auto pb-8">
+      <DialogContent className="max-w-none! w-[90vw] sm:w-[75vw] max-h-[90vh] overflow-y-auto pb-8">
         <DialogHeader>
           <DialogTitle>Reschedule Appointment</DialogTitle>
           <DialogDescription>

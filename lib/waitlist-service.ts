@@ -1,4 +1,5 @@
 import { createAdminSupabaseClient } from './supabase-server'
+import { createBusinessDateTimeSync } from './timezone-utils'
 import { Resend } from 'resend'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
@@ -161,12 +162,13 @@ export class WaitlistService {
         timeZone: businessSettings.timezone
       })
 
-      const appointmentTime = new Date(`${availableDate}T${availableTime}`).toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true,
-        timeZone: businessSettings.timezone
-      })
+      const appointmentTime = createBusinessDateTimeSync(availableDate, availableTime, businessSettings.timezone)
+        .toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+          timeZone: businessSettings.timezone
+        })
 
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
       const bookingLink = `${baseUrl}/book?serviceId=${waitlistRequest.service_id}`
