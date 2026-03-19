@@ -111,7 +111,10 @@ export default function MyAppointmentsPage() {
   }, [user, authLoading, router, fetchBookings, fetchWaitlist])
 
   const formatDate = (dateString: string) => {
-    return formatBusinessDateTime(dateString, '00:00:00', {
+    // Parse as local date to avoid timezone/day-shift and suppress midnight time text
+    const [year, month, day] = dateString.split('-').map(Number)
+    const localDate = new Date(year, month - 1, day)
+    return localDate.toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
