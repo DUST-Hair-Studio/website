@@ -354,24 +354,39 @@ export async function DELETE(
     const supabase = await createServerSupabaseClient()
     const { id } = await params
 
-    // First, get the booking with full details to check if it has a Google Calendar event
-    // and to notify waitlist
+    // Get full booking details for soft-cancel side effects (calendar/email/waitlist)
     const { data: booking, error: fetchError } = await supabase
       .from('bookings')
-      .select('google_calendar_event_id, booking_date, booking_time, service_id, payment_status')
+      .select(`
+        *,
+        services (
+          name,
+          duration_minutes
+        ),
+        customers (
+          name,
+          email,
+          phone
+        )
+      `)
       .eq('id', id)
       .single()
 
     if (fetchError) {
-      console.error('Error fetching booking for deletion:', fetchError)
+      console.error('Error fetching booking for cancellation:', fetchError)
       return NextResponse.json({ error: 'Failed to fetch booking' }, { status: 500 })
     }
 
-    // Prevent deletion of paid bookings
+    // Prevent cancellation of paid bookings
     if (booking?.payment_status === 'paid') {
       return NextResponse.json({ 
-        error: 'Cannot delete a booking that has been paid. Please contact support if this is an error.' 
+        error: 'Cannot cancel a booking that has been paid. Please contact support if this is an error.' 
       }, { status: 400 })
+    }
+
+    // Idempotency: if already cancelled, return success and keep data untouched.
+    if (booking?.status === 'cancelled') {
+      return NextResponse.json({ success: true, booking })
     }
 
     // Delete Google Calendar event if it exists
@@ -385,25 +400,60 @@ export async function DELETE(
         }
       } catch (error) {
         console.error('Error deleting Google Calendar event:', error)
-        // Continue with booking deletion even if calendar sync fails
+        // Continue with booking cancellation even if calendar sync fails
       }
     }
 
-    // First, clear any waitlist references to this booking
-    await supabase
-      .from('waitlist_requests')
-      .update({ converted_booking_id: null })
-      .eq('converted_booking_id', id)
-
-    // Delete the booking from the database
-    const { error } = await supabase
+    // Soft-cancel booking instead of hard delete to preserve history/audit data.
+    const { data: cancelledBooking, error } = await supabase
       .from('bookings')
-      .delete()
+      .update({
+        status: 'cancelled',
+        updated_at: new Date().toISOString()
+      })
       .eq('id', id)
+      .select(`
+        *,
+        services (
+          name,
+          duration_minutes
+        ),
+        customers (
+          name,
+          email,
+          phone
+        )
+      `)
+      .single()
 
     if (error) {
-      console.error('Error deleting booking:', error)
-      return NextResponse.json({ error: 'Failed to delete booking' }, { status: 500 })
+      console.error('Error cancelling booking:', error)
+      return NextResponse.json({ error: 'Failed to cancel booking' }, { status: 500 })
+    }
+
+    // Send cancellation email
+    try {
+      const emailService = new EmailService()
+      const bookingData = {
+        id: cancelledBooking.id,
+        booking_date: cancelledBooking.booking_date,
+        booking_time: cancelledBooking.booking_time,
+        duration_minutes: cancelledBooking.duration_minutes,
+        price_charged: cancelledBooking.price_charged,
+        services: {
+          name: cancelledBooking.services.name,
+          duration_minutes: cancelledBooking.services.duration_minutes
+        },
+        customers: {
+          name: cancelledBooking.customers.name,
+          email: cancelledBooking.customers.email,
+          phone: cancelledBooking.customers.phone
+        }
+      }
+      await emailService.sendCancellationEmail(bookingData)
+    } catch (emailError) {
+      console.error('Error sending cancellation email from DELETE route:', emailError)
+      // Continue regardless
     }
 
     // Notify waitlist users about the freed up slot
@@ -418,7 +468,7 @@ export async function DELETE(
       // Continue even if waitlist notification fails
     }
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, booking: cancelledBooking })
 
   } catch (error) {
     console.error('Admin booking delete API error:', error)

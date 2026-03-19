@@ -28,7 +28,8 @@ export class ReminderScheduler {
         .from('reminder_templates')
         .select('*')
         .eq('is_active', true)
-        .in('type', ['confirmation', 'reminder', 'followup'])
+        // Confirmation is sent immediately in booking flows via EmailService.sendConfirmationEmail.
+        .in('type', ['reminder', 'followup'])
         .order('hours_before', { ascending: false })
 
       if (templatesError) {

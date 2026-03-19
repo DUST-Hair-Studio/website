@@ -74,8 +74,8 @@ export function AdminSidebar() {
     fetchWaitlistSetting()
     fetchUnreadCount()
     
-    // Refresh unread count every 30 seconds
-    const interval = setInterval(fetchUnreadCount, 30000)
+    // Refresh unread count every 60 seconds
+    const interval = setInterval(fetchUnreadCount, 60000)
     return () => clearInterval(interval)
   }, [])
 

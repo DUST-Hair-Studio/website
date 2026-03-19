@@ -67,6 +67,36 @@ export interface WaitlistConfirmationData {
 export class EmailService {
   private supabase = createAdminSupabaseClient()
 
+  private async createPendingReminderHistory(
+    bookingId: string,
+    templateId: string,
+    templateName: string
+  ): Promise<string | null> {
+    try {
+      const { data, error } = await this.supabase
+        .from('reminder_history')
+        .insert({
+          booking_id: bookingId,
+          template_id: templateId,
+          template_name: templateName,
+          status: 'pending',
+          scheduled_for: new Date().toISOString()
+        })
+        .select('id')
+        .single()
+
+      if (error) {
+        console.error('Error creating pending reminder history row:', error)
+        return null
+      }
+
+      return data?.id ?? null
+    } catch (error) {
+      console.error('Error creating pending reminder history row:', error)
+      return null
+    }
+  }
+
   private async updateReminderHistoryStatus(
     reminderHistoryId: string,
     status: 'sent' | 'failed',
@@ -95,10 +125,47 @@ export class EmailService {
         updateData.email_id = options.emailId
       }
 
-      await this.supabase
-        .from('reminder_history')
-        .update(updateData)
-        .eq('id', reminderHistoryId)
+      const runUpdate = async (
+        payload: {
+          status: 'sent' | 'failed'
+          sent_at?: string
+          error_message?: string | null
+          email_id?: string
+        }
+      ) =>
+        this.supabase
+          .from('reminder_history')
+          .update(payload)
+          .eq('id', reminderHistoryId)
+          .select('id')
+
+      let { data, error } = await runUpdate(updateData)
+
+      // Some environments may not have reminder_history.email_id yet.
+      // Retry without email_id so status/sent_at still update.
+      if (
+        error &&
+        updateData.email_id &&
+        error.code === 'PGRST204' &&
+        error.message?.includes("'email_id'")
+      ) {
+        console.warn(
+          `reminder_history.email_id missing; retrying status update without email_id for ${reminderHistoryId}`
+        )
+        const { email_id: _ignoredEmailId, ...updateDataWithoutEmailId } = updateData
+        const retryResult = await runUpdate(updateDataWithoutEmailId)
+        data = retryResult.data
+        error = retryResult.error
+      }
+
+      if (error) {
+        console.error(`Failed to update reminder history ${reminderHistoryId}:`, error)
+        return
+      }
+
+      if (!data || data.length === 0) {
+        console.error(`No reminder_history row updated for id ${reminderHistoryId}`)
+      }
     } catch (error) {
       console.error(`Error updating reminder history ${reminderHistoryId}:`, error)
     }
@@ -209,6 +276,8 @@ export class EmailService {
 
   // Send confirmation email immediately after booking
   async sendConfirmationEmail(booking: BookingData, reminderHistoryId?: string): Promise<boolean> {
+    let trackedReminderHistoryId: string | null | undefined = reminderHistoryId
+
     try {
       // Check if Resend is configured
       if (!resend) {
@@ -220,6 +289,11 @@ export class EmailService {
       if (!template) {
         console.log('No active confirmation template found')
         return false
+      }
+
+      // If caller did not provide a row to update, create one so sent_at/status are always tracked.
+      if (!trackedReminderHistoryId) {
+        trackedReminderHistoryId = await this.createPendingReminderHistory(booking.id, template.id, template.name)
       }
 
       const businessSettings = await this.getBusinessSettings()
@@ -274,8 +348,8 @@ export class EmailService {
 
       if (error) {
         console.error('Error sending confirmation email:', error)
-        if (reminderHistoryId) {
-          await this.updateReminderHistoryStatus(reminderHistoryId, 'failed', {
+        if (trackedReminderHistoryId) {
+          await this.updateReminderHistoryStatus(trackedReminderHistoryId, 'failed', {
             errorMessage: error.message
           })
         }
@@ -284,10 +358,10 @@ export class EmailService {
 
       console.log('Confirmation email sent successfully:', data)
       
-      if (reminderHistoryId) {
-        await this.updateReminderHistoryStatus(reminderHistoryId, 'sent', { emailId: data?.id })
+      if (trackedReminderHistoryId) {
+        await this.updateReminderHistoryStatus(trackedReminderHistoryId, 'sent', { emailId: data?.id })
       } else {
-        // Log the email send in reminder history
+        // Fallback if history row creation failed unexpectedly
         await this.logEmailSend(booking.id, template.id, template.name, 'sent', data?.id)
       }
       
@@ -295,8 +369,8 @@ export class EmailService {
     } catch (error) {
       console.error('Error in sendConfirmationEmail:', error)
       
-      if (reminderHistoryId) {
-        await this.updateReminderHistoryStatus(reminderHistoryId, 'failed', {
+      if (trackedReminderHistoryId) {
+        await this.updateReminderHistoryStatus(trackedReminderHistoryId, 'failed', {
           errorMessage: error instanceof Error ? error.message : 'Unknown error'
         })
       } else {
@@ -410,6 +484,8 @@ export class EmailService {
 
   // Send cancellation email when booking is cancelled
   async sendCancellationEmail(booking: BookingData, reminderHistoryId?: string): Promise<boolean> {
+    let trackedReminderHistoryId: string | null | undefined = reminderHistoryId
+
     try {
       if (!resend) {
         console.log('Resend API key not configured, skipping email')
@@ -426,6 +502,10 @@ export class EmailService {
       if (!template) {
         console.log('No active cancellation template found')
         return false
+      }
+
+      if (!trackedReminderHistoryId) {
+        trackedReminderHistoryId = await this.createPendingReminderHistory(booking.id, template.id, template.name)
       }
 
       const businessSettings = await this.getBusinessSettings()
@@ -469,8 +549,8 @@ export class EmailService {
 
       if (error) {
         console.error('Error sending cancellation email:', error)
-        if (reminderHistoryId) {
-          await this.updateReminderHistoryStatus(reminderHistoryId, 'failed', {
+        if (trackedReminderHistoryId) {
+          await this.updateReminderHistoryStatus(trackedReminderHistoryId, 'failed', {
             errorMessage: error.message
           })
         } else {
@@ -480,8 +560,8 @@ export class EmailService {
       }
 
       console.log('Cancellation email sent successfully:', data)
-      if (reminderHistoryId) {
-        await this.updateReminderHistoryStatus(reminderHistoryId, 'sent', { emailId: data?.id })
+      if (trackedReminderHistoryId) {
+        await this.updateReminderHistoryStatus(trackedReminderHistoryId, 'sent', { emailId: data?.id })
       } else {
         await this.logEmailSend(booking.id, template.id, template.name, 'sent', data?.id)
       }
@@ -489,8 +569,8 @@ export class EmailService {
       return true
     } catch (error) {
       console.error('Error in sendCancellationEmail:', error)
-      if (reminderHistoryId) {
-        await this.updateReminderHistoryStatus(reminderHistoryId, 'failed', {
+      if (trackedReminderHistoryId) {
+        await this.updateReminderHistoryStatus(trackedReminderHistoryId, 'failed', {
           errorMessage: error instanceof Error ? error.message : 'Unknown error'
         })
       } else {
@@ -502,6 +582,8 @@ export class EmailService {
 
   // Send reschedule email when booking is rescheduled
   async sendRescheduleEmail(booking: BookingData, oldDate?: string, oldTime?: string, reminderHistoryId?: string): Promise<boolean> {
+    let trackedReminderHistoryId: string | null | undefined = reminderHistoryId
+
     try {
       console.log('📧 [RESCHEDULE EMAIL] Starting sendRescheduleEmail for booking:', booking.id)
       
@@ -518,6 +600,10 @@ export class EmailService {
         return false
       }
       console.log('✅ [RESCHEDULE EMAIL] Template found:', template.name)
+
+      if (!trackedReminderHistoryId) {
+        trackedReminderHistoryId = await this.createPendingReminderHistory(booking.id, template.id, template.name)
+      }
 
       const businessSettings = await this.getBusinessSettings()
       console.log('✅ [RESCHEDULE EMAIL] Business settings loaded')
@@ -607,8 +693,8 @@ export class EmailService {
 
       if (error) {
         console.error('❌ [RESCHEDULE EMAIL] Error sending via Resend:', error)
-        if (reminderHistoryId) {
-          await this.updateReminderHistoryStatus(reminderHistoryId, 'failed', {
+        if (trackedReminderHistoryId) {
+          await this.updateReminderHistoryStatus(trackedReminderHistoryId, 'failed', {
             errorMessage: error.message
           })
         } else {
@@ -618,8 +704,8 @@ export class EmailService {
       }
 
       console.log('✅ [RESCHEDULE EMAIL] Email sent successfully!', { emailId: data?.id, to: booking.customers.email })
-      if (reminderHistoryId) {
-        await this.updateReminderHistoryStatus(reminderHistoryId, 'sent', { emailId: data?.id })
+      if (trackedReminderHistoryId) {
+        await this.updateReminderHistoryStatus(trackedReminderHistoryId, 'sent', { emailId: data?.id })
       } else {
         await this.logEmailSend(booking.id, template.id, template.name, 'sent', data?.id)
       }
@@ -627,8 +713,8 @@ export class EmailService {
       return true
     } catch (error) {
       console.error('❌ [RESCHEDULE EMAIL] Exception in sendRescheduleEmail:', error)
-      if (reminderHistoryId) {
-        await this.updateReminderHistoryStatus(reminderHistoryId, 'failed', {
+      if (trackedReminderHistoryId) {
+        await this.updateReminderHistoryStatus(trackedReminderHistoryId, 'failed', {
           errorMessage: error instanceof Error ? error.message : 'Unknown error'
         })
       } else {
@@ -900,18 +986,32 @@ The ${businessSettings.business_name} Team`
     errorMessage?: string
   ): Promise<void> {
     try {
-      await this.supabase
+      const insertData = {
+        booking_id: bookingId,
+        template_id: templateId,
+        template_name: templateName,
+        status,
+        scheduled_for: new Date().toISOString(),
+        sent_at: status === 'sent' ? new Date().toISOString() : null,
+        error_message: errorMessage,
+        email_id: emailId
+      }
+
+      let { error } = await this.supabase
         .from('reminder_history')
-        .insert({
-          booking_id: bookingId,
-          template_id: templateId,
-          template_name: templateName,
-          status,
-          scheduled_for: new Date().toISOString(),
-          sent_at: status === 'sent' ? new Date().toISOString() : null,
-          error_message: errorMessage,
-          email_id: emailId
-        })
+        .insert(insertData)
+
+      if (error && emailId && error.code === 'PGRST204' && error.message?.includes("'email_id'")) {
+        const { email_id: _ignoredEmailId, ...insertDataWithoutEmailId } = insertData
+        const retryResult = await this.supabase
+          .from('reminder_history')
+          .insert(insertDataWithoutEmailId)
+        error = retryResult.error
+      }
+
+      if (error) {
+        console.error('Error logging email send:', error)
+      }
     } catch (error) {
       console.error('Error logging email send:', error)
     }
