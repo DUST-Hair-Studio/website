@@ -318,9 +318,10 @@ export async function PATCH(
             phone: booking.customers.phone
           }
         }
-        await emailService.sendCancellationEmail(bookingData)
+        const result = await emailService.sendCancellationEmail(bookingData)
+        console.log('[CancelBooking] sendCancellationEmail result:', result)
       } catch (error) {
-        console.error('Error sending cancellation email:', error)
+        console.error('[CancelBooking] sendCancellationEmail threw:', error)
         // Continue with the response even if email fails
       }
 

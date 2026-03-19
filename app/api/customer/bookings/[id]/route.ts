@@ -25,7 +25,7 @@ export async function GET(
     // First try: auth_user_id
     const { data: customerByAuthId, error: errorByAuthId } = await supabase
       .from('customers')
-      .select('id')
+      .select('id, name, email, phone')
       .eq('auth_user_id', user.id)
       .single()
     
@@ -35,7 +35,7 @@ export async function GET(
       // Second try: email (fallback)
       const { data: customerByEmail, error: errorByEmail } = await supabase
         .from('customers')
-        .select('id')
+        .select('id, name, email, phone')
         .eq('email', user.email)
         .single()
       
@@ -412,6 +412,11 @@ export async function PATCH(
         services (
           name,
           duration_minutes
+        ),
+        customers (
+          name,
+          email,
+          phone
         )
       `)
       .eq('id', bookingId)
@@ -573,6 +578,11 @@ export async function DELETE(
         services (
           name,
           duration_minutes
+        ),
+        customers (
+          name,
+          email,
+          phone
         )
       `)
       .eq('id', bookingId)
@@ -624,6 +634,40 @@ export async function DELETE(
     if (deleteError) {
       console.error('Error deleting booking:', deleteError)
       return NextResponse.json({ error: 'Failed to delete booking' }, { status: 500 })
+    }
+
+    // After successful deletion, send cancellation email
+    try {
+      const emailService = new EmailService()
+      const customerForEmail = currentBooking.customers ?? customer
+      const customerEmail = customerForEmail?.email || user.email
+      if (!customerEmail) {
+        console.error('[CustomerCancel] Missing customer email, skipping cancellation email', {
+          bookingId,
+          customerId: customer?.id
+        })
+      } else {
+      const bookingData = {
+        id: currentBooking.id,
+        booking_date: currentBooking.booking_date,
+        booking_time: currentBooking.booking_time,
+        duration_minutes: currentBooking.duration_minutes,
+        price_charged: currentBooking.price_charged,
+        services: {
+          name: currentBooking.services.name,
+          duration_minutes: currentBooking.services.duration_minutes
+        },
+        customers: {
+          name: customerForEmail?.name || 'Customer',
+          email: customerEmail,
+          phone: customerForEmail?.phone || ''
+        }
+      }
+      const result = await emailService.sendCancellationEmail(bookingData)
+      console.log('[CustomerCancel] sendCancellationEmail result:', result)
+      }
+    } catch (error) {
+      console.error('[CustomerCancel] sendCancellationEmail threw:', error)
     }
 
     return NextResponse.json({ 
