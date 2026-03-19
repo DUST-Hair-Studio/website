@@ -6,10 +6,12 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = createAdminSupabaseClient()
     const { searchParams } = new URL(request.url)
-    const limit = parseInt(searchParams.get('limit') || '50')
-    const offset = parseInt(searchParams.get('offset') || '0')
+    const rawLimit = parseInt(searchParams.get('limit') || '100')
+    const rawOffset = parseInt(searchParams.get('offset') || '0')
+    const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 200) : 50
+    const offset = Number.isFinite(rawOffset) ? Math.max(rawOffset, 0) : 0
 
-    const { data: history, error } = await supabase
+    const { data: history, error, count } = await supabase
       .from('reminder_history')
       .select(`
         *,
@@ -23,7 +25,7 @@ export async function GET(request: NextRequest) {
             email
           )
         )
-      `)
+      `, { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
 
@@ -31,7 +33,7 @@ export async function GET(request: NextRequest) {
       console.error('Error fetching reminder history:', error)
       // If table doesn't exist, return empty array
       if (error.code === 'PGRST116' || error.message?.includes('relation "reminder_history" does not exist')) {
-        return NextResponse.json({ history: [] })
+        return NextResponse.json({ history: [], total: 0, limit, offset })
       }
       return NextResponse.json({ error: 'Failed to fetch history', details: error.message }, { status: 500 })
     }
@@ -51,7 +53,12 @@ export async function GET(request: NextRequest) {
       created_at: item.created_at
     }))
 
-    return NextResponse.json({ history: transformedHistory })
+    return NextResponse.json({
+      history: transformedHistory,
+      total: count ?? 0,
+      limit,
+      offset
+    })
   } catch (error) {
     console.error('Reminder history API error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

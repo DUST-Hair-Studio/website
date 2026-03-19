@@ -40,6 +40,13 @@ interface ReminderHistory {
   created_at: string
 }
 
+interface ReminderHistoryResponse {
+  history: ReminderHistory[]
+  total?: number
+  limit?: number
+  offset?: number
+}
+
 const REMINDER_TYPES = [
   { value: 'confirmation', label: 'Confirmation', description: 'Sent immediately after booking' },
   { value: 'reminder', label: 'Reminder', description: 'Sent before appointment' },
@@ -103,6 +110,7 @@ function previewWithSample(text: string): string {
 }
 
 function AdminRemindersContent() {
+  const HISTORY_PAGE_SIZE = 25
   const [activeTab, setActiveTab] = useState('templates')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -114,6 +122,8 @@ function AdminRemindersContent() {
   
   // History state
   const [reminderHistory, setReminderHistory] = useState<ReminderHistory[]>([])
+  const [historyPage, setHistoryPage] = useState(1)
+  const [historyTotal, setHistoryTotal] = useState(0)
   
   // Accordion state
   const [variablesExpanded, setVariablesExpanded] = useState(false)
@@ -128,8 +138,17 @@ function AdminRemindersContent() {
     is_active: true
   })
 
+  const fetchHistory = async (page: number) => {
+    const offset = (page - 1) * HISTORY_PAGE_SIZE
+    const historyResponse = await fetch(`/api/admin/reminders/history?limit=${HISTORY_PAGE_SIZE}&offset=${offset}`)
+    if (!historyResponse.ok) return
+    const historyData: ReminderHistoryResponse = await historyResponse.json()
+    setReminderHistory(historyData.history || [])
+    setHistoryTotal(historyData.total || 0)
+  }
+
   // Fetch templates and history
-  const fetchData = async () => {
+  const fetchData = async (page = historyPage) => {
     try {
       setLoading(true)
       
@@ -141,11 +160,7 @@ function AdminRemindersContent() {
       }
       
       // Fetch reminder history
-      const historyResponse = await fetch('/api/admin/reminders/history')
-      if (historyResponse.ok) {
-        const historyData = await historyResponse.json()
-        setReminderHistory(historyData.history || [])
-      }
+      await fetchHistory(page)
     } catch (error) {
       console.error('Error fetching reminders data:', error)
       toast.error('Failed to load reminders data')
@@ -157,6 +172,12 @@ function AdminRemindersContent() {
   useEffect(() => {
     fetchData()
   }, [])
+
+  useEffect(() => {
+    if (!loading) {
+      fetchHistory(historyPage)
+    }
+  }, [historyPage])
 
   // Create new template
   const createTemplate = async () => {
@@ -316,6 +337,23 @@ function AdminRemindersContent() {
         return <Badge variant="secondary">{status}</Badge>
     }
   }
+
+  const getTemplateTypeBadgeClass = (type: ReminderTemplate['type']) => {
+    switch (type) {
+      case 'confirmation':
+        return 'bg-blue-100 text-blue-800 border-blue-200'
+      case 'followup':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+      case 'reminder':
+        return 'bg-orange-100 text-orange-800 border-orange-200'
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200'
+    }
+  }
+
+  const historyTotalPages = Math.max(1, Math.ceil(historyTotal / HISTORY_PAGE_SIZE))
+  const historyFrom = historyTotal === 0 ? 0 : (historyPage - 1) * HISTORY_PAGE_SIZE + 1
+  const historyTo = historyTotal === 0 ? 0 : Math.min(historyPage * HISTORY_PAGE_SIZE, historyTotal)
 
   if (loading) {
     return (
@@ -536,135 +574,84 @@ function AdminRemindersContent() {
           </Card>
 
           {/* Templates List */}
-          <div className="space-y-4">
-            {templates.map((template) => (
-              <Card key={template.id} className="shadow-sm hover:shadow-md transition-shadow">
-                <CardContent className="p-4 sm:p-6">
-                  {/* Mobile Layout */}
-                  <div className="block sm:hidden">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className="font-semibold text-lg">{template.name}</h3>
-                        <Badge 
-                          className={`mt-1 ${
-                            template.type === 'confirmation' ? 'bg-blue-100 text-blue-800 border-blue-200' :
-                            template.type === 'followup' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
-                            template.type === 'reminder' ? 'bg-orange-100 text-orange-800 border-orange-200' :
-                            'bg-gray-100 text-gray-800 border-gray-200'
-                          }`}
-                        >
-                          {template.type}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          checked={template.is_active}
-                          onCheckedChange={(checked) => toggleTemplateStatus(template.id, checked)}
-                          className="data-[state=checked]:bg-green-500"
-                        />
-                        <span className="text-sm text-gray-600">
-                          {template.is_active ? 'Active' : 'Inactive'}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2 mb-4">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Subject:</span>
-                        <span className="text-gray-900 font-medium">{template.subject}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Timing:</span>
-                        <span className="text-gray-900">
+          <div className="rounded-lg border bg-white overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[980px] text-sm">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-medium text-gray-600">Template</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-600">Subject</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-600">Timing</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-600">Message</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-600">Status</th>
+                    <th className="px-4 py-3 text-right font-medium text-gray-600">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {templates.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                        No templates yet. Create one to get started.
+                      </td>
+                    </tr>
+                  ) : (
+                    templates.map((template) => (
+                      <tr key={template.id} className="border-b last:border-0 align-top">
+                        <td className="px-4 py-3">
+                          <div className="font-medium text-gray-900">{template.name}</div>
+                          <Badge className={`mt-1 ${getTemplateTypeBadgeClass(template.type)}`}>
+                            {template.type}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 text-gray-700 max-w-[260px] truncate" title={template.subject}>
+                          {template.subject}
+                        </td>
+                        <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
                           {template.hours_before === 0 ? 'Immediately' : `${template.hours_before} hours before`}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <p className="text-sm text-gray-500 mb-4 line-clamp-2">
-                      {template.message}
-                    </p>
-                    
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 px-3 text-xs flex-1"
-                        onClick={() => startEditing(template)}
-                      >
-                        <Edit className="h-3 w-3 mr-1" />
-                        Edit
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 px-3 text-xs flex-1 text-red-600 hover:text-red-700"
-                        onClick={() => deleteTemplate(template.id)}
-                      >
-                        <Trash2 className="h-3 w-3 mr-1" />
-                        Delete
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Desktop Layout */}
-                  <div className="hidden sm:flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <h3 className="font-semibold">{template.name}</h3>
-                        <Badge 
-                          className={
-                            template.type === 'confirmation' ? 'bg-blue-100 text-blue-800 border-blue-200' :
-                            template.type === 'followup' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
-                            template.type === 'reminder' ? 'bg-orange-100 text-orange-800 border-orange-200' :
-                            'bg-gray-100 text-gray-800 border-gray-200'
-                          }
-                        >
-                          {template.type}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-2">
-                        <strong>Subject:</strong> {template.subject}
-                      </p>
-                      <p className="text-sm text-gray-600 mb-2">
-                        <strong>Timing:</strong> {template.hours_before === 0 ? 'Immediately' : `${template.hours_before} hours before`}
-                      </p>
-                      <p className="text-sm text-gray-500 line-clamp-2">
-                        {template.message}
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          checked={template.is_active}
-                          onCheckedChange={(checked) => toggleTemplateStatus(template.id, checked)}
-                          className="data-[state=checked]:bg-green-500"
-                        />
-                        <span className="text-sm text-gray-600">
-                          {template.is_active ? 'Active' : 'Inactive'}
-                        </span>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => startEditing(template)}
-                        className="hover:bg-gray-50"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => deleteTemplate(template.id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                        </td>
+                        <td className="px-4 py-3 text-gray-600 max-w-[360px]">
+                          <p className="line-clamp-2">{template.message}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center space-x-2">
+                            <Switch
+                              checked={template.is_active}
+                              onCheckedChange={(checked) => toggleTemplateStatus(template.id, checked)}
+                              className="data-[state=checked]:bg-green-500"
+                            />
+                            <span className="text-sm text-gray-600 whitespace-nowrap">
+                              {template.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => startEditing(template)}
+                              className="h-8"
+                            >
+                              <Edit className="h-4 w-4 mr-1" />
+                              Edit
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => deleteTemplate(template.id)}
+                              className="h-8 text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Delete
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </TabsContent>
 
@@ -672,7 +659,7 @@ function AdminRemindersContent() {
         <TabsContent value="history" className="space-y-6 mt-6">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Reminder History</h2>
-            <Button onClick={fetchData} variant="outline">
+            <Button onClick={() => fetchData(historyPage)} variant="outline">
               Refresh
             </Button>
           </div>
@@ -693,76 +680,79 @@ function AdminRemindersContent() {
               </div>
             </div>
           ) : (
-            <div className="space-y-4">
-              {reminderHistory.map((reminder) => (
-                <Card key={reminder.id} className="shadow-sm hover:shadow-md transition-shadow">
-                  <CardContent className="p-4 sm:p-6">
-                    {/* Mobile Layout */}
-                    <div className="block sm:hidden">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <h3 className="font-semibold text-lg">{reminder.customer_name}</h3>
-                          <div className="flex items-center space-x-2 mt-1">
-                            {getStatusBadge(reminder.status)}
-                            <Badge variant="outline" className="text-xs">{reminder.template_name}</Badge>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">Email:</span>
-                          <span className="text-gray-900 font-medium">{reminder.customer_email}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">Scheduled:</span>
-                          <span className="text-gray-900">{new Date(reminder.scheduled_for).toLocaleString()}</span>
-                        </div>
-                        {reminder.sent_at && (
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-500">Sent:</span>
-                            <span className="text-gray-900">{new Date(reminder.sent_at).toLocaleString()}</span>
-                          </div>
-                        )}
-                        {reminder.error_message && (
-                          <div className="mt-2 p-2 bg-red-50 rounded text-sm text-red-600">
-                            <strong>Error:</strong> {reminder.error_message}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Desktop Layout */}
-                    <div className="hidden sm:block">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <h3 className="font-semibold">{reminder.customer_name}</h3>
-                            {getStatusBadge(reminder.status)}
+            <div className="space-y-3">
+              <div className="rounded-lg border bg-white overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[980px] text-sm">
+                    <thead className="bg-gray-50 border-b">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium text-gray-600">Customer</th>
+                        <th className="px-4 py-3 text-left font-medium text-gray-600">Template</th>
+                        <th className="px-4 py-3 text-left font-medium text-gray-600">Status</th>
+                        <th className="px-4 py-3 text-left font-medium text-gray-600">Scheduled</th>
+                        <th className="px-4 py-3 text-left font-medium text-gray-600">Sent</th>
+                        <th className="px-4 py-3 text-left font-medium text-gray-600">Error</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reminderHistory.map((reminder) => (
+                        <tr key={reminder.id} className="border-b last:border-0 align-top">
+                          <td className="px-4 py-3">
+                            <div className="font-medium text-gray-900">{reminder.customer_name}</div>
+                            <div className="text-xs text-gray-500">{reminder.customer_email}</div>
+                          </td>
+                          <td className="px-4 py-3">
                             <Badge variant="outline">{reminder.template_name}</Badge>
-                          </div>
-                          <p className="text-sm text-gray-600">
-                            <strong>Email:</strong> {reminder.customer_email}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            <strong>Scheduled for:</strong> {new Date(reminder.scheduled_for).toLocaleString()}
-                          </p>
-                          {reminder.sent_at && (
-                            <p className="text-sm text-gray-600">
-                              <strong>Sent at:</strong> {new Date(reminder.sent_at).toLocaleString()}
-                            </p>
-                          )}
-                          {reminder.error_message && (
-                            <p className="text-sm text-red-600">
-                              <strong>Error:</strong> {reminder.error_message}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                          </td>
+                          <td className="px-4 py-3">{getStatusBadge(reminder.status)}</td>
+                          <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
+                            {new Date(reminder.scheduled_for).toLocaleString()}
+                          </td>
+                          <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
+                            {reminder.sent_at ? new Date(reminder.sent_at).toLocaleString() : '-'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-red-600 max-w-[280px]">
+                            {reminder.error_message ? (
+                              <p className="line-clamp-2" title={reminder.error_message}>
+                                {reminder.error_message}
+                              </p>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-gray-600">
+                  Showing {historyFrom}-{historyTo} of {historyTotal}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={historyPage <= 1}
+                    onClick={() => setHistoryPage((prev) => Math.max(1, prev - 1))}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm text-gray-700">
+                    Page {historyPage} of {historyTotalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={historyPage >= historyTotalPages}
+                    onClick={() => setHistoryPage((prev) => Math.min(historyTotalPages, prev + 1))}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
         </TabsContent>

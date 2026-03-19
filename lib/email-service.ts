@@ -67,6 +67,43 @@ export interface WaitlistConfirmationData {
 export class EmailService {
   private supabase = createAdminSupabaseClient()
 
+  private async updateReminderHistoryStatus(
+    reminderHistoryId: string,
+    status: 'sent' | 'failed',
+    options?: { errorMessage?: string; emailId?: string }
+  ): Promise<void> {
+    try {
+      const updateData: {
+        status: 'sent' | 'failed'
+        sent_at?: string
+        error_message?: string | null
+        email_id?: string
+      } = {
+        status
+      }
+
+      if (status === 'sent') {
+        updateData.sent_at = new Date().toISOString()
+        updateData.error_message = null
+      }
+
+      if (status === 'failed') {
+        updateData.error_message = options?.errorMessage || 'Unknown error'
+      }
+
+      if (options?.emailId) {
+        updateData.email_id = options.emailId
+      }
+
+      await this.supabase
+        .from('reminder_history')
+        .update(updateData)
+        .eq('id', reminderHistoryId)
+    } catch (error) {
+      console.error(`Error updating reminder history ${reminderHistoryId}:`, error)
+    }
+  }
+
   // Get business settings
   private async getBusinessSettings(): Promise<BusinessSettings> {
     const { data: settings } = await this.supabase
@@ -171,7 +208,7 @@ export class EmailService {
   }
 
   // Send confirmation email immediately after booking
-  async sendConfirmationEmail(booking: BookingData): Promise<boolean> {
+  async sendConfirmationEmail(booking: BookingData, reminderHistoryId?: string): Promise<boolean> {
     try {
       // Check if Resend is configured
       if (!resend) {
@@ -237,36 +274,61 @@ export class EmailService {
 
       if (error) {
         console.error('Error sending confirmation email:', error)
+        if (reminderHistoryId) {
+          await this.updateReminderHistoryStatus(reminderHistoryId, 'failed', {
+            errorMessage: error.message
+          })
+        }
         return false
       }
 
       console.log('Confirmation email sent successfully:', data)
       
-      // Log the email send in reminder history
-      await this.logEmailSend(booking.id, template.id, template.name, 'sent', data?.id)
+      if (reminderHistoryId) {
+        await this.updateReminderHistoryStatus(reminderHistoryId, 'sent', { emailId: data?.id })
+      } else {
+        // Log the email send in reminder history
+        await this.logEmailSend(booking.id, template.id, template.name, 'sent', data?.id)
+      }
       
       return true
     } catch (error) {
       console.error('Error in sendConfirmationEmail:', error)
       
-      // Log the error
-      await this.logEmailSend(booking.id, '', 'Confirmation', 'failed', undefined, error instanceof Error ? error.message : 'Unknown error')
+      if (reminderHistoryId) {
+        await this.updateReminderHistoryStatus(reminderHistoryId, 'failed', {
+          errorMessage: error instanceof Error ? error.message : 'Unknown error'
+        })
+      } else {
+        // Log the error
+        await this.logEmailSend(booking.id, '', 'Confirmation', 'failed', undefined, error instanceof Error ? error.message : 'Unknown error')
+      }
       
       return false
     }
   }
 
   // Send reminder email (for scheduled reminders)
-  async sendReminderEmail(booking: BookingData, templateId: string): Promise<boolean> {
+  async sendReminderEmail(booking: BookingData, templateId: string, reminderHistoryId?: string): Promise<boolean> {
     try {
       if (!resend) {
         console.log('Resend API key not configured, skipping email')
+        if (reminderHistoryId) {
+          await this.updateReminderHistoryStatus(reminderHistoryId, 'failed', {
+            errorMessage: 'Resend API key not configured'
+          })
+        }
         return false
       }
 
       const toEmail = booking?.customers?.email
       if (!toEmail || typeof toEmail !== 'string') {
         console.error('Reminder skipped: no customer email for booking', booking?.id)
+        if (reminderHistoryId) {
+          await this.updateReminderHistoryStatus(reminderHistoryId, 'failed', {
+            errorMessage: 'No customer email'
+          })
+        }
         return false
       }
 
@@ -278,6 +340,11 @@ export class EmailService {
 
       if (templateError || !template) {
         console.error('Error fetching reminder template:', templateError)
+        if (reminderHistoryId) {
+          await this.updateReminderHistoryStatus(reminderHistoryId, 'failed', {
+            errorMessage: templateError?.message || 'Reminder template not found'
+          })
+        }
         return false
       }
 
@@ -310,23 +377,39 @@ export class EmailService {
 
       if (error) {
         console.error('Error sending reminder email:', error)
-        await this.logEmailSend(booking.id, templateId, template.name, 'failed', undefined, error.message)
+        if (reminderHistoryId) {
+          await this.updateReminderHistoryStatus(reminderHistoryId, 'failed', {
+            errorMessage: error.message
+          })
+        } else {
+          await this.logEmailSend(booking.id, templateId, template.name, 'failed', undefined, error.message)
+        }
         return false
       }
 
       console.log('Reminder email sent successfully:', data)
-      await this.logEmailSend(booking.id, templateId, template.name, 'sent', data?.id)
+      if (reminderHistoryId) {
+        await this.updateReminderHistoryStatus(reminderHistoryId, 'sent', { emailId: data?.id })
+      } else {
+        await this.logEmailSend(booking.id, templateId, template.name, 'sent', data?.id)
+      }
       
       return true
     } catch (error) {
       console.error('Error in sendReminderEmail:', error)
-      await this.logEmailSend(booking.id, templateId, 'Reminder', 'failed', undefined, error instanceof Error ? error.message : 'Unknown error')
+      if (reminderHistoryId) {
+        await this.updateReminderHistoryStatus(reminderHistoryId, 'failed', {
+          errorMessage: error instanceof Error ? error.message : 'Unknown error'
+        })
+      } else {
+        await this.logEmailSend(booking.id, templateId, 'Reminder', 'failed', undefined, error instanceof Error ? error.message : 'Unknown error')
+      }
       return false
     }
   }
 
   // Send cancellation email when booking is cancelled
-  async sendCancellationEmail(booking: BookingData): Promise<boolean> {
+  async sendCancellationEmail(booking: BookingData, reminderHistoryId?: string): Promise<boolean> {
     try {
       if (!resend) {
         console.log('Resend API key not configured, skipping email')
@@ -386,23 +469,39 @@ export class EmailService {
 
       if (error) {
         console.error('Error sending cancellation email:', error)
-        await this.logEmailSend(booking.id, template.id, template.name, 'failed', undefined, error.message)
+        if (reminderHistoryId) {
+          await this.updateReminderHistoryStatus(reminderHistoryId, 'failed', {
+            errorMessage: error.message
+          })
+        } else {
+          await this.logEmailSend(booking.id, template.id, template.name, 'failed', undefined, error.message)
+        }
         return false
       }
 
       console.log('Cancellation email sent successfully:', data)
-      await this.logEmailSend(booking.id, template.id, template.name, 'sent', data?.id)
+      if (reminderHistoryId) {
+        await this.updateReminderHistoryStatus(reminderHistoryId, 'sent', { emailId: data?.id })
+      } else {
+        await this.logEmailSend(booking.id, template.id, template.name, 'sent', data?.id)
+      }
       
       return true
     } catch (error) {
       console.error('Error in sendCancellationEmail:', error)
-      await this.logEmailSend(booking.id, '', 'Cancellation', 'failed', undefined, error instanceof Error ? error.message : 'Unknown error')
+      if (reminderHistoryId) {
+        await this.updateReminderHistoryStatus(reminderHistoryId, 'failed', {
+          errorMessage: error instanceof Error ? error.message : 'Unknown error'
+        })
+      } else {
+        await this.logEmailSend(booking.id, '', 'Cancellation', 'failed', undefined, error instanceof Error ? error.message : 'Unknown error')
+      }
       return false
     }
   }
 
   // Send reschedule email when booking is rescheduled
-  async sendRescheduleEmail(booking: BookingData, oldDate?: string, oldTime?: string): Promise<boolean> {
+  async sendRescheduleEmail(booking: BookingData, oldDate?: string, oldTime?: string, reminderHistoryId?: string): Promise<boolean> {
     try {
       console.log('📧 [RESCHEDULE EMAIL] Starting sendRescheduleEmail for booking:', booking.id)
       
@@ -508,17 +607,33 @@ export class EmailService {
 
       if (error) {
         console.error('❌ [RESCHEDULE EMAIL] Error sending via Resend:', error)
-        await this.logEmailSend(booking.id, template.id, template.name, 'failed', undefined, error.message)
+        if (reminderHistoryId) {
+          await this.updateReminderHistoryStatus(reminderHistoryId, 'failed', {
+            errorMessage: error.message
+          })
+        } else {
+          await this.logEmailSend(booking.id, template.id, template.name, 'failed', undefined, error.message)
+        }
         return false
       }
 
       console.log('✅ [RESCHEDULE EMAIL] Email sent successfully!', { emailId: data?.id, to: booking.customers.email })
-      await this.logEmailSend(booking.id, template.id, template.name, 'sent', data?.id)
+      if (reminderHistoryId) {
+        await this.updateReminderHistoryStatus(reminderHistoryId, 'sent', { emailId: data?.id })
+      } else {
+        await this.logEmailSend(booking.id, template.id, template.name, 'sent', data?.id)
+      }
       
       return true
     } catch (error) {
       console.error('❌ [RESCHEDULE EMAIL] Exception in sendRescheduleEmail:', error)
-      await this.logEmailSend(booking.id, '', 'Reschedule', 'failed', undefined, error instanceof Error ? error.message : 'Unknown error')
+      if (reminderHistoryId) {
+        await this.updateReminderHistoryStatus(reminderHistoryId, 'failed', {
+          errorMessage: error instanceof Error ? error.message : 'Unknown error'
+        })
+      } else {
+        await this.logEmailSend(booking.id, '', 'Reschedule', 'failed', undefined, error instanceof Error ? error.message : 'Unknown error')
+      }
       return false
     }
   }

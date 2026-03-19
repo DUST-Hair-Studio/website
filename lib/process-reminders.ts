@@ -100,17 +100,26 @@ export async function runProcessReminders(): Promise<ProcessRemindersResult> {
         }
       }
 
-      const emailSent = await emailService.sendReminderEmail(bookingData, reminder.template_id || '')
+      const emailSent = await emailService.sendReminderEmail(
+        bookingData,
+        reminder.template_id || '',
+        reminder.id
+      )
 
       if (emailSent) {
         successful++
-        await supabase
-          .from('reminder_history')
-          .update({ status: 'sent', sent_at: new Date().toISOString() })
-          .eq('id', reminder.id)
         console.log(`Reminder sent successfully for booking ${reminder.booking_id}`)
       } else {
         failed++
+        await supabase
+          .from('reminder_history')
+          .update({
+            status: 'failed',
+            error_message: 'Email send failed',
+            sent_at: new Date().toISOString()
+          })
+          .eq('id', reminder.id)
+          .eq('status', 'pending')
         console.log(`Failed to send reminder for booking ${reminder.booking_id}`)
       }
     } catch (error) {
