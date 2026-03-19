@@ -134,6 +134,10 @@ export default function MyAppointmentsPage() {
     return `$${Math.round(priceInCents / 100)}`
   }
 
+  const getBookingTimestamp = (booking: BookingWithDetails) => {
+    return new Date(`${booking.booking_date}T${booking.booking_time}`).getTime()
+  }
+
   const getWaitlistStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
@@ -278,13 +282,13 @@ export default function MyAppointmentsPage() {
     })
   }
 
-  const upcomingBookings = bookings.filter(booking => 
-    isUpcoming(booking.booking_date, booking.booking_time) && booking.status !== 'cancelled'
-  )
+  const upcomingBookings = bookings
+    .filter(booking => isUpcoming(booking.booking_date, booking.booking_time) && booking.status !== 'cancelled')
+    .sort((a, b) => getBookingTimestamp(a) - getBookingTimestamp(b))
   
-  const pastBookings = bookings.filter(booking => 
-    !isUpcoming(booking.booking_date, booking.booking_time)
-  )
+  const pastBookings = bookings
+    .filter(booking => !isUpcoming(booking.booking_date, booking.booking_time))
+    .sort((a, b) => getBookingTimestamp(b) - getBookingTimestamp(a))
 
   if (authLoading || (bookingsLoading && waitlistLoading)) {
     return (
