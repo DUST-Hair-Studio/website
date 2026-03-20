@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 import RescheduleModal from '@/components/admin/reschedule-modal'
 import AdminBookModal from '@/components/admin/admin-book-modal'
+import { createBusinessDateTime, DEFAULT_BUSINESS_TIMEZONE } from '@/lib/timezone-utils-client'
 
 interface BookingWithDetails extends Booking {
   services: {
@@ -570,41 +571,33 @@ export default function AdminBookingsPage() {
   }
 
   const formatTime = (time: string) => {
-    // Create a proper date-time object for time formatting
-    const dateTime = new Date(`2025-01-01T${time}`)
+    const dateTime = createBusinessDateTime('2025-01-01', time, DEFAULT_BUSINESS_TIMEZONE)
     const timeOptions: Intl.DateTimeFormatOptions = {
-      timeZone: 'America/Los_Angeles',
+      timeZone: DEFAULT_BUSINESS_TIMEZONE,
       hour: 'numeric',
       minute: '2-digit',
       hour12: true
     }
-    
-    return `${dateTime.toLocaleTimeString('en-US', timeOptions)} PST`
+    return dateTime.toLocaleTimeString('en-US', timeOptions)
   }
 
   const formatDateTime = (date: string, time: string) => {
-    // Create the actual date-time and format it properly
-    const dateTime = new Date(`${date}T${time}`)
-    
-    // Format date part
+    const dateTime = createBusinessDateTime(date, time, DEFAULT_BUSINESS_TIMEZONE)
     const dateOptions: Intl.DateTimeFormatOptions = {
-      timeZone: 'America/Los_Angeles',
+      timeZone: DEFAULT_BUSINESS_TIMEZONE,
       weekday: 'short',
       year: 'numeric',
       month: 'short',
       day: 'numeric'
     }
     const datePart = dateTime.toLocaleDateString('en-US', dateOptions)
-    
-    // Format time part
     const timeOptions: Intl.DateTimeFormatOptions = {
-      timeZone: 'America/Los_Angeles',
+      timeZone: DEFAULT_BUSINESS_TIMEZONE,
       hour: 'numeric',
       minute: '2-digit',
       hour12: true
     }
     const timePart = dateTime.toLocaleTimeString('en-US', timeOptions)
-    
     return (
       <div>
         <div className="text-sm text-gray-900">{datePart}</div>

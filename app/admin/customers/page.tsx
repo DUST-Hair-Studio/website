@@ -38,6 +38,7 @@ interface BillingHistoryItem {
 
 export default function AdminCustomersPage() {
   const [customers, setCustomers] = useState<CustomerWithStats[]>([])
+  const [totalRevenue, setTotalRevenue] = useState(0)
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<'all' | 'new' | 'loyalty'>('all')
@@ -76,6 +77,7 @@ export default function AdminCustomersPage() {
       
       const data = await response.json()
       setCustomers(data.customers || [])
+      setTotalRevenue(data.totalRevenue ?? 0)
     } catch (error) {
       console.error('Error fetching customers:', error)
       toast.error('Failed to load customers')
@@ -435,13 +437,13 @@ export default function AdminCustomersPage() {
     }
   }
 
-  // Get customer stats
+  // Get customer stats (totalRevenue from API - computed from paid bookings, matches bookings page)
   const stats = {
     total: customers.length,
     new: customers.filter(c => !c.is_existing_customer).length,
     existing: customers.filter(c => c.is_existing_customer).length,
     totalBookings: customers.reduce((sum, c) => sum + c.total_bookings, 0),
-    totalRevenue: customers.reduce((sum, c) => sum + c.total_spent, 0)
+    totalRevenue
   }
 
   if (loading) {

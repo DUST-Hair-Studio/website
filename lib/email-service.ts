@@ -1,6 +1,7 @@
 import { Resend } from 'resend'
 import { createAdminSupabaseClient } from './supabase-server'
 import { createBusinessDateTimeSync } from './timezone-utils'
+import { buildConfirmationICS, buildCancellationICS, buildGoogleCalendarUrl } from './calendar-invite'
 
 // Only initialize Resend if API key is available
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
@@ -323,6 +324,20 @@ export class EmailService {
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
       const appointmentsUrl = `${baseUrl}/appointments`
 
+      // Build ICS calendar attachment and Google Calendar link
+      const icsInput = {
+        bookingId: booking.id,
+        date: booking.booking_date,
+        time: booking.booking_time,
+        durationMinutes: booking.duration_minutes,
+        clientName: booking.customers?.name ?? '',
+        serviceName: booking.services?.name ?? '',
+        businessTimezone: businessSettings.timezone,
+        location: businessSettings.business_address || undefined,
+      }
+      const icsContent = buildConfirmationICS(icsInput)
+      const googleCalUrl = buildGoogleCalendarUrl(icsInput)
+
       const { data, error } = await resend.emails.send({
         from: getResendFromAddress(),
         replyTo: businessSettings.business_email || undefined,
@@ -339,6 +354,9 @@ export class EmailService {
               <a href="${appointmentsUrl}" style="display: inline-block; background-color: #1C1C1D; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">
                 Manage Your Appointment
               </a>
+              <a href="${googleCalUrl}" style="display: inline-block; margin-left: 12px; background-color: #4285F4; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">
+                Add to Google Calendar
+              </a>
             </div>
             <div style="border-top: 1px solid #eee; padding-top: 20px; font-size: 12px; color: #666;">
               <p>Booking ID: ${booking.id}</p>
@@ -346,7 +364,13 @@ export class EmailService {
               <p>If you have any questions, please contact us at ${businessSettings.business_phone}</p>
             </div>
           </div>
-        `
+        `,
+        attachments: [
+          {
+            filename: 'appointment.ics',
+            content: icsContent,
+          },
+        ],
       })
 
       if (error) {
@@ -530,6 +554,19 @@ export class EmailService {
 
       const htmlMessage = message.replace(/\n/g, '<br>')
 
+      // Build ICS cancellation attachment (METHOD:CANCEL so calendar clients remove the event)
+      const icsInput = {
+        bookingId: booking.id,
+        date: booking.booking_date,
+        time: booking.booking_time,
+        durationMinutes: booking.duration_minutes,
+        clientName: booking.customers?.name ?? '',
+        serviceName: booking.services?.name ?? '',
+        businessTimezone: businessSettings.timezone,
+        location: businessSettings.business_address || undefined,
+      }
+      const icsContent = buildCancellationICS(icsInput)
+
       const { data, error } = await resend.emails.send({
         from: getResendFromAddress(),
         replyTo: businessSettings.business_email || undefined,
@@ -547,7 +584,13 @@ export class EmailService {
               <p>If you have any questions, please contact us at ${businessSettings?.business_phone ?? ''}</p>
             </div>
           </div>
-        `
+        `,
+        attachments: [
+          {
+            filename: 'appointment.ics',
+            content: icsContent,
+          },
+        ],
       })
 
       if (error) {
@@ -668,6 +711,41 @@ export class EmailService {
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
       const appointmentsUrl = `${baseUrl}/appointments`
 
+      // Build ICS for NEW date/time (adds/updates the event)
+      const newIcsInput = {
+        bookingId: booking.id,
+        date: booking.booking_date,
+        time: booking.booking_time,
+        durationMinutes: booking.duration_minutes,
+        clientName: booking.customers?.name ?? '',
+        serviceName: booking.services?.name ?? '',
+        businessTimezone: businessSettings.timezone,
+        location: businessSettings.business_address || undefined,
+        sequence: 1,
+      }
+      const icsContent = buildConfirmationICS(newIcsInput)
+      const googleCalUrl = buildGoogleCalendarUrl(newIcsInput)
+
+      // For reschedule: also send CANCEL for OLD date/time first, so calendar removes
+      // the original event. Many clients (Apple Calendar, Outlook) don't replace
+      // on REQUEST alone—they add a duplicate. Cancel-then-confirm works reliably.
+      const attachments: { filename: string; content: string }[] = []
+      if (oldDate && oldTime) {
+        const cancelIcsInput = {
+          ...newIcsInput,
+          date: oldDate,
+          time: oldTime,
+        }
+        attachments.push({
+          filename: 'appointment-cancel.ics',
+          content: buildCancellationICS(cancelIcsInput),
+        })
+      }
+      attachments.push({
+        filename: 'appointment.ics',
+        content: icsContent,
+      })
+
       const { data, error } = await resend.emails.send({
         from: getResendFromAddress(),
         replyTo: businessSettings.business_email || undefined,
@@ -684,6 +762,9 @@ export class EmailService {
               <a href="${appointmentsUrl}" style="display: inline-block; background-color: #1C1C1D; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">
                 Manage Your Appointment
               </a>
+              <a href="${googleCalUrl}" style="display: inline-block; margin-left: 12px; background-color: #4285F4; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">
+                Add to Google Calendar
+              </a>
             </div>
             <div style="border-top: 1px solid #eee; padding-top: 20px; font-size: 12px; color: #666;">
               <p>Booking ID: ${booking.id}</p>
@@ -691,7 +772,8 @@ export class EmailService {
               <p>If you have any questions, please contact us at ${businessSettings.business_phone}</p>
             </div>
           </div>
-        `
+        `,
+        attachments,
       })
 
       if (error) {

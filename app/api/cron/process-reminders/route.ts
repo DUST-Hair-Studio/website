@@ -3,7 +3,7 @@ import { runProcessReminders } from '@/lib/process-reminders'
 
 /**
  * Vercel cron: processes pending appointment reminders that are due.
- * vercel.json points here: "path": "/api/cron/process-reminders", "schedule": "0 9 * * *"
+ * Can also be triggered by external cron (e.g. cron-job.org) for hourly runs on free tier.
  */
 export const dynamic = 'force-dynamic'
 

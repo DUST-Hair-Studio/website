@@ -1,0 +1,22 @@
+# Reminder processing runs hourly via GitHub Actions (Vercel free tier cron limits).
+# Add CRON_SECRET to repo Secrets (Settings → Secrets → Actions). Update URL if using custom domain.
+name: Process Reminders
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # Every hour at :00
+  workflow_dispatch:       # Allows manual trigger from GitHub UI
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    env:
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    steps:
+      - name: Trigger reminder processing
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            https://dusthair.vercel.app/api/cron/process-reminders)
+          echo "Status: $response"
+          [ "$response" = "200" ] || exit 1

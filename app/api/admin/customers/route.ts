@@ -29,6 +29,16 @@ export async function GET() {
       return NextResponse.json({ error: 'Failed to fetch customers' }, { status: 500 })
     }
 
+    // Fetch total revenue from paid bookings (single source of truth, matches bookings page)
+    const { data: paidBookings, error: bookingsError } = await supabase
+      .from('bookings')
+      .select('price_charged')
+      .eq('payment_status', 'paid')
+
+    const totalRevenue = bookingsError
+      ? 0
+      : (paidBookings || []).reduce((sum, b) => sum + (b.price_charged || 0), 0)
+
     // Process the data to include booking stats
     const processedCustomers = customers.map(customer => {
       const bookings = customer.bookings || []
@@ -46,7 +56,7 @@ export async function GET() {
       }
     })
 
-    return NextResponse.json({ customers: processedCustomers })
+    return NextResponse.json({ customers: processedCustomers, totalRevenue })
   } catch (error) {
     console.error('Admin customers API error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
