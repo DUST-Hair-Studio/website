@@ -13,7 +13,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { CheckCircle, Calendar, DollarSign, CalendarDays, RotateCcw, Search, Filter, Table, Phone, MessageSquare, Mail, ListChecks, CreditCard, MoreVertical, CheckSquare, Loader2, ChevronLeft, ChevronRight, X, Clock } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
-import RescheduleModal from '@/components/admin/reschedule-modal'
 import AdminBookModal from '@/components/admin/admin-book-modal'
 import { createBusinessDateTime, DEFAULT_BUSINESS_TIMEZONE } from '@/lib/timezone-utils-client'
 
@@ -43,7 +42,6 @@ export default function AdminBookingsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [bookingToDelete, setBookingToDelete] = useState<string | null>(null)
   const [showBookingDetails, setShowBookingDetails] = useState(false)
-  const [showRescheduleModal, setShowRescheduleModal] = useState(false)
   const [bookingToReschedule, setBookingToReschedule] = useState<BookingWithDetails | null>(null)
   const [showAdminBookModal, setShowAdminBookModal] = useState(false)
   const [viewMode, setViewMode] = useState<'table' | 'calendar'>('calendar')
@@ -388,20 +386,7 @@ export default function AdminBookingsPage() {
   const openRescheduleModal = (booking: BookingWithDetails, e: React.MouseEvent) => {
     e.stopPropagation() // Prevent row click
     setBookingToReschedule(booking)
-    setShowRescheduleModal(true)
-  }
-
-  const handleRescheduleSuccess = (updatedBooking: BookingWithDetails) => {
-    // Update the booking in local state
-    setBookings(prev => 
-      prev.map(booking => 
-        booking.id === updatedBooking.id 
-          ? { ...booking, booking_date: updatedBooking.booking_date, booking_time: updatedBooking.booking_time }
-          : booking
-      )
-    )
-    setShowRescheduleModal(false)
-    setBookingToReschedule(null)
+    setShowAdminBookModal(true)
   }
 
   const handleCancelBooking = async (booking: BookingWithDetails) => {
@@ -752,7 +737,10 @@ export default function AdminBookingsPage() {
             </Button>
           </Link>
           <Button 
-            onClick={() => setShowAdminBookModal(true)}
+            onClick={() => {
+              setBookingToReschedule(null)
+              setShowAdminBookModal(true)
+            }}
             className="w-full sm:w-auto"
           >
             <Calendar className="w-4 h-4 mr-2" />
@@ -2507,32 +2495,26 @@ export default function AdminBookingsPage() {
         </div>
       )}
 
-      {/* Reschedule Modal */}
-      <RescheduleModal
-        isOpen={showRescheduleModal}
-        onClose={() => {
-          setShowRescheduleModal(false)
-          setBookingToReschedule(null)
-        }}
-        booking={bookingToReschedule}
-        onRescheduleSuccess={handleRescheduleSuccess}
-        apiEndpoint="/api/admin/bookings"
-      />
-
-      {/* Admin Book Appointment Modal */}
+      {/* Admin Book Appointment Modal (also used for reschedule) */}
       <AdminBookModal
         isOpen={showAdminBookModal}
-        onClose={() => setShowAdminBookModal(false)}
+        onClose={() => {
+          setShowAdminBookModal(false)
+          setBookingToReschedule(null)
+        }}
+        editBooking={bookingToReschedule}
         onBookingSuccess={async () => {
-          // Refresh bookings list
           try {
             const response = await fetch('/api/admin/bookings')
             const data = await response.json()
-            setBookings(data.bookings || [])
+            const newBookings: BookingWithDetails[] = data.bookings || []
+            setBookings(newBookings)
+            setSelectedBooking(prev => prev ? newBookings.find((b) => b.id === prev!.id) ?? prev : null)
           } catch (error) {
             console.error('Error refreshing bookings:', error)
           }
           setShowAdminBookModal(false)
+          setBookingToReschedule(null)
         }}
       />
 

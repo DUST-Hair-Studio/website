@@ -6,7 +6,7 @@ import { Calendar } from '@/components/ui/calendar'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Calendar as CalendarIcon, Clock, Search, AlertCircle, Loader2, Plus, ChevronRight, ChevronLeft, Check } from 'lucide-react'
+import { Calendar as CalendarIcon, Clock, Search, AlertCircle, Loader2, Plus, RotateCcw, ChevronRight, ChevronLeft, Check } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Customer {
@@ -43,19 +43,46 @@ interface TimeSlotWithConflict {
   conflictInfo?: string
 }
 
+interface EditBooking {
+  id: string
+  customer_id: string
+  service_id: string
+  booking_date: string
+  booking_time: string
+  duration_minutes: number
+  public_notes?: string
+  services: { name: string; duration_minutes: number } | null
+  customers: { name: string; email: string; phone: string; is_existing_customer?: boolean }
+}
+
 interface AdminBookModalProps {
   isOpen: boolean
   onClose: () => void
   onBookingSuccess?: () => void
+  /** When set, opens in reschedule mode – pre-filled with booking data, submits via PUT */
+  editBooking?: EditBooking | null
 }
 
 type Step = 'customer' | 'service' | 'datetime' | 'review'
 
+// Convert 24-hour time (HH:MM or HH:MM:SS) to display format (H:MM AM/PM)
+function time24ToDisplay(time24: string): string {
+  const parts = time24.split(':')
+  const hour = parseInt(parts[0], 10)
+  const minute = parts[1] || '00'
+  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
+  const ampm = hour >= 12 ? 'PM' : 'AM'
+  return `${displayHour}:${minute.padStart(2, '0')} ${ampm}`
+}
+
 export default function AdminBookModal({
   isOpen,
   onClose,
-  onBookingSuccess
+  onBookingSuccess,
+  editBooking
 }: AdminBookModalProps) {
+  const isRescheduleMode = !!editBooking
+
   // Step state
   const [currentStep, setCurrentStep] = useState<Step>('customer')
 
@@ -92,10 +119,10 @@ export default function AdminBookModal({
 
   const currentStepIndex = steps.findIndex(s => s.id === currentStep)
 
-  // Reset state when modal opens/closes
+  // Reset state when modal opens/closes (or when switching between create/reschedule)
   useEffect(() => {
     if (isOpen) {
-      setCurrentStep('customer')
+      setCurrentStep(isRescheduleMode ? 'datetime' : 'customer')
       setSelectedCustomer(null)
       setCustomerSearch('')
       setSelectedService(null)
@@ -103,9 +130,35 @@ export default function AdminBookModal({
       setSelectedTime('')
       setTimeSlotsWithConflicts([])
       setCreateError(null)
-      setPublicNotes('')
+      setPublicNotes(editBooking?.public_notes || '')
     }
-  }, [isOpen])
+  }, [isOpen, isRescheduleMode, editBooking?.public_notes])
+
+  // Pre-fill from editBooking when in reschedule mode (after customers/services load)
+  useEffect(() => {
+    if (!isOpen || !editBooking || customers.length === 0 || services.length === 0) return
+
+    const customer: Customer = {
+      id: editBooking.customer_id,
+      name: editBooking.customers.name,
+      email: editBooking.customers.email,
+      phone: editBooking.customers.phone,
+      is_existing_customer: editBooking.customers.is_existing_customer ?? false
+    }
+    setSelectedCustomer(customer)
+
+    const service = services.find(s => s.id === editBooking.service_id)
+    if (service) setSelectedService(service)
+
+    const [y, m, d] = editBooking.booking_date.split('-').map(Number)
+    const initialDate = new Date(y, m - 1, d)
+    setSelectedDate(initialDate)
+    setSelectedTime(time24ToDisplay(editBooking.booking_time))
+
+    if (service) {
+      fetchTimeSlotsWithConflicts(initialDate, service)
+    }
+  }, [isOpen, editBooking, customers.length, services.length, services])
 
   // Fetch customers on mount
   useEffect(() => {
@@ -235,8 +288,8 @@ export default function AdminBookModal({
     return { hasConflict: false }
   }
 
-  // Fetch conflicts for date
-  const fetchConflictsForDate = async (date: Date): Promise<ConflictingBooking[]> => {
+  // Fetch conflicts for date (excludes editBooking when rescheduling)
+  const fetchConflictsForDate = async (date: Date, excludeBookingId?: string): Promise<ConflictingBooking[]> => {
     try {
       const year = date.getFullYear()
       const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -248,7 +301,11 @@ export default function AdminBookModal({
       if (!response.ok) return []
       
       const data = await response.json()
-      return data.bookings || []
+      let bookings = data.bookings || []
+      if (excludeBookingId) {
+        bookings = bookings.filter((b: ConflictingBooking) => b.id !== excludeBookingId)
+      }
+      return bookings
     } catch (error) {
       console.error('Error fetching conflicts:', error)
       return []
@@ -267,16 +324,17 @@ export default function AdminBookModal({
   }
 
   // Fetch time slots with conflicts
-  const fetchTimeSlotsWithConflicts = async (date: Date) => {
-    if (!selectedService) return
+  const fetchTimeSlotsWithConflicts = async (date: Date, serviceOverride?: Service) => {
+    const service = serviceOverride ?? selectedService
+    if (!service) return
 
     setLoadingTimes(true)
     try {
       const allSlots = generateAllTimeSlots()
-      const conflicts = await fetchConflictsForDate(date)
+      const conflicts = await fetchConflictsForDate(date, editBooking?.id)
       
       const slotsWithConflicts: TimeSlotWithConflict[] = allSlots.map(time => {
-        const conflict = checkTimeConflict(time, selectedService.duration_minutes, conflicts)
+        const conflict = checkTimeConflict(time, service.duration_minutes, conflicts)
         return {
           time,
           hasConflict: conflict.hasConflict,
@@ -301,7 +359,7 @@ export default function AdminBookModal({
     return price / 100
   }, [selectedCustomer, selectedService])
 
-  // Handle booking submission
+  // Handle booking submission (create or reschedule)
   const handleSubmit = async () => {
     if (!selectedCustomer || !selectedService || !selectedDate || !selectedTime) {
       toast.error('Please fill in all required fields')
@@ -315,36 +373,57 @@ export default function AdminBookModal({
       const month = String(selectedDate.getMonth() + 1).padStart(2, '0')
       const day = String(selectedDate.getDate()).padStart(2, '0')
       const dateStr = `${year}-${month}-${day}`
+      const time24 = displayTimeTo24Hour(selectedTime)
 
-      const response = await fetch('/api/admin/bookings/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customerId: selectedCustomer.id,
-          serviceId: selectedService.id,
-          date: dateStr,
-          time: selectedTime,
-          publicNotes: publicNotes.trim() || undefined
+      if (editBooking) {
+        // Reschedule: PUT to update existing booking
+        const response = await fetch(`/api/admin/bookings/${editBooking.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            booking_date: dateStr,
+            booking_time: time24
+          })
         })
-      })
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        const message = errorData.details
-          ? `${errorData.error || 'Failed to create booking'}: ${errorData.details}`
-          : (errorData.error || 'Failed to create booking')
-        throw new Error(message)
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}))
+          throw new Error(errorData.error || 'Failed to reschedule booking')
+        }
+
+        toast.success('Booking rescheduled successfully')
+      } else {
+        // Create: POST new booking
+        const response = await fetch('/api/admin/bookings/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customerId: selectedCustomer.id,
+            serviceId: selectedService.id,
+            date: dateStr,
+            time: selectedTime,
+            publicNotes: publicNotes.trim() || undefined
+          })
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}))
+          const message = errorData.details
+            ? `${errorData.error || 'Failed to create booking'}: ${errorData.details}`
+            : (errorData.error || 'Failed to create booking')
+          throw new Error(message)
+        }
+
+        toast.success(`Booking created for ${selectedCustomer.name}`)
       }
 
-      toast.success(`Booking created for ${selectedCustomer.name}`)
-      
       if (onBookingSuccess) {
         onBookingSuccess()
       }
-      
+
       onClose()
     } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Failed to create booking'
+      const msg = error instanceof Error ? error.message : 'Failed to save booking'
       setCreateError(msg)
       toast.error(msg)
     } finally {
@@ -390,10 +469,12 @@ export default function AdminBookModal({
       <DialogContent className="w-[calc(100vw-1rem)] max-w-[600px] max-h-[90dvh] sm:max-h-[90vh] overflow-hidden flex flex-col p-4 sm:p-6">
         <DialogHeader className="text-center">
           <DialogTitle className="text-base sm:text-lg">
-            Book Appointment
+            {isRescheduleMode ? 'Reschedule Appointment' : 'Book Appointment'}
           </DialogTitle>
           <DialogDescription className="text-xs sm:text-sm">
-            Create a new appointment on behalf of a customer
+            {isRescheduleMode
+              ? 'Choose a new date and time. You can select any slot including those with conflicts.'
+              : 'Create a new appointment on behalf of a customer'}
           </DialogDescription>
         </DialogHeader>
 
@@ -693,12 +774,16 @@ export default function AdminBookModal({
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Creating...
+                  {isRescheduleMode ? 'Rescheduling...' : 'Creating...'}
                 </>
               ) : (
                 <>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Booking
+                  {isRescheduleMode ? (
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                  ) : (
+                    <Plus className="w-4 h-4 mr-2" />
+                  )}
+                  {isRescheduleMode ? 'Reschedule Appointment' : 'Create Booking'}
                 </>
               )}
             </Button>

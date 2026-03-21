@@ -1,7 +1,7 @@
 import { Resend } from 'resend'
 import { createAdminSupabaseClient } from './supabase-server'
 import { createBusinessDateTimeSync } from './timezone-utils'
-import { buildConfirmationICS, buildCancellationICS, buildGoogleCalendarUrl } from './calendar-invite'
+import { buildConfirmationICS, buildCancellationICS } from './calendar-invite'
 
 // Only initialize Resend if API key is available
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
@@ -336,7 +336,6 @@ export class EmailService {
         location: businessSettings.business_address || undefined,
       }
       const icsContent = buildConfirmationICS(icsInput)
-      const googleCalUrl = buildGoogleCalendarUrl(icsInput)
 
       const { data, error } = await resend.emails.send({
         from: getResendFromAddress(),
@@ -353,9 +352,6 @@ export class EmailService {
             <div style="text-align: center; margin: 30px 0;">
               <a href="${appointmentsUrl}" style="display: inline-block; background-color: #1C1C1D; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">
                 Manage Your Appointment
-              </a>
-              <a href="${googleCalUrl}" style="display: inline-block; margin-left: 12px; background-color: #4285F4; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">
-                Add to Google Calendar
               </a>
             </div>
             <div style="border-top: 1px solid #eee; padding-top: 20px; font-size: 12px; color: #666;">
@@ -724,7 +720,6 @@ export class EmailService {
         sequence: 1,
       }
       const icsContent = buildConfirmationICS(newIcsInput)
-      const googleCalUrl = buildGoogleCalendarUrl(newIcsInput)
 
       // For reschedule: also send CANCEL for OLD date/time first, so calendar removes
       // the original event. Many clients (Apple Calendar, Outlook) don't replace
@@ -761,9 +756,6 @@ export class EmailService {
             <div style="text-align: center; margin: 30px 0;">
               <a href="${appointmentsUrl}" style="display: inline-block; background-color: #1C1C1D; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">
                 Manage Your Appointment
-              </a>
-              <a href="${googleCalUrl}" style="display: inline-block; margin-left: 12px; background-color: #4285F4; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500;">
-                Add to Google Calendar
               </a>
             </div>
             <div style="border-top: 1px solid #eee; padding-top: 20px; font-size: 12px; color: #666;">

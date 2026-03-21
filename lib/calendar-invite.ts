@@ -1,13 +1,13 @@
 import ical, { ICalCalendarMethod, ICalEventStatus } from 'ical-generator'
 import { getVtimezoneComponent } from '@touch4it/ical-timezones'
-import { createBusinessDateTimeSync } from '@/lib/timezone-utils'
+import { createBusinessDateTimeSync, normalizeBookingTimeForIso } from '@/lib/timezone-utils'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type CalendarEventInput = {
   bookingId: string
   date: string              // YYYY-MM-DD
-  time: string              // HH:MM (24h)
+  time: string              // HH:MM or "12:00 PM" etc.
   durationMinutes: number
   clientName: string
   serviceName: string
@@ -24,14 +24,6 @@ function buildUID(bookingId: string): string {
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
-
-function toStartDate(input: CalendarEventInput): Date {
-  return createBusinessDateTimeSync(
-    input.date,
-    input.time,
-    input.businessTimezone
-  )
-}
 
 function createCalendar(businessTimezone: string) {
   const cal = ical({ prodId: 'DUST Hair Studio' })
@@ -61,16 +53,23 @@ export function buildConfirmationICS(input: CalendarEventInput): string {
     sequence = 0,
   } = input
 
-  const start = toStartDate(input)
-  const end = new Date(start.getTime() + durationMinutes * 60 * 1000)
+  // Use explicit local time strings so ical-generator outputs DTSTART;TZID=...:YYYYMMDDThhmmss
+  // with the exact local time (avoids Date→timezone conversion issues on UTC servers)
+  const normalized = normalizeBookingTimeForIso(input.time)
+  const [startH, startM] = normalized.split(':').map(Number)
+  const totalStartMins = startH * 60 + startM
+  const totalEndMins = totalStartMins + durationMinutes
+  const endH = Math.floor(totalEndMins / 60) % 24
+  const endM = totalEndMins % 60
+  const endTimeStr = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}:00`
 
   const cal = createCalendar(businessTimezone)
   cal.method(ICalCalendarMethod.REQUEST)
 
   cal.createEvent({
     id: buildUID(bookingId),
-    start,
-    end,
+    start: `${input.date}T${normalized}`,
+    end: `${input.date}T${endTimeStr}`,
     timezone: businessTimezone,
     sequence,
     status: ICalEventStatus.CONFIRMED,
@@ -103,16 +102,21 @@ export function buildCancellationICS(input: CalendarEventInput): string {
     location,
   } = input
 
-  const start = toStartDate(input)
-  const end = new Date(start.getTime() + durationMinutes * 60 * 1000)
+  const normalized = normalizeBookingTimeForIso(input.time)
+  const [startH, startM] = normalized.split(':').map(Number)
+  const totalStartMins = startH * 60 + startM
+  const totalEndMins = totalStartMins + durationMinutes
+  const endH = Math.floor(totalEndMins / 60) % 24
+  const endM = totalEndMins % 60
+  const endTimeStr = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}:00`
 
   const cal = createCalendar(businessTimezone)
   cal.method(ICalCalendarMethod.CANCEL)
 
   cal.createEvent({
     id: buildUID(bookingId),
-    start,
-    end,
+    start: `${input.date}T${normalized}`,
+    end: `${input.date}T${endTimeStr}`,
     timezone: businessTimezone,
     sequence: 1,
     status: ICalEventStatus.CANCELLED,
