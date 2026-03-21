@@ -251,27 +251,60 @@ export async function executeCampaignBroadcast(
     if (i < input.normalizedEmails.length - 1) await delay()
   }
 
+  // Verify segment matches intended recipients before sending
+  const verifyEmails: string[] = []
+  let verifyAfter: string | undefined
+  do {
+    const { data: verifyData } = await resend.contacts.list({ segmentId, limit: 100, after: verifyAfter })
+    const contacts = verifyData?.data ?? []
+    for (const c of contacts) {
+      if (c.email) verifyEmails.push(c.email.toLowerCase())
+    }
+    verifyAfter = contacts.length === 100 && contacts[99]?.id ? contacts[99].id : undefined
+  } while (verifyAfter)
+
+  const actualSorted = [...verifyEmails].sort()
+  const expectedSorted = [...input.normalizedEmails].sort()
+  if (JSON.stringify(actualSorted) !== JSON.stringify(expectedSorted)) {
+    return {
+      success: false,
+      error: 'Segment mismatch — aborting send',
+      details: `Expected: ${expectedSorted.join(', ')} | Actual: ${actualSorted.join(', ')}`
+    }
+  }
+
   const campaignFrom =
     process.env.RESEND_FROM_CAMPAIGN ||
     process.env.RESEND_FROM_OVERRIDE ||
     process.env.RESEND_FROM_EMAIL ||
     'DUST Hair Studio <onboarding@resend.dev>'
 
+  const broadcastName = `${input.campaignName || 'Campaign'} — ${new Date().toISOString().split('T')[0]}`
+
   const { data: broadcastData, error: broadcastError } = await resend.broadcasts.create({
+    name: broadcastName,
     segmentId,
     from: campaignFrom,
     replyTo: businessEmail || undefined,
     subject: subjectTemplate,
-    html,
-    send: true
+    html
   })
 
   if (broadcastError || !broadcastData?.id) {
     const errMsg = broadcastError?.message || JSON.stringify(broadcastError)
     return {
       success: false,
-      error: 'Failed to send broadcast',
+      error: 'Failed to create broadcast',
       details: errMsg
+    }
+  }
+
+  const { error: sendError } = await resend.broadcasts.send(broadcastData.id)
+  if (sendError) {
+    return {
+      success: false,
+      error: 'Broadcast created but failed to send',
+      details: sendError.message
     }
   }
 

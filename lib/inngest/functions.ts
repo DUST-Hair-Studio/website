@@ -5,6 +5,7 @@ import { createAdminSupabaseClient } from '@/lib/supabase-server'
 export const sendCampaignBroadcast = inngest.createFunction(
   {
     id: 'send-campaign-broadcast',
+    concurrency: { limit: 1 },
     retries: 2,
     timeouts: { finish: '600s' }
   },
