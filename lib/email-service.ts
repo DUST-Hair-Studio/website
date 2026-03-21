@@ -707,8 +707,10 @@ export class EmailService {
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
       const appointmentsUrl = `${baseUrl}/appointments`
 
-      // Build ICS for NEW date/time (adds/updates the event)
-      const newIcsInput = {
+      // Single ICS: METHOD:REQUEST + SEQUENCE:1 + new date/time.
+      // Same UID as original confirmation; iTIP-compliant clients (Apple Calendar, Outlook)
+      // replace the event in place. No second cancel file.
+      const icsInput = {
         bookingId: booking.id,
         date: booking.booking_date,
         time: booking.booking_time,
@@ -719,27 +721,7 @@ export class EmailService {
         location: businessSettings.business_address || undefined,
         sequence: 1,
       }
-      const icsContent = buildConfirmationICS(newIcsInput)
-
-      // For reschedule: also send CANCEL for OLD date/time first, so calendar removes
-      // the original event. Many clients (Apple Calendar, Outlook) don't replace
-      // on REQUEST alone—they add a duplicate. Cancel-then-confirm works reliably.
-      const attachments: { filename: string; content: string }[] = []
-      if (oldDate && oldTime) {
-        const cancelIcsInput = {
-          ...newIcsInput,
-          date: oldDate,
-          time: oldTime,
-        }
-        attachments.push({
-          filename: 'appointment-cancel.ics',
-          content: buildCancellationICS(cancelIcsInput),
-        })
-      }
-      attachments.push({
-        filename: 'appointment.ics',
-        content: icsContent,
-      })
+      const icsContent = buildConfirmationICS(icsInput)
 
       const { data, error } = await resend.emails.send({
         from: getResendFromAddress(),
@@ -765,7 +747,12 @@ export class EmailService {
             </div>
           </div>
         `,
-        attachments,
+        attachments: [
+          {
+            filename: 'appointment.ics',
+            content: icsContent,
+          },
+        ],
       })
 
       if (error) {
