@@ -17,6 +17,6 @@ jobs:
         run: |
           response=$(curl -s -o /dev/null -w "%{http_code}" \
             -H "Authorization: Bearer $CRON_SECRET" \
-            https://dusthair.vercel.app/api/cron/process-reminders)
+            https://www.dusthairstudio.com/api/cron/process-reminders)
           echo "Status: $response"
           [ "$response" = "200" ] || exit 1
