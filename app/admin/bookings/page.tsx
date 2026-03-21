@@ -315,8 +315,10 @@ export default function AdminBookingsPage() {
     return bookingDate >= today
   }
 
-  // Filter bookings
+  // Filter bookings (exclude cancelled from schedule views)
   const filteredBookings = bookings.filter(booking => {
+    if (booking.status === 'cancelled') return false
+
     const matchesSearch = 
       booking.customers.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       booking.customers.phone.toLowerCase().includes(searchTerm.toLowerCase()) ||
