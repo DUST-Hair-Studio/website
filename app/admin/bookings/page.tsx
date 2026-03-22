@@ -596,7 +596,7 @@ export default function AdminBookingsPage() {
 
   // Calendar helper functions
   const getBookingsForDate = (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0]
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
     return filteredBookings.filter(booking => booking.booking_date === dateStr)
   }
 
