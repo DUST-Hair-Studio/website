@@ -466,7 +466,6 @@ export class EmailService {
             </div>
             <div style="border-top: 1px solid #eee; padding-top: 20px; font-size: 12px; color: #666;">
               <p>Booking ID: ${booking.id}</p>
-              <p>If you need to reschedule, please contact us at ${businessSettings?.business_phone ?? ''}</p>
             </div>
           </div>
         `
