@@ -372,9 +372,16 @@ Booking ID: ${booking.id}`
       // Get business timezone
       const businessTimezone = await getBusinessTimezone()
       
-      // Create proper ISO strings for the API call with timezone
-      const timeMin = `${startDate}T00:00:00`
-      const timeMax = `${endDate}T23:59:59`
+      // Pad the query range by 1 day on each side to account for UTC offset.
+      // The business timezone (e.g. America/Los_Angeles, UTC-7) means a local
+      // 11 PM event is stored as next-day UTC. Without padding, evening events
+      // fall outside the UTC query window and are never fetched.
+      const paddedStart = new Date(`${startDate}T00:00:00`)
+      paddedStart.setDate(paddedStart.getDate() - 1)
+      const paddedEnd = new Date(`${endDate}T00:00:00`)
+      paddedEnd.setDate(paddedEnd.getDate() + 1)
+      const timeMin = paddedStart.toISOString()
+      const timeMax = paddedEnd.toISOString()
       
       console.log('🔍 Fetching Google Calendar events:', { 
         calendarId, 
@@ -385,7 +392,7 @@ Booking ID: ${booking.id}`
 
       const response = await fetch(
         `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?` +
-        `timeMin=${timeMin}Z&timeMax=${timeMax}Z&` +
+        `timeMin=${timeMin}&timeMax=${timeMax}&` +
         `timeZone=${businessTimezone}&` +
         `singleEvents=true&orderBy=startTime`,
         {
