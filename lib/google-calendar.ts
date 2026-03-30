@@ -377,9 +377,9 @@ Booking ID: ${booking.id}`
       // 11 PM event is stored as next-day UTC. Without padding, evening events
       // fall outside the UTC query window and are never fetched.
       const paddedStart = new Date(`${startDate}T00:00:00`)
-      paddedStart.setDate(paddedStart.getDate() - 1)
+      paddedStart.setDate(paddedStart.getDate() - 2)
       const paddedEnd = new Date(`${endDate}T00:00:00`)
-      paddedEnd.setDate(paddedEnd.getDate() + 1)
+      paddedEnd.setDate(paddedEnd.getDate() + 2)
       const timeMin = paddedStart.toISOString()
       const timeMax = paddedEnd.toISOString()
       
