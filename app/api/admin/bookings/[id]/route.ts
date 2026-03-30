@@ -97,9 +97,9 @@ export async function PUT(
         if (isConnected) {
           // Convert 12-hour format to 24-hour format if needed
           const convertTo24Hour = (timeStr: string): string => {
-            // If already in 24-hour format (HH:MM), return as is
-            if (/^\d{1,2}:\d{2}$/.test(timeStr) && !timeStr.includes('AM') && !timeStr.includes('PM')) {
-              return timeStr
+            // If already in 24-hour format (HH:MM or HH:MM:SS), return as HH:MM
+            if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(timeStr) && !timeStr.includes('AM') && !timeStr.includes('PM')) {
+              return timeStr.substring(0, 5)
             }
             
             // Parse 12-hour format (H:MM AM/PM)
