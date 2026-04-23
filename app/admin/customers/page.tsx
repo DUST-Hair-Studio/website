@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Switch } from '@/components/ui/switch'
-import { Loader2, Search, Users, UserPlus, User, DollarSign, Filter, CheckSquare, Square, Edit, UserX, UserCheck, Phone, MessageSquare, Mail, Calendar, Clock, CreditCard } from 'lucide-react'
+import { Loader2, Search, Users, Filter, CheckSquare, Square, Edit, UserX, UserCheck, Phone, MessageSquare, Mail, Calendar, Clock, CreditCard } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Customer } from '@/types'
 
@@ -38,7 +38,6 @@ interface BillingHistoryItem {
 
 export default function AdminCustomersPage() {
   const [customers, setCustomers] = useState<CustomerWithStats[]>([])
-  const [totalRevenue, setTotalRevenue] = useState(0)
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<'all' | 'new' | 'loyalty'>('all')
@@ -77,7 +76,6 @@ export default function AdminCustomersPage() {
       
       const data = await response.json()
       setCustomers(data.customers || [])
-      setTotalRevenue(data.totalRevenue ?? 0)
     } catch (error) {
       console.error('Error fetching customers:', error)
       toast.error('Failed to load customers')
@@ -437,15 +435,6 @@ export default function AdminCustomersPage() {
     }
   }
 
-  // Get customer stats (totalRevenue from API - computed from paid bookings, matches bookings page)
-  const stats = {
-    total: customers.length,
-    new: customers.filter(c => !c.is_existing_customer).length,
-    existing: customers.filter(c => c.is_existing_customer).length,
-    totalBookings: customers.reduce((sum, c) => sum + c.total_bookings, 0),
-    totalRevenue
-  }
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -463,66 +452,6 @@ export default function AdminCustomersPage() {
       <div className="mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Customer Management</h1>
         <p className="text-gray-600 text-sm sm:text-base">Manage customer types and view customer information</p>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
-        <Card className="border-0 shadow-sm bg-linear-to-br from-white to-gray-50">
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex flex-col items-center text-center">
-              <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{stats.total}</div>
-              <div className="flex items-center gap-2">
-                <div className="h-5 w-5 sm:h-6 sm:w-6 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-200">
-                  <Users className="h-3 w-3 sm:h-4 sm:w-4 text-blue-600" strokeWidth={1.5} />
-                </div>
-                <div className="text-xs sm:text-sm text-gray-600">Total Customers</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-0 shadow-sm bg-linear-to-br from-white to-gray-50">
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex flex-col items-center text-center">
-              <div className="text-lg sm:text-3xl font-bold text-gray-900 mb-2">{formatPrice(stats.totalRevenue)}</div>
-              <div className="flex items-center gap-2">
-                <div className="h-5 w-5 sm:h-6 sm:w-6 bg-emerald-50 rounded-lg flex items-center justify-center border border-emerald-200">
-                  <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-600" strokeWidth={1.5} />
-                </div>
-                <div className="text-xs sm:text-sm text-gray-600">Total Revenue</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-0 shadow-sm bg-linear-to-br from-white to-gray-50">
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex flex-col items-center text-center">
-              <div className="text-xl sm:text-3xl font-bold text-gray-900 mb-2">{stats.new}</div>
-              <div className="flex items-center gap-2">
-                <div className="h-5 w-5 sm:h-6 sm:w-6 bg-orange-50 rounded-lg flex items-center justify-center border border-orange-200">
-                  <UserPlus className="h-3 w-3 sm:h-4 sm:w-4 text-orange-600" strokeWidth={1.5} />
-                </div>
-                <div className="text-xs sm:text-sm text-gray-600">New Customers</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-sm bg-linear-to-br from-white to-gray-50">
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex flex-col items-center text-center">
-              <div className="text-xl sm:text-3xl font-bold text-gray-900 mb-2">{stats.existing}</div>
-              <div className="flex items-center gap-2">
-                <div className="h-5 w-5 sm:h-6 sm:w-6 bg-green-50 rounded-lg flex items-center justify-center border border-green-200">
-                  <User className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" strokeWidth={1.5} />
-                </div>
-                <div className="text-xs sm:text-sm text-gray-600">Loyalty Customers</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-
-
       </div>
 
       {/* Search and Filter */}

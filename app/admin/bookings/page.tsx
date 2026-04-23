@@ -1408,7 +1408,7 @@ export default function AdminBookingsPage() {
       ) : (
         <div className="space-y-2">
           {/* Full-Screen Calendar View */}
-          <Card className="border border-gray-200 shadow-sm">
+          <Card className="border border-none shadow-none">
             <CardContent className="p-0">
               <div>
                 {/* Calendar Header */}
@@ -1645,7 +1645,7 @@ export default function AdminBookingsPage() {
 
           {/* Selected Date Details Panel */}
           {selectedCalendarDate && (
-            <Card className="border border-gray-200 shadow-sm">
+            <Card className="border border-none shadow-none">
               <CardContent className="p-3 sm:p-4">
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="text-lg sm:text-xl md:text-2xl font-semibold text-gray-900">
