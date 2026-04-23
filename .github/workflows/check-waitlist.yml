@@ -1,0 +1,23 @@
+# Waitlist availability runs hourly via GitHub Actions.
+# Handler gates sends to business-local 8 AM – 7 PM (see route.ts), so outside
+# those hours the endpoint will return immediately without sending.
+name: Check Waitlist Availability
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # Every hour at :00
+  workflow_dispatch:       # Manual trigger
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    env:
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    steps:
+      - name: Trigger waitlist availability check
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            https://www.dusthairstudio.com/api/cron/check-waitlist-availability)
+          echo "Status: $response"
+          [ "$response" = "200" ] || exit 1

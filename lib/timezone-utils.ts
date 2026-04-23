@@ -242,6 +242,38 @@ export async function formatEmailTime(
 }
 
 /**
+ * Returns today's date as YYYY-MM-DD in the given business timezone.
+ * Use this instead of new Date().toISOString().split('T')[0] when comparing
+ * to business-local date strings (start_date, end_date, booking_date).
+ */
+export function getBusinessTodayString(timezone: string): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(new Date())
+  const year = parts.find(p => p.type === 'year')?.value
+  const month = parts.find(p => p.type === 'month')?.value
+  const day = parts.find(p => p.type === 'day')?.value
+  return `${year}-${month}-${day}`
+}
+
+/**
+ * Returns the current hour (0-23) in the given business timezone.
+ * Use this to gate a cron handler to business-local time windows.
+ */
+export function getBusinessHour(timezone: string): number {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    hour: '2-digit',
+    hour12: false
+  }).formatToParts(new Date())
+  const hour = parts.find(p => p.type === 'hour')?.value
+  return hour ? parseInt(hour, 10) : 0
+}
+
+/**
  * Gets the current time in business timezone
  * @returns Promise<Date> - Date object in business timezone
  */

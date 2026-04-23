@@ -1,28 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminSupabaseClient, createServerSupabaseClient } from '@/lib/supabase-server'
-import { createBusinessDateTimeSync } from '@/lib/timezone-utils'
+import { DEFAULT_BUSINESS_TIMEZONE, createBusinessDateTimeSync, getBusinessHour } from '@/lib/timezone-utils'
 import { GoogleCalendarService } from '@/lib/google-calendar'
+import { waitlistService } from '@/lib/waitlist-service'
 
 /**
- * Cron job to check waitlist availability
- * Runs daily to check if any slots have opened up for pending waitlist requests
- * 
- * Can be triggered by:
- * 1. Vercel cron (use Authorization: Bearer <CRON_SECRET>)
- * 2. Admin "Check Availability Now" button (uses session cookie; no header needed)
- * 
- * To configure in Vercel:
- * Add to vercel.json:
- * {
- *   "crons": [{
- *     "path": "/api/cron/check-waitlist-availability",
- *     "schedule": "0 2 * * *"
- *   }]
- * }
+ * Waitlist availability cron.
+ * Scheduled hourly by .github/workflows/check-waitlist.yml; handler gates to
+ * business-local 8 AM – 7 PM so customers never get notifications overnight.
+ * Can also be triggered by the admin "Check Availability Now" button.
  */
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300 // 5 minutes max
+
+const SEND_WINDOW_START_HOUR = 8  // 8 AM business-local
+const SEND_WINDOW_END_HOUR = 19   // 7 PM business-local (exclusive)
 
 export async function GET(request: NextRequest) {
   try {
@@ -54,6 +47,32 @@ export async function GET(request: NextRequest) {
 
     const supabase = createAdminSupabaseClient()
     const googleCalendar = new GoogleCalendarService()
+
+    // Resolve business timezone once per run.
+    const { data: tzRow } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'business_timezone')
+      .single()
+    const businessTimezone = (tzRow?.value as string) || DEFAULT_BUSINESS_TIMEZONE
+
+    // Always cleanup expired entries — cheap, idempotent, keeps the pending set lean.
+    await waitlistService.cleanupExpiredWaitlist()
+
+    // Gate sends to business-local daytime. Admin "Check Availability Now" button
+    // bypasses the gate (has session auth, not the cron secret).
+    if (hasValidCronSecret) {
+      const hour = getBusinessHour(businessTimezone)
+      if (hour < SEND_WINDOW_START_HOUR || hour >= SEND_WINDOW_END_HOUR) {
+        console.log(`⏸️  [WAITLIST CRON] Outside send window (${SEND_WINDOW_START_HOUR}:00–${SEND_WINDOW_END_HOUR}:00 ${businessTimezone}). Current hour: ${hour}. Skipping.`)
+        return NextResponse.json({
+          success: true,
+          message: 'Outside send window — skipped',
+          skipped: true,
+          businessHour: hour
+        })
+      }
+    }
 
     // Get all pending waitlist requests
     const { data: waitlistRequests, error: waitlistError } = await supabase

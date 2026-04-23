@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase-server'
 import { EmailService } from '@/lib/email-service'
+import { DEFAULT_BUSINESS_TIMEZONE, getBusinessTodayString } from '@/lib/timezone-utils'
 
 export async function POST(request: NextRequest) {
   try {
@@ -82,10 +83,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate date range - compare date strings directly to avoid timezone issues
-    const todayString = new Date().toISOString().split('T')[0] // Get today in YYYY-MM-DD format
-    
-    // Compare date strings directly to avoid timezone issues
+    // Validate date range against "today" in the business timezone (not UTC).
+    // On a UTC server, toISOString().split('T')[0] would roll to tomorrow after 4-5 PM PT
+    // and reject valid same-day submissions.
+    const { data: tzRow } = await adminSupabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'business_timezone')
+      .single()
+    const businessTimezone = (tzRow?.value as string) || DEFAULT_BUSINESS_TIMEZONE
+    const todayString = getBusinessTodayString(businessTimezone)
+
     if (start_date < todayString) {
       return NextResponse.json(
         { error: 'Start date cannot be in the past' },

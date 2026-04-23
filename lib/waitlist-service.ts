@@ -1,5 +1,5 @@
 import { createAdminSupabaseClient } from './supabase-server'
-import { createBusinessDateTimeSync } from './timezone-utils'
+import { DEFAULT_BUSINESS_TIMEZONE, createBusinessDateTimeSync, getBusinessTodayString } from './timezone-utils'
 import { Resend } from 'resend'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
@@ -247,19 +247,28 @@ ${businessSettings.business_phone}`
     try {
       const now = new Date().toISOString()
 
-      // Mark expired notified entries
+      // Mark expired notified entries (UTC-to-UTC timestamp comparison — correct)
       await this.supabase
         .from('waitlist_requests')
         .update({ status: 'expired' })
         .eq('status', 'notified')
         .lt('expires_at', now)
 
-      // Also mark old pending requests as expired (e.g., if end_date has passed)
+      // Pending cleanup compares end_date (business-local YYYY-MM-DD) to today.
+      // Use the business timezone so we don't expire entries a day early after 4-5 PM PT.
+      const { data: tzRow } = await this.supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'business_timezone')
+        .single()
+      const timezone = (tzRow?.value as string) || DEFAULT_BUSINESS_TIMEZONE
+      const today = getBusinessTodayString(timezone)
+
       await this.supabase
         .from('waitlist_requests')
         .update({ status: 'expired' })
         .eq('status', 'pending')
-        .lt('end_date', new Date().toISOString().split('T')[0])
+        .lt('end_date', today)
 
       console.log('Cleaned up expired waitlist entries')
     } catch (error) {
