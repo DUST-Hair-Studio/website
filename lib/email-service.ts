@@ -846,8 +846,7 @@ What happens next?
 You can view your waitlist requests anytime in your account.
 
 Best regards,
-${businessSettings.business_name}
-${businessSettings.business_phone}`
+${businessSettings.business_name}`
 
       // const htmlMessage = message.replace(/\n/g, '<br>')
 
@@ -884,7 +883,6 @@ ${businessSettings.business_phone}`
             </div>
             <div style="border-top: 1px solid #eee; padding-top: 20px; font-size: 12px; color: #666;">
               <p>📧 We'll only email you when a slot becomes available</p>
-              <p>If you have any questions, please contact us at ${businessSettings.business_phone}</p>
             </div>
           </div>
         `
