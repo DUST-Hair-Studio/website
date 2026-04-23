@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuPortal } from '@/components/ui/dropdown-menu'
-import { CheckCircle, Calendar, DollarSign, CalendarDays, RotateCcw, Search, Filter, Table, Phone, MessageSquare, Mail, ListChecks, CreditCard, MoreVertical, CheckSquare, Loader2, ChevronLeft, ChevronRight, X, Clock } from 'lucide-react'
+import { Calendar, RotateCcw, Search, Filter, Table, Phone, MessageSquare, Mail, CreditCard, MoreVertical, CheckSquare, Loader2, ChevronLeft, ChevronRight, X, Clock } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 import AdminBookModal from '@/components/admin/admin-book-modal'
@@ -50,7 +50,6 @@ export default function AdminBookingsPage() {
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | undefined>(undefined)
   const [activePhoneMenu, setActivePhoneMenu] = useState<string | null>(null)
   const [processingPayment, setProcessingPayment] = useState<Set<string>>(new Set())
-  const [waitlistCount, setWaitlistCount] = useState(0)
   const [editingPublicNotes, setEditingPublicNotes] = useState(false)
   const [publicNotesValue, setPublicNotesValue] = useState('')
   const [savingPublicNotes, setSavingPublicNotes] = useState(false)
@@ -109,17 +108,6 @@ export default function AdminBookingsPage() {
       toast.error('Failed to save public notes')
     } finally {
       setSavingPublicNotes(false)
-    }
-  }
-
-  // Fetch waitlist count (only notified and pending statuses)
-  const fetchWaitlistCount = async () => {
-    try {
-      const response = await fetch('/api/admin/waitlist?status=notified,pending')
-      const data = await response.json()
-      setWaitlistCount(data.waitlist?.length || 0)
-    } catch (error) {
-      console.error('Error fetching waitlist count:', error)
     }
   }
 
@@ -303,7 +291,6 @@ export default function AdminBookingsPage() {
     }
 
     fetchBookings()
-    fetchWaitlistCount()
   }, [])
 
   // Helper function to check if a date is upcoming
@@ -749,84 +736,6 @@ export default function AdminBookingsPage() {
             Book Appointment
           </Button>
         </div>
-      </div>
-
-      {/* Summary Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-        <Card className="border-0 shadow-sm bg-linear-to-br from-white to-gray-50">
-          <CardContent className="p-4 md:p-6">
-            <div className="flex flex-col items-center text-center">
-              <div className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{bookings.filter(b => b.status === 'confirmed').length}</div>
-              <div className="flex items-center gap-2">
-                <div className="h-5 w-5 md:h-6 md:w-6 bg-blue-50 rounded-lg flex items-center justify-center border border-blue-200">
-                  <CheckCircle className="h-3 w-3 md:h-4 md:w-4 text-blue-600" strokeWidth={1.5} />
-                </div>
-                <div className="text-xs md:text-sm text-gray-600">Confirmed</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Link href="/admin/waitlist" className="block">
-          <Card className="border-0 shadow-sm bg-linear-to-br from-white to-gray-50 hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex flex-col items-center text-center">
-                <div className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{waitlistCount}</div>
-                <div className="flex items-center gap-2">
-                  <div className="h-5 w-5 md:h-6 md:w-6 bg-green-50 rounded-lg flex items-center justify-center border border-green-200">
-                    <ListChecks className="h-3 w-3 md:h-4 md:w-4 text-green-600" strokeWidth={1.5} />
-                  </div>
-                  <div className="text-xs md:text-sm text-gray-600 flex items-center gap-1">
-                    Waitlist
-                    <svg className="w-3 h-3 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-        <Card className="border-0 shadow-sm bg-linear-to-br from-white to-gray-50">
-          <CardContent className="p-4 md:p-6">
-            <div className="flex flex-col items-center text-center">
-              <div className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-                {bookings.filter(b => {
-                  const today = new Date().toISOString().split('T')[0]
-                  // Parse booking date without timezone conversion to avoid day shift
-                  const [year, month, day] = b.booking_date.split('-').map(Number)
-                  const bookingDate = new Date(year, month - 1, day).toISOString().split('T')[0]
-                  return bookingDate === today
-                }).length}
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="h-5 w-5 md:h-6 md:w-6 bg-orange-50 rounded-lg flex items-center justify-center border border-orange-200">
-                  <CalendarDays className="h-3 w-3 md:h-4 md:w-4 text-orange-600" strokeWidth={1.5} />
-                </div>
-                <div className="text-xs md:text-sm text-gray-600">Today</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        {/* Revenue Card */}
-        <Card className="border-0 shadow-sm bg-linear-to-br from-white to-gray-50">
-          <CardContent className="p-4 md:p-6">
-            <div className="flex flex-col items-center text-center">
-              <div className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-                ${Math.round(bookings
-                  .filter(b => b.payment_status === 'paid')
-                  .reduce((sum, b) => sum + (b.price_charged || 0), 0) / 100
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="h-5 w-5 md:h-6 md:w-6 bg-emerald-50 rounded-lg flex items-center justify-center border border-emerald-200">
-                  <DollarSign className="h-3 w-3 md:h-4 md:w-4 text-emerald-600" strokeWidth={1.5} />
-                </div>
-                <div className="text-xs md:text-sm text-gray-600">Revenue</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Search and Filter */}
