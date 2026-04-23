@@ -7,9 +7,9 @@ export const sendCampaignBroadcast = inngest.createFunction(
     id: 'send-campaign-broadcast',
     concurrency: { limit: 1 },
     retries: 2,
-    timeouts: { finish: '600s' }
+    timeouts: { finish: '600s' },
+    triggers: [{ event: 'campaign/broadcast.send' }]
   },
-  { event: 'campaign/broadcast.send' },
   async ({ event }) => {
     const { jobId } = event.data
     const supabase = createAdminSupabaseClient()
