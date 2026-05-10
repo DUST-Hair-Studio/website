@@ -54,7 +54,9 @@ export interface Booking {
   duration_minutes: number;
   price_charged: number; // in cents
   customer_type_at_booking: 'new' | 'loyalty' | 'existing';
-  payment_status: 'pending' | 'paid' | 'refunded';
+  payment_status: 'pending' | 'paid' | 'refunded' | 'void' | 'cancelled';
+  voided_at?: string;
+  void_reason?: string;
   google_calendar_event_id?: string;
   // Square payment links (generated for admin use only)
   square_payment_url?: string; // Payment link URL (admin can share when needed)

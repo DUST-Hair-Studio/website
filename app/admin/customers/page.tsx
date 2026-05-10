@@ -28,7 +28,7 @@ interface BillingHistoryItem {
   service: string
   duration: number
   amount: number
-  paymentStatus: 'pending' | 'paid' | 'refunded'
+  paymentStatus: 'pending' | 'paid' | 'refunded' | 'void' | 'cancelled'
   bookingStatus: 'pending' | 'confirmed' | 'completed' | 'cancelled'
   paidAt?: string
   squareTransactionId?: string
@@ -889,9 +889,15 @@ export default function AdminCustomersPage() {
                                   <div className="flex items-center gap-1">
                                     <CreditCard className="w-4 h-4 text-gray-500" />
                                     <span className="text-gray-600">Payment:</span>
-                                    <Badge 
+                                    <Badge
                                       variant={item.paymentStatus === 'paid' ? 'default' : item.paymentStatus === 'refunded' ? 'destructive' : 'secondary'}
-                                      className="text-xs"
+                                      className={`text-xs ${
+                                        item.paymentStatus === 'void'
+                                          ? 'bg-gray-200 text-gray-700'
+                                          : item.paymentStatus === 'cancelled'
+                                          ? 'bg-slate-100 text-slate-600'
+                                          : ''
+                                      }`}
                                     >
                                       {item.paymentStatus}
                                     </Badge>
@@ -1160,10 +1166,14 @@ export default function AdminCustomersPage() {
                         <div className="text-right">
                           <div className="font-medium text-gray-900">{formatPrice(selectedBooking.amount)}</div>
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mt-1 ${
-                            selectedBooking.paymentStatus === 'paid' 
-                              ? 'bg-green-100 text-green-800' 
-                              : selectedBooking.paymentStatus === 'refunded' 
-                              ? 'bg-red-100 text-red-800' 
+                            selectedBooking.paymentStatus === 'paid'
+                              ? 'bg-green-100 text-green-800'
+                              : selectedBooking.paymentStatus === 'refunded'
+                              ? 'bg-red-100 text-red-800'
+                              : selectedBooking.paymentStatus === 'void'
+                              ? 'bg-gray-200 text-gray-700'
+                              : selectedBooking.paymentStatus === 'cancelled'
+                              ? 'bg-slate-100 text-slate-600'
                               : 'bg-yellow-100 text-yellow-800'
                           }`}>
                             {selectedBooking.paymentStatus}

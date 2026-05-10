@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/auth-context'
 import { useState, useEffect } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
+  BarChart3,
   Bell,
   Calendar,
   Home,
@@ -95,6 +96,7 @@ export function AdminSidebar() {
     { href: '/admin/reminders', label: 'Reminders', icon: Bell },
     { href: '/admin/segments', label: 'Segments', icon: Layers },
     { href: '/admin/campaigns', label: 'Campaigns', icon: Mail },
+    { href: '/admin/reports', label: 'Reports', icon: BarChart3 },
   ]
 
   // Filter nav items based on waitlist setting

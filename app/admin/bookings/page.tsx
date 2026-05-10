@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuPortal } from '@/components/ui/dropdown-menu'
-import { Calendar, RotateCcw, Search, Filter, Table, Phone, MessageSquare, Mail, CreditCard, MoreVertical, CheckSquare, Loader2, ChevronLeft, ChevronRight, X, Clock } from 'lucide-react'
+import { Calendar, RotateCcw, Search, Filter, Table, Phone, MessageSquare, Mail, CreditCard, MoreVertical, CheckSquare, Loader2, ChevronLeft, ChevronRight, X, Clock, Ban, Undo2 } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 import AdminBookModal from '@/components/admin/admin-book-modal'
@@ -54,6 +54,9 @@ export default function AdminBookingsPage() {
   const [publicNotesValue, setPublicNotesValue] = useState('')
   const [savingPublicNotes, setSavingPublicNotes] = useState(false)
   const [cancellingBookingId, setCancellingBookingId] = useState<string | null>(null)
+  const [voidingBooking, setVoidingBooking] = useState<BookingWithDetails | null>(null)
+  const [voidReason, setVoidReason] = useState('')
+  const [processingVoidId, setProcessingVoidId] = useState<string | null>(null)
 
   // Close phone menu when clicking outside
   useEffect(() => {
@@ -411,6 +414,111 @@ export default function AdminBookingsPage() {
     }
   }
 
+  const openVoidDialog = (booking: BookingWithDetails) => {
+    setVoidingBooking(booking)
+    setVoidReason('')
+  }
+
+  const handleVoidConfirm = async () => {
+    if (!voidingBooking) return
+    try {
+      setProcessingVoidId(voidingBooking.id)
+      const response = await fetch(`/api/admin/bookings/${voidingBooking.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'void', void_reason: voidReason.trim() || undefined }),
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        toast.error(data.error || 'Failed to void invoice')
+        return
+      }
+      if (data.booking) {
+        setBookings(prev => prev.map(b => b.id === voidingBooking.id ? { ...b, ...data.booking } : b))
+        if (selectedBooking?.id === voidingBooking.id) {
+          setSelectedBooking(prev => prev ? { ...prev, ...data.booking } : prev)
+        }
+      }
+      toast.success('Invoice voided')
+      setVoidingBooking(null)
+      setVoidReason('')
+    } catch (error) {
+      console.error('Error voiding invoice:', error)
+      toast.error('Failed to void invoice')
+    } finally {
+      setProcessingVoidId(null)
+    }
+  }
+
+  const handleUnvoidBooking = async (booking: BookingWithDetails) => {
+    try {
+      setProcessingVoidId(booking.id)
+      const response = await fetch(`/api/admin/bookings/${booking.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'unvoid' }),
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        toast.error(data.error || 'Failed to undo void')
+        return
+      }
+      if (data.booking) {
+        setBookings(prev => prev.map(b => b.id === booking.id ? { ...b, ...data.booking } : b))
+        if (selectedBooking?.id === booking.id) {
+          setSelectedBooking(prev => prev ? { ...prev, ...data.booking } : prev)
+        }
+      }
+      toast.success('Void undone — invoice is pending again')
+    } catch (error) {
+      console.error('Error undoing void:', error)
+      toast.error('Failed to undo void')
+    } finally {
+      setProcessingVoidId(null)
+    }
+  }
+
+  const renderVoidMenuItems = (booking: BookingWithDetails) => {
+    const canVoid =
+      booking.payment_status === 'pending' &&
+      booking.price_charged > 0 &&
+      booking.status !== 'cancelled'
+    const canUnvoid = booking.payment_status === 'void'
+    if (!canVoid && !canUnvoid) return null
+    return (
+      <>
+        {canVoid && (
+          <DropdownMenuItem
+            onClick={(e: React.MouseEvent) => {
+              e.stopPropagation()
+              openVoidDialog(booking)
+            }}
+            disabled={processingVoidId === booking.id}
+          >
+            <Ban className="w-4 h-4 mr-2" />
+            Void Invoice
+          </DropdownMenuItem>
+        )}
+        {canUnvoid && (
+          <DropdownMenuItem
+            onClick={(e: React.MouseEvent) => {
+              e.stopPropagation()
+              handleUnvoidBooking(booking)
+            }}
+            disabled={processingVoidId === booking.id}
+          >
+            {processingVoidId === booking.id ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Undo2 className="w-4 h-4 mr-2" />
+            )}
+            Undo Void
+          </DropdownMenuItem>
+        )}
+      </>
+    )
+  }
+
   // Mark booking as complete
   const markBookingComplete = async (booking: BookingWithDetails) => {
     try {
@@ -483,6 +591,8 @@ export default function AdminBookingsPage() {
       case 'paid': return 'bg-green-100 text-green-800 border-green-200'
       case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
       case 'refunded': return 'bg-red-100 text-red-800 border-red-200'
+      case 'void': return 'bg-gray-200 text-gray-700 border-gray-300'
+      case 'cancelled': return 'bg-slate-100 text-slate-600 border-slate-200'
       default: return 'bg-gray-100 text-gray-800 border-gray-200'
     }
   }
@@ -776,6 +886,8 @@ export default function AdminBookingsPage() {
                 <SelectItem value="paid">Paid</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="refunded">Refunded</SelectItem>
+                <SelectItem value="void">Void</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -1042,8 +1154,9 @@ export default function AdminBookingsPage() {
                                 </DropdownMenuItem>
                               </>
                             )}
+                            {renderVoidMenuItems(booking)}
                             {booking.status !== 'completed' && (
-                              <DropdownMenuItem 
+                              <DropdownMenuItem
                                 onClick={(e: React.MouseEvent) => {
                                   e.stopPropagation()
                                   markBookingComplete(booking)
@@ -1189,8 +1302,9 @@ export default function AdminBookingsPage() {
                                     {processingPayment.has(booking.id) ? 'Processing...' : 'Pay with Square'}
                                   </DropdownMenuItem>
                                 )}
+                                {renderVoidMenuItems(booking)}
                                 {booking.status !== 'completed' && (
-                                  <DropdownMenuItem 
+                                  <DropdownMenuItem
                                     onClick={(e: React.MouseEvent) => {
                                       e.stopPropagation()
                                       markBookingComplete(booking)
@@ -1381,8 +1495,9 @@ export default function AdminBookingsPage() {
                                     {processingPayment.has(booking.id) ? 'Processing...' : 'Pay with Square'}
                                   </DropdownMenuItem>
                                 )}
+                                {renderVoidMenuItems(booking)}
                                 {booking.status !== 'completed' && (
-                                  <DropdownMenuItem 
+                                  <DropdownMenuItem
                                     onClick={(e: React.MouseEvent) => {
                                       e.stopPropagation()
                                       markBookingComplete(booking)
@@ -1865,8 +1980,9 @@ export default function AdminBookingsPage() {
                                         {processingPayment.has(booking.id) ? 'Processing...' : 'Pay with Square'}
                                       </DropdownMenuItem>
                                     )}
+                                    {renderVoidMenuItems(booking)}
                                     {booking.status !== 'completed' && (
-                                      <DropdownMenuItem 
+                                      <DropdownMenuItem
                                         onClick={(e: React.MouseEvent) => {
                                           e.stopPropagation()
                                           markBookingComplete(booking)
@@ -2073,8 +2189,9 @@ export default function AdminBookingsPage() {
                                             </DropdownMenuItem>
                                           </>
                                         )}
+                                        {renderVoidMenuItems(booking)}
                                         {booking.status !== 'completed' && (
-                                          <DropdownMenuItem 
+                                          <DropdownMenuItem
                                             onClick={(e: React.MouseEvent) => {
                                               e.stopPropagation()
                                               markBookingComplete(booking)
@@ -2249,17 +2366,16 @@ export default function AdminBookingsPage() {
                               <span className="text-xs text-gray-500">Free appointment</span>
                             ) : (
                               <>
-                                <Badge 
-                                  variant={selectedBooking.payment_status === 'paid' ? 'default' : 'secondary'}
-                                  className={selectedBooking.payment_status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}
+                                <Badge
+                                  className={`${getPaymentStatusColor(selectedBooking.payment_status)} text-xs px-2 py-1`}
                                 >
                                   {selectedBooking.payment_status}
                                 </Badge>
-                                {selectedBooking.payment_status !== 'paid' && (
+                                {selectedBooking.payment_status === 'pending' && (
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                      <Button 
-                                        variant="outline" 
+                                      <Button
+                                        variant="outline"
                                         size="sm"
                                         className="h-7 px-2 text-xs"
                                         title="Payment options"
@@ -2269,13 +2385,13 @@ export default function AdminBookingsPage() {
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                      <DropdownMenuItem 
+                                      <DropdownMenuItem
                                         onClick={() => createSquareOrderForPOS(selectedBooking)}
                                       >
                                         <CreditCard className="w-4 h-4 mr-2" />
                                         Pay Now (POS)
                                       </DropdownMenuItem>
-                                      <DropdownMenuItem 
+                                      <DropdownMenuItem
                                         onClick={() => sendPaymentLinkEmail(selectedBooking)}
                                         disabled={processingPayment.has(selectedBooking.id)}
                                       >
@@ -2289,9 +2405,42 @@ export default function AdminBookingsPage() {
                                     </DropdownMenuContent>
                                   </DropdownMenu>
                                 )}
+                                {selectedBooking.payment_status === 'pending' &&
+                                  selectedBooking.status !== 'cancelled' &&
+                                  selectedBooking.price_charged > 0 && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-7 px-2 text-xs"
+                                      onClick={() => openVoidDialog(selectedBooking)}
+                                      title="Mark this invoice as void (no money owed)"
+                                    >
+                                      <Ban className="w-3 h-3 mr-1" />
+                                      Void
+                                    </Button>
+                                )}
+                                {selectedBooking.payment_status === 'void' && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 px-2 text-xs"
+                                    onClick={() => handleUnvoidBooking(selectedBooking)}
+                                    disabled={processingVoidId === selectedBooking.id}
+                                  >
+                                    {processingVoidId === selectedBooking.id ? (
+                                      <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                    ) : (
+                                      <Undo2 className="w-3 h-3 mr-1" />
+                                    )}
+                                    Undo Void
+                                  </Button>
+                                )}
                               </>
                             )}
                           </div>
+                          {selectedBooking.payment_status === 'void' && selectedBooking.void_reason && (
+                            <p className="text-xs text-gray-500 mt-1 italic">Reason: {selectedBooking.void_reason}</p>
+                          )}
                         </div>
                       </div>
                       <div className="flex justify-between items-center py-2 md:py-2">
@@ -2428,6 +2577,73 @@ export default function AdminBookingsPage() {
           setBookingToReschedule(null)
         }}
       />
+
+      {/* Void Invoice Dialog */}
+      <Dialog
+        open={!!voidingBooking}
+        onOpenChange={(open) => {
+          if (!open) {
+            setVoidingBooking(null)
+            setVoidReason('')
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Void Invoice</DialogTitle>
+            <DialogDescription>
+              {voidingBooking ? (
+                <>
+                  Mark the {formatPrice(voidingBooking.price_charged)} charge for{' '}
+                  <span className="font-medium text-gray-900">{voidingBooking.customers.name}</span>{' '}
+                  as void. The appointment itself stays scheduled and the customer will not be billed.
+                </>
+              ) : null}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="pt-2">
+            <label className="text-sm text-gray-700 mb-1 block">
+              Reason <span className="text-gray-400">(optional)</span>
+            </label>
+            <Textarea
+              value={voidReason}
+              onChange={(e) => setVoidReason(e.target.value)}
+              placeholder="e.g. complimentary — first-time guest"
+              rows={3}
+            />
+          </div>
+          <div className="flex gap-3 justify-end pt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setVoidingBooking(null)
+                setVoidReason('')
+              }}
+              disabled={processingVoidId === voidingBooking?.id}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleVoidConfirm}
+              disabled={processingVoidId === voidingBooking?.id}
+              className="border border-black"
+              style={{ backgroundColor: '#e5e7eb', color: '#111827' }}
+            >
+              {processingVoidId === voidingBooking?.id ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Voiding...
+                </>
+              ) : (
+                <>
+                  <Ban className="w-4 h-4 mr-2" />
+                  Void Invoice
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>

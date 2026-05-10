@@ -211,25 +211,66 @@ export async function PATCH(
     const supabase = await createServerSupabaseClient()
     const { id } = await params
     const body = await request.json()
-    const { status, admin_notes, public_notes, payment_status, square_transaction_id } = body
+    const { status, admin_notes, public_notes, payment_status, square_transaction_id, action, void_reason } = body
 
-    const updateData: { 
-      updated_at: string; 
-      status?: string; 
+    const updateData: {
+      updated_at: string;
+      status?: string;
       admin_notes?: string;
       public_notes?: string;
       payment_status?: string;
       square_transaction_id?: string;
-      paid_at?: string;
+      paid_at?: string | null;
+      voided_at?: string | null;
+      void_reason?: string | null;
     } = {
       updated_at: new Date().toISOString()
+    }
+
+    // Void / unvoid actions: only legal on pending or void (respectively)
+    if (action === 'void' || action === 'unvoid') {
+      const { data: existing } = await supabase
+        .from('bookings')
+        .select('payment_status, price_charged, status')
+        .eq('id', id)
+        .single()
+      if (!existing) {
+        return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
+      }
+      if (action === 'void') {
+        if (existing.payment_status !== 'pending') {
+          return NextResponse.json(
+            { error: 'Only pending invoices can be voided.' },
+            { status: 400 }
+          )
+        }
+        if (existing.status === 'cancelled') {
+          return NextResponse.json(
+            { error: 'Cancelled bookings already have their charge written off.' },
+            { status: 400 }
+          )
+        }
+        updateData.payment_status = 'void'
+        updateData.voided_at = new Date().toISOString()
+        updateData.void_reason = typeof void_reason === 'string' && void_reason.trim() ? void_reason.trim() : null
+      } else {
+        if (existing.payment_status !== 'void') {
+          return NextResponse.json(
+            { error: 'Only voided invoices can be restored.' },
+            { status: 400 }
+          )
+        }
+        updateData.payment_status = 'pending'
+        updateData.voided_at = null
+        updateData.void_reason = null
+      }
     }
 
     if (status) {
       updateData.status = status
     }
 
-    // When cancelling, only allow if not paid
+    // When cancelling, only allow if not paid; auto-flip pending payment to cancelled
     if (status === 'cancelled') {
       const { data: existing } = await supabase
         .from('bookings')
@@ -241,6 +282,9 @@ export async function PATCH(
           { error: 'Cannot cancel a paid booking. Process a refund first if needed.' },
           { status: 400 }
         )
+      }
+      if (existing?.payment_status === 'pending') {
+        updateData.payment_status = 'cancelled'
       }
     }
 
@@ -405,12 +449,21 @@ export async function DELETE(
     }
 
     // Soft-cancel booking instead of hard delete to preserve history/audit data.
+    // Auto-flip pending payment to cancelled (so it stops counting as outstanding).
+    const cancelUpdate: {
+      status: string
+      updated_at: string
+      payment_status?: string
+    } = {
+      status: 'cancelled',
+      updated_at: new Date().toISOString()
+    }
+    if (booking?.payment_status === 'pending') {
+      cancelUpdate.payment_status = 'cancelled'
+    }
     const { data: cancelledBooking, error } = await supabase
       .from('bookings')
-      .update({
-        status: 'cancelled',
-        updated_at: new Date().toISOString()
-      })
+      .update(cancelUpdate)
       .eq('id', id)
       .select(`
         *,

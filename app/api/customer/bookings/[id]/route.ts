@@ -447,13 +447,21 @@ export async function PATCH(
       return NextResponse.json({ error: 'Cannot cancel paid appointments online. Please contact us to cancel.' }, { status: 400 })
     }
 
-    // Update the booking status to cancelled
+    // Update the booking status to cancelled (and auto-flip pending payment to cancelled)
+    const cancelUpdate: {
+      status: string
+      updated_at: string
+      payment_status?: string
+    } = {
+      status: 'cancelled',
+      updated_at: new Date().toISOString()
+    }
+    if (currentBooking.payment_status === 'pending') {
+      cancelUpdate.payment_status = 'cancelled'
+    }
     const { data: updatedBooking, error: updateError } = await supabase
       .from('bookings')
-      .update({
-        status: 'cancelled',
-        updated_at: new Date().toISOString()
-      })
+      .update(cancelUpdate)
       .eq('id', bookingId)
       .select(`
         *,
