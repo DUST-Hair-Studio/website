@@ -63,27 +63,11 @@ export async function POST(request: NextRequest) {
       pendingIdsForCancel = new Set(pendingIds)
     }
 
-    // If voiding, only allow currently-pending bookings on non-cancelled appointments.
+    // Voiding is an admin override — allowed from any payment_status so mistakes
+    // (e.g. accidental "Mark paid") can be reverted. paid_at and voided_at are
+    // cleared/stamped accordingly in the update payload below.
     if (payment_status === 'void') {
-      const { data: existing, error } = await supabase
-        .from('bookings')
-        .select('id, payment_status, status')
-        .in('id', ids)
-      if (error) {
-        console.error('Bulk void prefetch error', error)
-        return NextResponse.json({ error: 'Failed to fetch bookings' }, { status: 500 })
-      }
-      const allowedIds: string[] = []
-      for (const row of existing || []) {
-        if (row.payment_status !== 'pending') {
-          skipped.push({ id: row.id, reason: `only pending invoices can be voided (current: ${row.payment_status})` })
-        } else if (row.status === 'cancelled') {
-          skipped.push({ id: row.id, reason: 'cancelled bookings already have their charge written off' })
-        } else {
-          allowedIds.push(row.id)
-        }
-      }
-      targetIds = allowedIds
+      // no prefetch needed; rely on update payload to normalize timestamps
     }
 
     if (targetIds.length === 0) {

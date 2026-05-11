@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { ArrowLeft, Check, ChevronDown, Loader2, X } from 'lucide-react'
+import { ArrowLeft, Check, ChevronDown, Loader2, Search, X } from 'lucide-react'
 import { toast } from 'sonner'
 
 type FilterPeriod = 'all' | 'today' | '7d' | '30d' | '90d' | '12mo' | 'ytd'
@@ -220,6 +220,7 @@ function DetailsContent() {
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkUpdating, setBulkUpdating] = useState(false)
+  const [search, setSearch] = useState('')
 
   // Sync state to URL when filters change
   useEffect(() => {
@@ -256,7 +257,36 @@ function DetailsContent() {
     }
   }, [period, direction, paymentStatus, status, refetchToken])
 
-  const visibleIds = useMemo(() => (data ? data.bookings.map(b => b.id) : []), [data])
+  const filteredBookings = useMemo(() => {
+    if (!data) return []
+    const q = search.trim().toLowerCase()
+    if (!q) return data.bookings
+    return data.bookings.filter(
+      b =>
+        b.customer_name.toLowerCase().includes(q) ||
+        b.customer_email.toLowerCase().includes(q) ||
+        b.service_name.toLowerCase().includes(q)
+    )
+  }, [data, search])
+
+  const filteredSummary = useMemo(() => {
+    if (!data) return null
+    if (!search.trim()) return data.summary
+    const revenue = filteredBookings
+      .filter(r => r.payment_status === 'paid')
+      .reduce((s, r) => s + (r.price_charged || 0), 0)
+    const paidCount = filteredBookings.filter(r => r.payment_status === 'paid').length
+    const totalAmount = filteredBookings.reduce((s, r) => s + (r.price_charged || 0), 0)
+    return {
+      count: filteredBookings.length,
+      revenue,
+      paidCount,
+      totalAmount,
+      avgTicket: paidCount > 0 ? revenue / paidCount : 0,
+    }
+  }, [data, search, filteredBookings])
+
+  const visibleIds = useMemo(() => filteredBookings.map(b => b.id), [filteredBookings])
   const allSelected = visibleIds.length > 0 && visibleIds.every(id => selectedIds.has(id))
   const someSelected = !allSelected && selectedIds.size > 0
 
@@ -408,17 +438,46 @@ function DetailsContent() {
             />
           ))}
         </div>
+
+        <div className="relative max-w-md">
+          <Search
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400"
+            strokeWidth={2}
+          />
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search customer name, email, or service…"
+            className="w-full rounded-md border border-neutral-300 bg-white py-2 pl-9 pr-9 text-sm placeholder:text-neutral-400 focus:border-black focus:outline-none"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              aria-label="Clear search"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-neutral-400 hover:bg-neutral-100 hover:text-black"
+            >
+              <X className="h-3.5 w-3.5" strokeWidth={2} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Summary */}
-      {data && !loading && (
+      {data && !loading && filteredSummary && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <Card className="rounded-lg border-black shadow-none py-0">
             <CardContent className="px-5 py-4">
               <div className="text-[11px] font-medium uppercase tracking-[0.12em] text-neutral-600 mb-2">
                 Bookings
               </div>
-              <div className="text-2xl font-semibold">{data.summary.count.toLocaleString()}</div>
+              <div className="text-2xl font-semibold">{filteredSummary.count.toLocaleString()}</div>
+              {search.trim() && (
+                <div className="text-xs text-neutral-500 mt-1">
+                  of {data.summary.count.toLocaleString()} total
+                </div>
+              )}
             </CardContent>
           </Card>
           <Card className="rounded-lg border-black shadow-none py-0">
@@ -426,9 +485,9 @@ function DetailsContent() {
               <div className="text-[11px] font-medium uppercase tracking-[0.12em] text-neutral-600 mb-2">
                 Revenue (paid)
               </div>
-              <div className="text-2xl font-semibold">{formatCurrency(data.summary.revenue)}</div>
+              <div className="text-2xl font-semibold">{formatCurrency(filteredSummary.revenue)}</div>
               <div className="text-xs text-neutral-500 mt-1">
-                {data.summary.paidCount.toLocaleString()} paid
+                {filteredSummary.paidCount.toLocaleString()} paid
               </div>
             </CardContent>
           </Card>
@@ -437,8 +496,10 @@ function DetailsContent() {
               <div className="text-[11px] font-medium uppercase tracking-[0.12em] text-neutral-600 mb-2">
                 Total amount
               </div>
-              <div className="text-2xl font-semibold">{formatCurrency(data.summary.totalAmount)}</div>
-              <div className="text-xs text-neutral-500 mt-1">all rows</div>
+              <div className="text-2xl font-semibold">{formatCurrency(filteredSummary.totalAmount)}</div>
+              <div className="text-xs text-neutral-500 mt-1">
+                {search.trim() ? 'filtered rows' : 'all rows'}
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -556,14 +617,16 @@ function DetailsContent() {
                 </tr>
               </thead>
               <tbody>
-                {data.bookings.length === 0 ? (
+                {filteredBookings.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-4 py-12 text-center text-sm text-neutral-500">
-                      No bookings match these filters.
+                      {search.trim()
+                        ? `No bookings match "${search}".`
+                        : 'No bookings match these filters.'}
                     </td>
                   </tr>
                 ) : (
-                  data.bookings.map(b => {
+                  filteredBookings.map(b => {
                     const isSelected = selectedIds.has(b.id)
                     return (
                       <tr

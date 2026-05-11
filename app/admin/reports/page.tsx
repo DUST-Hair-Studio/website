@@ -281,7 +281,7 @@ export default function AdminReportsPage() {
       {data && !loading && !error && (
         <div className="space-y-6">
           {/* Headline KPIs */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <KpiCard
               label="Revenue"
               value={formatCurrency(data.kpis.revenue.current)}
@@ -313,22 +313,10 @@ export default function AdminReportsPage() {
               }
               pctChange={showCompare ? data.kpis.avgTicket.pctChange : undefined}
             />
-            <KpiCard
-              label="Cancellation Rate"
-              value={formatPct(data.kpis.cancellationRate.current)}
-              subValue={
-                showCompare && data.kpis.cancellationRate.prior !== undefined
-                  ? `${formatPct(data.kpis.cancellationRate.prior)} prior`
-                  : undefined
-              }
-              pctChange={showCompare ? data.kpis.cancellationRate.pctChange : undefined}
-              invert
-              href={`/admin/reports/details?period=${filter}&status=cancelled`}
-            />
           </div>
 
           {/* Secondary KPIs */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <KpiCard
               label="Capacity Utilization"
               value={formatPct(data.kpis.utilization.current)}
@@ -336,12 +324,6 @@ export default function AdminReportsPage() {
                 data.kpis.utilization.currentAvailableMinutes
               )} booked`}
               pctChange={showCompare ? data.kpis.utilization.pctChange : undefined}
-            />
-            <KpiCard
-              label="Retention"
-              value={formatPct(data.kpis.retention.current.rate)}
-              subValue={`${data.kpis.retention.current.retained} of ${data.kpis.retention.current.total} new clients rebooked`}
-              pctChange={showCompare ? data.kpis.retention.pctChange : undefined}
             />
             <KpiCard
               label="Outstanding Revenue"
