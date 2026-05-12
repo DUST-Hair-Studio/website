@@ -787,6 +787,163 @@ export class EmailService {
     }
   }
 
+  // Send admin notification when a booking is created, cancelled, or rescheduled.
+  // Recipient: ADMIN_NOTIFICATION_EMAIL env var, fallback to appointments@dusthairstudio.com.
+  // Intentionally hardcoded content (not reminder_templates) — this is operational, not customer-facing.
+  async sendAdminNotificationEmail(
+    booking: BookingData,
+    eventType: 'booking_created' | 'booking_cancelled' | 'booking_rescheduled',
+    options?: { oldDate?: string; oldTime?: string }
+  ): Promise<boolean> {
+    try {
+      if (!resend) {
+        console.log('[ADMIN NOTIFY] Resend API key not configured, skipping')
+        return false
+      }
+
+      const adminEmail =
+        process.env.ADMIN_NOTIFICATION_EMAIL || 'appointments@dusthairstudio.com'
+
+      const businessSettings = await this.getBusinessSettings()
+
+      const { data: emailEnabled } = await this.supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'email_enabled')
+        .single()
+
+      if (emailEnabled?.value === false) {
+        console.log('[ADMIN NOTIFY] Email notifications disabled, skipping')
+        return false
+      }
+
+      const tz = businessSettings.timezone
+      const appointmentDateObj = createBusinessDateTimeSync(booking.booking_date, '00:00:00', tz)
+      const appointmentDateTimeObj = createBusinessDateTimeSync(
+        booking.booking_date,
+        booking.booking_time,
+        tz
+      )
+      const appointmentDate = appointmentDateObj.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        timeZone: tz,
+      })
+      const appointmentTime = appointmentDateTimeObj.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: tz,
+      })
+
+      let oldDateLabel: string | null = null
+      let oldTimeLabel: string | null = null
+      if (eventType === 'booking_rescheduled' && options?.oldDate && options?.oldTime) {
+        const oldDateObj = createBusinessDateTimeSync(options.oldDate, '00:00:00', tz)
+        const oldDateTimeObj = createBusinessDateTimeSync(options.oldDate, options.oldTime, tz)
+        oldDateLabel = oldDateObj.toLocaleDateString('en-US', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          timeZone: tz,
+        })
+        oldTimeLabel = oldDateTimeObj.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+          timeZone: tz,
+        })
+      }
+
+      const eventLabel = {
+        booking_created: 'New Booking',
+        booking_cancelled: 'Booking Cancelled',
+        booking_rescheduled: 'Booking Rescheduled',
+      }[eventType]
+
+      const headerColor = {
+        booking_created: '#059669',
+        booking_cancelled: '#dc2626',
+        booking_rescheduled: '#2563eb',
+      }[eventType]
+
+      const customerName = booking.customers?.name || 'Customer'
+      const customerEmail = booking.customers?.email || ''
+      const customerPhone = booking.customers?.phone || ''
+      const serviceName = booking.services?.name || ''
+
+      const subject = `[${eventLabel}] ${customerName} – ${serviceName} on ${appointmentDate} at ${appointmentTime}`
+
+      const whenLines =
+        oldDateLabel && oldTimeLabel
+          ? `Previous: ${oldDateLabel} at ${oldTimeLabel}\nNew: ${appointmentDate} at ${appointmentTime}`
+          : `When: ${appointmentDate} at ${appointmentTime}`
+
+      const textBody = `${eventLabel}
+
+${whenLines}
+
+Customer: ${customerName}
+Email: ${customerEmail}
+Phone: ${customerPhone || '—'}
+Service: ${serviceName}
+Duration: ${booking.duration_minutes} minutes
+Booking ID: ${booking.id}
+`
+
+      const whenHtml =
+        oldDateLabel && oldTimeLabel
+          ? `
+              <p style="margin: 0 0 8px 0;"><strong>Previous:</strong> ${oldDateLabel} at ${oldTimeLabel}</p>
+              <p style="margin: 0 0 8px 0;"><strong>New:</strong> ${appointmentDate} at ${appointmentTime}</p>`
+          : `<p style="margin: 0 0 8px 0;"><strong>When:</strong> ${appointmentDate} at ${appointmentTime}</p>`
+
+      const { data, error } = await resend.emails.send({
+        from: getResendFromAddress(),
+        replyTo: customerEmail || businessSettings.business_email || undefined,
+        to: [adminEmail],
+        subject,
+        text: textBody,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: ${headerColor}; margin: 0 0 16px 0;">${eventLabel}</h2>
+            <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              ${whenHtml}
+              <hr style="border: none; border-top: 1px solid #eee; margin: 12px 0;" />
+              <p style="margin: 0 0 8px 0;"><strong>Customer:</strong> ${customerName}</p>
+              <p style="margin: 0 0 8px 0;"><strong>Email:</strong> ${customerEmail || '—'}</p>
+              <p style="margin: 0 0 8px 0;"><strong>Phone:</strong> ${customerPhone || '—'}</p>
+              <p style="margin: 0 0 8px 0;"><strong>Service:</strong> ${serviceName}</p>
+              <p style="margin: 0;"><strong>Duration:</strong> ${booking.duration_minutes} minutes</p>
+            </div>
+            <div style="border-top: 1px solid #eee; padding-top: 20px; font-size: 12px; color: #666;">
+              <p>Booking ID: ${booking.id}</p>
+            </div>
+          </div>
+        `,
+      })
+
+      if (error) {
+        console.error('[ADMIN NOTIFY] Error sending:', error)
+        return false
+      }
+
+      console.log('[ADMIN NOTIFY] Sent', {
+        eventType,
+        bookingId: booking.id,
+        to: adminEmail,
+        emailId: data?.id,
+      })
+      return true
+    } catch (error) {
+      console.error('[ADMIN NOTIFY] Exception in sendAdminNotificationEmail:', error)
+      return false
+    }
+  }
+
   // Send waitlist confirmation email when customer joins waitlist
   async sendWaitlistConfirmationEmail(data: WaitlistConfirmationData): Promise<boolean> {
     try {

@@ -335,6 +335,14 @@ export async function PUT(
         }
       }
       await emailService.sendRescheduleEmail(bookingData, oldDate, oldTime)
+      try {
+        await emailService.sendAdminNotificationEmail(bookingData, 'booking_rescheduled', {
+          oldDate,
+          oldTime,
+        })
+      } catch (adminErr) {
+        console.error('Error sending admin reschedule notification:', adminErr)
+      }
     } catch (error) {
       console.error('Error sending reschedule email:', error)
       // Continue with the response even if email fails
@@ -519,6 +527,11 @@ export async function PATCH(
         }
       }
       await emailService.sendCancellationEmail(bookingData)
+      try {
+        await emailService.sendAdminNotificationEmail(bookingData, 'booking_cancelled')
+      } catch (adminErr) {
+        console.error('Error sending admin cancellation notification:', adminErr)
+      }
     } catch (error) {
       console.error('Error sending cancellation email:', error)
       // Continue with the response even if email fails
@@ -673,6 +686,11 @@ export async function DELETE(
       }
       const result = await emailService.sendCancellationEmail(bookingData)
       console.log('[CustomerCancel] sendCancellationEmail result:', result)
+      try {
+        await emailService.sendAdminNotificationEmail(bookingData, 'booking_cancelled')
+      } catch (adminErr) {
+        console.error('Error sending admin cancellation notification:', adminErr)
+      }
       }
     } catch (error) {
       console.error('[CustomerCancel] sendCancellationEmail threw:', error)

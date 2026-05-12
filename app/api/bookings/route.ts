@@ -278,11 +278,18 @@ export async function POST(request: NextRequest) {
       
       // Send confirmation email immediately
       const emailSent = await emailService.sendConfirmationEmail(booking)
-      
+
       if (emailSent) {
         console.log('Confirmation email sent successfully')
       } else {
         console.log('Failed to send confirmation email')
+      }
+
+      // Notify admin of the new booking (independent of customer email success)
+      try {
+        await emailService.sendAdminNotificationEmail(booking, 'booking_created')
+      } catch (adminErr) {
+        console.error('Error sending admin booking notification:', adminErr)
       }
 
       // Schedule all reminder templates for this booking
