@@ -85,16 +85,22 @@ export function LoginForm() {
             />
           </div>
           
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             variant="outline"
-            className="w-full bg-white border border-black hover:bg-gray-50" 
+            className="w-full bg-white border border-black hover:bg-gray-50"
             disabled={loading}
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </Button>
+
+          <div className="text-center">
+            <a href="/forgot-password" className="text-sm text-gray-600 hover:text-gray-900 underline">
+              Forgot your password?
+            </a>
+          </div>
         </form>
-        
+
         <div className="mt-4 text-center text-sm">
           <p>
             Don&apos;t have an account?{' '}

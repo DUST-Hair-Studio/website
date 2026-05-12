@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('')
@@ -103,14 +104,23 @@ export default function AdminLoginPage() {
                 </div>
               )}
 
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 variant="ghost"
-                className="w-full text-sm font-normal px-4 py-2 border border-black rounded bg-white hover:bg-gray-50" 
+                className="w-full text-sm font-normal px-4 py-2 border border-black rounded bg-white hover:bg-gray-50"
                 disabled={loading}
               >
                 {loading ? 'Signing in...' : 'Sign In'}
               </Button>
+
+              <div className="text-center">
+                <Link
+                  href="/admin/forgot-password"
+                  className="text-sm text-gray-600 hover:text-gray-900 underline"
+                >
+                  Forgot your password?
+                </Link>
+              </div>
             </form>
           </CardContent>
         </Card>
