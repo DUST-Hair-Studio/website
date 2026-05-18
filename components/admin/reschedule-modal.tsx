@@ -416,7 +416,8 @@ export default function RescheduleModal({
         {/* Submit Button - Same as booking flow */}
         {selectedDate && selectedTime && (
           <div className="max-w-7xl mx-auto mt-8">
-            <Button 
+            <Button
+              variant="primary"
               onClick={handleReschedule}
               disabled={isSubmitting}
               className="w-full"

@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuPortal } from '@/components/ui/dropdown-menu'
-import { Calendar, RotateCcw, Search, Filter, Table, Phone, MessageSquare, Mail, CreditCard, MoreVertical, CheckSquare, Loader2, ChevronLeft, ChevronRight, X, Clock, Ban, Undo2 } from 'lucide-react'
+import { Calendar, RotateCcw, Search, Filter, Table, Phone, MessageSquare, Mail, CreditCard, MoreVertical, CheckSquare, Loader2, ChevronLeft, ChevronRight, X, Clock, Ban, Undo2, Settings } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 import AdminBookModal from '@/components/admin/admin-book-modal'
@@ -828,23 +828,23 @@ export default function AdminBookingsPage() {
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Bookings Management</h1>
           <p className="text-gray-600 text-sm sm:text-base">Manage all customer bookings and appointments</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Link href="/admin/settings?tab=schedule">
-            <Button variant="outline" className="w-full sm:w-auto">
-              <Clock className="w-4 h-4 mr-2" />
-              Schedule
-            </Button>
-          </Link>
-          <Button 
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Button
+            variant="primary"
             onClick={() => {
               setBookingToReschedule(null)
               setShowAdminBookModal(true)
             }}
-            className="w-full sm:w-auto"
+            className="flex-1 sm:flex-none sm:w-auto"
           >
             <Calendar className="w-4 h-4 mr-2" />
             Book Appointment
           </Button>
+          <Link href="/admin/settings?tab=schedule" aria-label="Schedule settings">
+            <Button variant="outline" size="icon" aria-label="Schedule settings">
+              <Settings className="w-4 h-4" />
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -857,7 +857,7 @@ export default function AdminBookingsPage() {
               placeholder="Search by customer name, email, or service..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              className="pl-10 border-gray-300 focus-visible:border-gray-400 focus-visible:ring-0"
             />
           </div>
         </div>
@@ -895,58 +895,76 @@ export default function AdminBookingsPage() {
       </div>
 
       {/* View Toggle */}
-      <div className="flex flex-col sm:flex-row gap-3 justify-center sm:justify-start">
+      <div className="flex flex-row gap-2 items-center">
         {/* Table vs Calendar Toggle */}
-        <div className="flex items-center gap-1 sm:gap-2 bg-gray-100 p-1 rounded-lg">
-          <Button
-            variant={viewMode === 'table' ? 'default' : 'ghost'}
-            size="sm"
+        <div className="flex items-center gap-0.5 bg-gray-100 p-0.5 rounded-md border border-gray-200">
+          <button
+            type="button"
             onClick={() => setViewMode('table')}
-            className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
+            aria-label="Table view"
+            aria-pressed={viewMode === 'table'}
+            className={`flex items-center justify-center p-1.5 rounded transition-colors ${
+              viewMode === 'table'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-500 hover:text-gray-900'
+            }`}
           >
-            <Table className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span className="hidden sm:inline">Table</span>
-            <span className="sm:hidden">Table</span>
-          </Button>
-          <Button
-            variant={viewMode === 'calendar' ? 'default' : 'ghost'}
-            size="sm"
+            <Table className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
             onClick={() => setViewMode('calendar')}
-            className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
+            aria-label="Calendar view"
+            aria-pressed={viewMode === 'calendar'}
+            className={`flex items-center justify-center p-1.5 rounded transition-colors ${
+              viewMode === 'calendar'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-500 hover:text-gray-900'
+            }`}
           >
-            <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span className="hidden sm:inline">Calendar</span>
-            <span className="sm:hidden">Calendar</span>
-          </Button>
+            <Calendar className="w-4 h-4" />
+          </button>
         </div>
-        
+
         {/* Calendar View Options - Only show when calendar view is active */}
         {viewMode === 'calendar' && (
-          <div className="flex items-center gap-1 sm:gap-2 bg-gray-100 p-1 rounded-lg">
-            <Button
-              variant={calendarView === '3day' ? 'default' : 'ghost'}
-              size="sm"
+          <div className="flex items-center gap-0.5 bg-gray-100 p-0.5 rounded-md border border-gray-200">
+            <button
+              type="button"
               onClick={() => setCalendarView('3day')}
-              className="text-xs sm:text-sm px-2 sm:px-3"
+              aria-pressed={calendarView === '3day'}
+              className={`px-3 py-1 text-xs font-medium uppercase tracking-wide rounded transition-colors ${
+                calendarView === '3day'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-900'
+              }`}
             >
               3 Days
-            </Button>
-            <Button
-              variant={calendarView === 'week' ? 'default' : 'ghost'}
-              size="sm"
+            </button>
+            <button
+              type="button"
               onClick={() => setCalendarView('week')}
-              className="text-xs sm:text-sm px-2 sm:px-3"
+              aria-pressed={calendarView === 'week'}
+              className={`px-3 py-1 text-xs font-medium uppercase tracking-wide rounded transition-colors ${
+                calendarView === 'week'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-900'
+              }`}
             >
               Week
-            </Button>
-            <Button
-              variant={calendarView === 'month' ? 'default' : 'ghost'}
-              size="sm"
+            </button>
+            <button
+              type="button"
               onClick={() => setCalendarView('month')}
-              className="text-xs sm:text-sm px-2 sm:px-3"
+              aria-pressed={calendarView === 'month'}
+              className={`px-3 py-1 text-xs font-medium uppercase tracking-wide rounded transition-colors ${
+                calendarView === 'month'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-900'
+              }`}
             >
               Month
-            </Button>
+            </button>
           </div>
         )}
       </div>
@@ -1528,24 +1546,24 @@ export default function AdminBookingsPage() {
               <div>
                 {/* Calendar Header */}
                 <div className="border-b border-gray-200 p-3 sm:p-4">
-                  <div className="flex justify-between items-center mb-3">
+                  <div className="flex justify-between items-center mb-3 gap-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => navigateCalendar('prev')}
-                      className="h-8"
+                      className="h-8 shrink-0"
                     >
                       <ChevronLeft className="w-4 h-4" />
                     </Button>
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
+                    <div className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                      <h2 className="text-base sm:text-xl md:text-2xl font-bold text-gray-900 text-center truncate w-full">
                         {getCalendarHeaderText()}
                       </h2>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setCalendarStartDate(new Date())}
-                        className="h-8 text-xs"
+                        className="h-7 text-xs uppercase tracking-wide px-3"
                       >
                         Today
                       </Button>
@@ -1554,7 +1572,7 @@ export default function AdminBookingsPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => navigateCalendar('next')}
-                      className="h-8"
+                      className="h-8 shrink-0"
                     >
                       <ChevronRight className="w-4 h-4" />
                     </Button>
@@ -2478,11 +2496,10 @@ export default function AdminBookingsPage() {
                             Cancel
                           </Button>
                           <Button
+                            variant="primary"
                             size="sm"
                             onClick={savePublicNotes}
                             disabled={savingPublicNotes}
-                            className="text-black border border-black"
-                            style={{ backgroundColor: '#a7f3d0' }}
                           >
                             {savingPublicNotes ? (
                               <>

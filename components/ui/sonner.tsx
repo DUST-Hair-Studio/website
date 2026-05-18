@@ -9,7 +9,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       className="toaster group"
       toastOptions={{
         style: {
-          background: '#a7f3d0', // mint green
+          background: '#04D96A',
           color: '#000000', // black text
           border: '1px solid #000000', // black border
         },

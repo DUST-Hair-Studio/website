@@ -425,7 +425,7 @@ export default function CampaignsPage() {
               Manage and send email campaigns to your customers
             </p>
           </div>
-          <Button onClick={handleNewCampaignClick} className="w-full sm:w-auto shrink-0">
+          <Button variant="primary" onClick={handleNewCampaignClick} className="w-full sm:w-auto shrink-0">
             <Plus className="h-4 w-4 mr-2" />
             New Campaign
           </Button>
@@ -585,6 +585,7 @@ export default function CampaignsPage() {
               </div>
 
               <Button
+                variant="primary"
                 onClick={() => handleSendCampaign(selectedCampaign)}
                 disabled={
                   isSending ||
@@ -755,7 +756,7 @@ export default function CampaignsPage() {
               </div>
 
               <div className="flex gap-2">
-                <Button onClick={handleCreateCampaign}>
+                <Button variant="primary" onClick={handleCreateCampaign}>
                   {campaigns.some(c => c.id === newCampaign.id) ? 'Update Campaign' : 'Create Campaign'}
                 </Button>
                 <Button 
@@ -1022,6 +1023,7 @@ export default function CampaignsPage() {
                 <h3 className="font-semibold text-base sm:text-lg mb-3">Quick Actions</h3>
                 <div className="flex flex-wrap gap-2">
                   <Button
+                    variant="primary"
                     onClick={() => {
                       closeCampaignDetails()
                       setSelectedCampaign(detailsCampaign)
@@ -1110,6 +1112,7 @@ export default function CampaignsPage() {
           <DialogFooter>
             {drillDownData && drillDownData.details.filter((d) => !d.success).length > 0 && (
               <Button
+                variant="primary"
                 onClick={() =>
                   handleResendToFailed(
                     drillDownData!.campaign,

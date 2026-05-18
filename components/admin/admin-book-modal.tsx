@@ -767,6 +767,7 @@ export default function AdminBookModal({
 
           {currentStep === 'review' ? (
             <Button
+              variant="primary"
               onClick={handleSubmit}
               disabled={isSubmitting}
               className="flex-1 sm:flex-initial min-h-10 sm:min-h-9 touch-manipulation"

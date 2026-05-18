@@ -959,14 +959,14 @@ export default function AdminCustomersPage() {
                   Close
                 </Button>
                 <Button
+                  variant="primary"
                   onClick={() => {
                     setShowDetailsDialog(false)
                     if (selectedCustomer) {
                       openEditDialog(selectedCustomer)
                     }
                   }}
-                  className="flex-1 h-12 text-black border border-black"
-                  style={{ backgroundColor: '#a7f3d0' }}
+                  className="flex-1 h-12"
                 >
                   <Edit className="w-4 h-4 mr-2" />
                   Edit Customer
@@ -1061,10 +1061,9 @@ export default function AdminCustomersPage() {
               Cancel
             </Button>
             <Button
+              variant="primary"
               onClick={saveCustomerEdit}
               disabled={isSubmitting}
-              className="text-black border border-black"
-              style={{ backgroundColor: '#a7f3d0' }}
             >
               {isSubmitting ? (
                 <>
@@ -1234,11 +1233,10 @@ export default function AdminCustomersPage() {
                             Cancel
                           </Button>
                           <Button
+                            variant="primary"
                             size="sm"
                             onClick={savePortalNotes}
                             disabled={savingPortalNotes}
-                            className="text-black border border-black"
-                            style={{ backgroundColor: '#a7f3d0' }}
                           >
                             {savingPortalNotes ? (
                               <>

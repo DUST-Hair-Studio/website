@@ -201,7 +201,7 @@ export default function SegmentsPage() {
               Create and manage recipient lists for email campaigns
             </p>
           </div>
-          <Button onClick={openCreateForm} className="w-full sm:w-auto shrink-0">
+          <Button variant="primary" onClick={openCreateForm} className="w-full sm:w-auto shrink-0">
             <Plus className="h-4 w-4 mr-2" />
             New Segment
           </Button>
@@ -214,7 +214,7 @@ export default function SegmentsPage() {
             <CardContent className="py-12 text-center">
               <Users className="h-12 w-12 mx-auto text-gray-300 mb-4" />
               <p className="text-gray-600 mb-4">No segments yet. Create one to get started.</p>
-              <Button onClick={openCreateForm}>
+              <Button variant="primary" onClick={openCreateForm}>
                 <Plus className="h-4 w-4 mr-2" />
                 Create Segment
               </Button>
@@ -379,7 +379,7 @@ export default function SegmentsPage() {
             <Button variant="outline" onClick={() => setShowForm(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={saving}>
+            <Button variant="primary" onClick={handleSave} disabled={saving}>
               {saving ? 'Saving…' : editingSegment ? 'Update' : 'Create'}
             </Button>
           </DialogFooter>

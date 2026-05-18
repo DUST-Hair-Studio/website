@@ -228,7 +228,7 @@ export default function AdminServicesPage() {
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={openCreateDialog}>
+            <Button variant="primary" onClick={openCreateDialog}>
               <Plus className="w-4 h-4 mr-2" />
               Add Service
             </Button>
@@ -382,7 +382,7 @@ export default function AdminServicesPage() {
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isSubmitting}>
+                <Button variant="primary" type="submit" disabled={isSubmitting}>
                   {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                   Create Service
                 </Button>
@@ -582,7 +582,7 @@ export default function AdminServicesPage() {
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button variant="primary" type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Update Service
               </Button>

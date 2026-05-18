@@ -617,8 +617,9 @@ function BookPageContent() {
                 <Button variant="outline" onClick={() => setStep(2)}>
                   Back
                 </Button>
-                <Button 
-                  onClick={handleSubmit} 
+                <Button
+                  variant="primary"
+                  onClick={handleSubmit}
                   disabled={isSubmitting || !customerInfo.firstName || !customerInfo.lastName || !customerInfo.email || !customerInfo.phone}
                   className="flex-1"
                 >

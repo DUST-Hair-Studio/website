@@ -391,7 +391,7 @@ function AdminRemindersContent() {
           </div>
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Reminder Templates</h2>
-            <Button onClick={() => setShowTemplateForm(true)} className="flex items-center gap-2">
+            <Button variant="primary" onClick={() => setShowTemplateForm(true)} className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
               New Template
             </Button>

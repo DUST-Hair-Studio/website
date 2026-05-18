@@ -193,6 +193,7 @@ export default function WaitlistForm({
                     Cancel
                   </Button>
                   <Button
+                    variant="primary"
                     onClick={handleSubmit}
                     disabled={!startDate || !endDate || isSubmitting}
                     className="flex-1"
@@ -309,6 +310,7 @@ export default function WaitlistForm({
                   Cancel
                 </Button>
                 <Button
+                  variant="primary"
                   onClick={handleSubmit}
                   disabled={!startDate || !endDate || isSubmitting}
                   className="flex-1"
