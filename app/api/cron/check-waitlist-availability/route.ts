@@ -513,18 +513,19 @@ async function sendWaitlistNotification(
       timezone: settingsMap.business_timezone || 'America/Los_Angeles'
     }
 
-    // Format the date and time for display - avoid timezone conversion
-    const formatDateForEmail = (dateString: string, timezone: string) => {
-      // Parse YYYY-MM-DD format directly without timezone conversion
+    // Format the date for display without timezone drift.
+    // Construct the date in UTC and format in UTC so the calendar day in the
+    // YYYY-MM-DD string is preserved regardless of server or business timezone.
+    const formatDateForEmail = (dateString: string, _timezone: string) => {
       const [year, month, day] = dateString.split('-').map(Number)
-      const date = new Date(year, month - 1, day) // month is 0-indexed
-      
+      const date = new Date(Date.UTC(year, month - 1, day))
+
       return date.toLocaleDateString('en-US', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
         day: 'numeric',
-        timeZone: timezone
+        timeZone: 'UTC'
       })
     }
 
@@ -538,7 +539,7 @@ async function sendWaitlistNotification(
         timeZone: businessSettings.timezone
       })
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '')
     const bookingLink = `${baseUrl}/book?serviceId=${request.service_id}&date=${availableDate}&waitlist_id=${request.id}`
 
     const subject = `Appointment Available - ${appointmentDate}`

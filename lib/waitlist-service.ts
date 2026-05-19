@@ -153,14 +153,22 @@ export class WaitlistService {
         return false
       }
 
-      // Format the date and time for display
-      const appointmentDate = new Date(availableDate).toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        timeZone: businessSettings.timezone
-      })
+      // Format the date for display without timezone drift.
+      // Parse the YYYY-MM-DD string as a UTC date and format in UTC so the
+      // calendar day is preserved regardless of server or business timezone.
+      const formatDateForEmail = (dateString: string) => {
+        const [year, month, day] = dateString.split('-').map(Number)
+        const date = new Date(Date.UTC(year, month - 1, day))
+        return date.toLocaleDateString('en-US', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          timeZone: 'UTC'
+        })
+      }
+
+      const appointmentDate = formatDateForEmail(availableDate)
 
       const appointmentTime = createBusinessDateTimeSync(availableDate, availableTime, businessSettings.timezone)
         .toLocaleTimeString('en-US', {
@@ -170,7 +178,7 @@ export class WaitlistService {
           timeZone: businessSettings.timezone
         })
 
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+      const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '')
       const bookingLink = `${baseUrl}/book?serviceId=${waitlistRequest.service_id}`
 
       const subject = `Appointment Available - ${appointmentDate}`
@@ -186,7 +194,7 @@ This appointment is available on a first-come, first-served basis. Book now to s
 To book this appointment, click the link below:
 ${bookingLink}
 
-This notification is part of our waitlist service. You requested to be notified about availability between ${new Date(waitlistRequest.start_date).toLocaleDateString()} and ${new Date(waitlistRequest.end_date).toLocaleDateString()}.
+This notification is part of our waitlist service. You requested to be notified about availability between ${formatDateForEmail(waitlistRequest.start_date)} and ${formatDateForEmail(waitlistRequest.end_date)}.
 
 Best regards,
 ${businessSettings.business_name}
