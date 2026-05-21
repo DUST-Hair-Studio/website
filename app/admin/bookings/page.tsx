@@ -57,6 +57,12 @@ export default function AdminBookingsPage() {
   const [voidingBooking, setVoidingBooking] = useState<BookingWithDetails | null>(null)
   const [voidReason, setVoidReason] = useState('')
   const [processingVoidId, setProcessingVoidId] = useState<string | null>(null)
+  // Booking pricing edit (service + customer type) — only legal while payment_status === 'pending'
+  const [editingBookingDetails, setEditingBookingDetails] = useState(false)
+  const [editServiceId, setEditServiceId] = useState<string>('')
+  const [editCustomerType, setEditCustomerType] = useState<'new' | 'existing'>('new')
+  const [savingBookingDetails, setSavingBookingDetails] = useState(false)
+  const [servicesList, setServicesList] = useState<Array<{ id: string; name: string; duration_minutes: number; new_customer_price: number; existing_customer_price: number }>>([])
 
   // Close phone menu when clicking outside
   useEffect(() => {
@@ -111,6 +117,48 @@ export default function AdminBookingsPage() {
       toast.error('Failed to save public notes')
     } finally {
       setSavingPublicNotes(false)
+    }
+  }
+
+  // Fetch active services once for the booking edit picker
+  useEffect(() => {
+    fetch('/api/services')
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data.services)) setServicesList(data.services)
+      })
+      .catch(err => console.error('Error fetching services list:', err))
+  }, [])
+
+  // Save service + customer-type edits to a booking (recalculates price)
+  const saveBookingDetailsEdit = async () => {
+    if (!selectedBooking) return
+    try {
+      setSavingBookingDetails(true)
+      const response = await fetch(`/api/admin/bookings/${selectedBooking.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          service_id: editServiceId,
+          customer_type: editCustomerType,
+        }),
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        toast.error(data.error || 'Failed to update booking')
+        return
+      }
+      if (data.booking) {
+        setBookings(prev => prev.map(b => b.id === selectedBooking.id ? { ...b, ...data.booking } : b))
+        setSelectedBooking(prev => prev ? { ...prev, ...data.booking } : prev)
+      }
+      setEditingBookingDetails(false)
+      toast.success('Booking updated')
+    } catch (error) {
+      console.error('Error updating booking details:', error)
+      toast.error('Failed to update booking')
+    } finally {
+      setSavingBookingDetails(false)
     }
   }
 
@@ -2320,7 +2368,7 @@ export default function AdminBookingsPage() {
                       <div className="flex justify-between items-center py-2 md:py-2">
                         <span className="text-gray-600">Customer</span>
                         <div className="flex items-center gap-2">
-                          <Link 
+                          <Link
                             href={`/admin/customers?customerId=${selectedBooking.customer_id}&search=${encodeURIComponent(selectedBooking.customers.name)}`}
                             className="font-medium text-blue-600 hover:text-blue-800 underline cursor-pointer"
                           >
@@ -2336,6 +2384,120 @@ export default function AdminBookingsPage() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Edit service + customer type (pre-checkout only) */}
+                  {(() => {
+                    const canEditBookingDetails =
+                      selectedBooking.payment_status === 'pending' &&
+                      selectedBooking.status !== 'completed' &&
+                      selectedBooking.status !== 'cancelled'
+                    return (
+                      <div className="pb-2 md:pb-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-semibold text-gray-900 text-lg">Service & Pricing</h4>
+                          {canEditBookingDetails && !editingBookingDetails && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setEditServiceId(selectedBooking.service_id)
+                                setEditCustomerType(
+                                  selectedBooking.customer_type_at_booking === 'new' ? 'new' : 'existing'
+                                )
+                                setEditingBookingDetails(true)
+                              }}
+                            >
+                              <Settings className="w-3 h-3 mr-1" />
+                              Edit
+                            </Button>
+                          )}
+                        </div>
+                        {!canEditBookingDetails && (
+                          <p className="text-xs text-gray-500 mb-2 italic">
+                            Service and pricing are locked once an invoice is generated or the booking is completed/cancelled.
+                            {selectedBooking.payment_status !== 'pending' && selectedBooking.status !== 'completed' && selectedBooking.status !== 'cancelled' && ' Void the invoice to re-enable editing.'}
+                          </p>
+                        )}
+                        {editingBookingDetails ? (
+                          <div className="space-y-3 bg-gray-50 border border-gray-200 rounded-lg p-3">
+                            <div>
+                              <label className="text-xs font-medium text-gray-700 block mb-1">Service</label>
+                              <Select value={editServiceId} onValueChange={setEditServiceId}>
+                                <SelectTrigger className="w-full">
+                                  <SelectValue placeholder="Choose a service" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {servicesList.map(s => (
+                                    <SelectItem key={s.id} value={s.id}>
+                                      {s.name} · {s.duration_minutes} min
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <label className="text-xs font-medium text-gray-700 block mb-1">Customer type</label>
+                              <Select
+                                value={editCustomerType}
+                                onValueChange={(v) => setEditCustomerType(v as 'new' | 'existing')}
+                              >
+                                <SelectTrigger className="w-full">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="new">New</SelectItem>
+                                  <SelectItem value="existing">Loyalty</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            {(() => {
+                              const svc = servicesList.find(s => s.id === editServiceId)
+                              if (!svc) return null
+                              const previewPrice = editCustomerType === 'existing' ? svc.existing_customer_price : svc.new_customer_price
+                              return (
+                                <div className="text-sm text-gray-700">
+                                  New price: <span className="font-semibold text-gray-900">{formatPrice(previewPrice)}</span>
+                                </div>
+                              )
+                            })()}
+                            <div className="flex gap-2 justify-end">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setEditingBookingDetails(false)}
+                                disabled={savingBookingDetails}
+                              >
+                                Cancel
+                              </Button>
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                onClick={saveBookingDetailsEdit}
+                                disabled={savingBookingDetails || !editServiceId}
+                              >
+                                {savingBookingDetails ? (
+                                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>
+                                ) : (
+                                  'Save'
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-sm text-gray-700">
+                            <div className="flex justify-between py-1">
+                              <span className="text-gray-600">Service</span>
+                              <span className="font-medium text-gray-900">{selectedBooking.services?.name || 'Service not found'}</span>
+                            </div>
+                            <div className="flex justify-between py-1">
+                              <span className="text-gray-600">Duration</span>
+                              <span className="font-medium text-gray-900">{selectedBooking.duration_minutes} min</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })()}
 
                   {/* Booking Info */}
                   <div>

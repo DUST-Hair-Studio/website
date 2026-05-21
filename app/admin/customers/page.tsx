@@ -303,18 +303,25 @@ export default function AdminCustomersPage() {
         throw new Error('Failed to update customer')
       }
 
-      await response.json()
-      
+      const data = await response.json()
+      const bookingsUpdated: number = data?.bookingsUpdated ?? 0
+
       // Update local state
-      setCustomers(prev => prev.map(c => 
-        c.id === editingCustomer.id 
+      setCustomers(prev => prev.map(c =>
+        c.id === editingCustomer.id
           ? { ...c, ...editForm }
           : c
       ))
 
       setShowEditDialog(false)
       setEditingCustomer(null)
-      toast.success('Customer updated successfully')
+      if (bookingsUpdated > 0) {
+        toast.success(
+          `Customer updated · ${bookingsUpdated} open booking${bookingsUpdated === 1 ? '' : 's'} re-priced`
+        )
+      } else {
+        toast.success('Customer updated successfully')
+      }
     } catch (error) {
       console.error('Error updating customer:', error)
       toast.error('Failed to update customer')
@@ -1040,15 +1047,22 @@ export default function AdminCustomersPage() {
               />
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="edit-customer-type"
-                checked={editForm.is_existing_customer}
-                onCheckedChange={(checked) => setEditForm(prev => ({ ...prev, is_existing_customer: checked }))}
-              />
-              <Label htmlFor="edit-customer-type">
-                Existing Customer
-              </Label>
+            <div className="space-y-1">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="edit-customer-type"
+                  checked={editForm.is_existing_customer}
+                  onCheckedChange={(checked) => setEditForm(prev => ({ ...prev, is_existing_customer: checked }))}
+                />
+                <Label htmlFor="edit-customer-type">
+                  Loyalty Customer
+                </Label>
+              </div>
+              {editingCustomer && editForm.is_existing_customer !== editingCustomer.is_existing_customer && (
+                <p className="text-xs text-amber-700">
+                  Changing this re-prices all of this customer&apos;s open bookings (pre-invoice).
+                </p>
+              )}
             </div>
           </div>
 

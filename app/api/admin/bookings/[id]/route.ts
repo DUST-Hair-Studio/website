@@ -219,7 +219,17 @@ export async function PATCH(
     const supabase = await createServerSupabaseClient()
     const { id } = await params
     const body = await request.json()
-    const { status, admin_notes, public_notes, payment_status, square_transaction_id, action, void_reason } = body
+    const {
+      status,
+      admin_notes,
+      public_notes,
+      payment_status,
+      square_transaction_id,
+      action,
+      void_reason,
+      service_id,
+      customer_type,
+    } = body
 
     const updateData: {
       updated_at: string;
@@ -231,8 +241,65 @@ export async function PATCH(
       paid_at?: string | null;
       voided_at?: string | null;
       void_reason?: string | null;
+      service_id?: string;
+      duration_minutes?: number;
+      price_charged?: number;
+      customer_type_at_booking?: string;
     } = {
       updated_at: new Date().toISOString()
+    }
+
+    // Edit booking pricing: change service and/or customer type, recalculate price.
+    // Only legal while the booking is still pre-checkout (no invoice issued, not completed/cancelled).
+    if (service_id !== undefined || customer_type !== undefined) {
+      const { data: existing } = await supabase
+        .from('bookings')
+        .select('status, payment_status, service_id, customer_type_at_booking')
+        .eq('id', id)
+        .single()
+      if (!existing) {
+        return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
+      }
+      if (existing.status === 'completed' || existing.status === 'cancelled') {
+        return NextResponse.json(
+          { error: `Cannot edit a ${existing.status} booking.` },
+          { status: 400 }
+        )
+      }
+      if (existing.payment_status !== 'pending') {
+        return NextResponse.json(
+          { error: `Cannot edit pricing once an invoice has been generated (current: ${existing.payment_status}). Void the invoice first.` },
+          { status: 400 }
+        )
+      }
+
+      const targetServiceId = service_id ?? existing.service_id
+      const { data: service, error: serviceError } = await supabase
+        .from('services')
+        .select('id, duration_minutes, new_customer_price, existing_customer_price')
+        .eq('id', targetServiceId)
+        .single()
+      if (serviceError || !service) {
+        return NextResponse.json({ error: 'Service not found' }, { status: 404 })
+      }
+
+      let targetCustomerType = existing.customer_type_at_booking as string
+      if (customer_type !== undefined) {
+        // Normalize: 'loyalty' is a UI label; DB stores 'existing'.
+        if (customer_type === 'new') {
+          targetCustomerType = 'new'
+        } else if (customer_type === 'existing' || customer_type === 'loyalty') {
+          targetCustomerType = 'existing'
+        } else {
+          return NextResponse.json({ error: 'Invalid customer_type' }, { status: 400 })
+        }
+      }
+
+      const isExisting = targetCustomerType === 'existing' || targetCustomerType === 'loyalty'
+      updateData.service_id = targetServiceId
+      updateData.duration_minutes = service.duration_minutes
+      updateData.customer_type_at_booking = targetCustomerType
+      updateData.price_charged = isExisting ? service.existing_customer_price : service.new_customer_price
     }
 
     // Void / unvoid actions: only legal on pending or void (respectively)
