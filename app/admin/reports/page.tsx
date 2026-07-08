@@ -50,6 +50,17 @@ interface DeltaKpi {
   pctChange?: number | null
 }
 
+interface NewVsLoyaltySummary {
+  newRevenue: number
+  loyaltyRevenue: number
+  newCount: number
+  loyaltyCount: number
+  newCustomers: number
+  loyaltyCustomers: number
+  newAvgTicket: number
+  loyaltyAvgTicket: number
+}
+
 interface ReportData {
   filter: FilterPeriod
   hasComparison: boolean
@@ -63,10 +74,8 @@ interface ReportData {
     volume: DeltaKpi
     avgTicket: DeltaKpi
     newVsLoyalty: {
-      current: { newRevenue: number; loyaltyRevenue: number; newCount: number; loyaltyCount: number }
-      prior:
-        | { newRevenue: number; loyaltyRevenue: number; newCount: number; loyaltyCount: number }
-        | null
+      current: NewVsLoyaltySummary
+      prior: NewVsLoyaltySummary | null
     }
     cancellationRate: DeltaKpi
     utilization: DeltaKpi & { currentAvailableMinutes: number; currentBookedMinutes: number }
@@ -348,64 +357,83 @@ export default function AdminReportsPage() {
           {/* New vs Loyalty */}
           <Card className="rounded-lg border-black shadow-none py-0">
             <CardContent className="px-5 py-5">
-              <div className="text-[11px] font-medium uppercase tracking-[0.12em] text-neutral-600 mb-3">
-                New vs Loyalty
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-neutral-600">
+                  New vs Loyalty
+                </span>
+                <span className="flex items-center gap-4 text-[11px] uppercase tracking-[0.1em] text-neutral-600">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="h-2 w-2 bg-green-500" /> New
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="h-2 w-2 bg-indigo-500" /> Loyalty
+                  </span>
+                </span>
               </div>
               {(() => {
                 const c = data.kpis.newVsLoyalty.current
-                const total = c.newRevenue + c.loyaltyRevenue
-                const newPct = total > 0 ? (c.newRevenue / total) * 100 : 0
-                const loyaltyPct = total > 0 ? (c.loyaltyRevenue / total) * 100 : 0
                 const p = data.kpis.newVsLoyalty.prior
-                const priorTotal = p ? p.newRevenue + p.loyaltyRevenue : 0
-                const priorNewPct = p && priorTotal > 0 ? (p.newRevenue / priorTotal) * 100 : 0
                 return (
-                  <div className="space-y-4">
-                    <div className="flex h-3 w-full overflow-hidden rounded-full border border-black">
-                      <div
-                        className="bg-green-500"
-                        style={{ width: `${newPct}%` }}
-                        title={`New: ${formatPct(newPct)}`}
-                      />
-                      <div
-                        className="bg-indigo-500"
-                        style={{ width: `${loyaltyPct}%` }}
-                        title={`Loyalty: ${formatPct(loyaltyPct)}`}
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="h-2 w-2 bg-green-500" />
-                          <span className="text-xs font-medium uppercase tracking-[0.1em]">New</span>
-                        </div>
-                        <div className="text-lg font-semibold">{formatCurrency(c.newRevenue)}</div>
-                        <div className="text-xs text-neutral-500">
-                          {c.newCount.toLocaleString()} bookings · {formatPct(newPct)} of revenue
-                          {p && (
-                            <span className="ml-2 text-neutral-400">
-                              (prior {formatPct(priorNewPct)})
+                  <div className="space-y-5">
+                    <SplitBarRow
+                      label="Customers"
+                      newValue={c.newCustomers}
+                      loyaltyValue={c.loyaltyCustomers}
+                      priorNewValue={p?.newCustomers}
+                      priorLoyaltyValue={p?.loyaltyCustomers}
+                      format={v => v.toLocaleString()}
+                    />
+                    <SplitBarRow
+                      label="Bookings"
+                      newValue={c.newCount}
+                      loyaltyValue={c.loyaltyCount}
+                      priorNewValue={p?.newCount}
+                      priorLoyaltyValue={p?.loyaltyCount}
+                      format={v => v.toLocaleString()}
+                    />
+                    <SplitBarRow
+                      label="Revenue"
+                      newValue={c.newRevenue}
+                      loyaltyValue={c.loyaltyRevenue}
+                      priorNewValue={p?.newRevenue}
+                      priorLoyaltyValue={p?.loyaltyRevenue}
+                      format={formatCurrency}
+                    />
+                    <div className="border-t border-neutral-200 pt-4">
+                      <div className="text-[11px] font-medium uppercase tracking-[0.12em] text-neutral-600 mb-2">
+                        Avg Ticket
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="h-2 w-2 bg-green-500" />
+                            <span className="text-xs font-medium uppercase tracking-[0.1em]">
+                              New
                             </span>
+                          </div>
+                          <div className="text-lg font-semibold">
+                            {formatCurrency(c.newAvgTicket)}
+                          </div>
+                          {p && (
+                            <div className="text-xs text-neutral-500">
+                              {formatCurrency(p.newAvgTicket)} prior
+                            </div>
                           )}
                         </div>
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="h-2 w-2 bg-indigo-500" />
-                          <span className="text-xs font-medium uppercase tracking-[0.1em]">
-                            Loyalty
-                          </span>
-                        </div>
-                        <div className="text-lg font-semibold">
-                          {formatCurrency(c.loyaltyRevenue)}
-                        </div>
-                        <div className="text-xs text-neutral-500">
-                          {c.loyaltyCount.toLocaleString()} bookings · {formatPct(loyaltyPct)} of
-                          revenue
-                          {p && (
-                            <span className="ml-2 text-neutral-400">
-                              (prior {formatPct(100 - priorNewPct)})
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="h-2 w-2 bg-indigo-500" />
+                            <span className="text-xs font-medium uppercase tracking-[0.1em]">
+                              Loyalty
                             </span>
+                          </div>
+                          <div className="text-lg font-semibold">
+                            {formatCurrency(c.loyaltyAvgTicket)}
+                          </div>
+                          {p && (
+                            <div className="text-xs text-neutral-500">
+                              {formatCurrency(p.loyaltyAvgTicket)} prior
+                            </div>
                           )}
                         </div>
                       </div>
@@ -463,6 +491,68 @@ export default function AdminReportsPage() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function SplitBarRow({
+  label,
+  newValue,
+  loyaltyValue,
+  priorNewValue,
+  priorLoyaltyValue,
+  format,
+}: {
+  label: string
+  newValue: number
+  loyaltyValue: number
+  priorNewValue?: number
+  priorLoyaltyValue?: number
+  format: (v: number) => string
+}) {
+  const total = newValue + loyaltyValue
+  const newPct = total > 0 ? (newValue / total) * 100 : 0
+  const loyaltyPct = total > 0 ? (loyaltyValue / total) * 100 : 0
+  const priorTotal =
+    priorNewValue !== undefined && priorLoyaltyValue !== undefined
+      ? priorNewValue + priorLoyaltyValue
+      : null
+  const priorNewPct =
+    priorTotal !== null && priorTotal > 0 ? ((priorNewValue as number) / priorTotal) * 100 : null
+  return (
+    <div>
+      <div className="flex items-baseline justify-between mb-1.5">
+        <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-neutral-600">
+          {label}
+        </span>
+        {priorNewPct !== null && (
+          <span className="text-[11px] text-neutral-400">
+            prior split {formatPct(priorNewPct, 0)} / {formatPct(100 - priorNewPct, 0)}
+          </span>
+        )}
+      </div>
+      <div className="flex h-3 w-full overflow-hidden rounded-full border border-black mb-1.5">
+        <div
+          className="bg-green-500"
+          style={{ width: `${newPct}%` }}
+          title={`New: ${formatPct(newPct)}`}
+        />
+        <div
+          className="bg-indigo-500"
+          style={{ width: `${loyaltyPct}%` }}
+          title={`Loyalty: ${formatPct(loyaltyPct)}`}
+        />
+      </div>
+      <div className="flex items-center justify-between text-xs">
+        <span>
+          <span className="font-semibold tabular-nums">{format(newValue)}</span>
+          <span className="text-neutral-500 ml-1.5">{formatPct(newPct, 0)}</span>
+        </span>
+        <span className="text-right">
+          <span className="text-neutral-500 mr-1.5">{formatPct(loyaltyPct, 0)}</span>
+          <span className="font-semibold tabular-nums">{format(loyaltyValue)}</span>
+        </span>
+      </div>
     </div>
   )
 }

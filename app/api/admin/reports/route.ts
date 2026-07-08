@@ -88,6 +88,15 @@ function summarize(bookings: BookingRow[]) {
   const loyaltyRevenue = revenue - newRevenue
   const newCount = paid.filter(b => b.customer_type_at_booking === 'new').length
   const loyaltyCount = volume - newCount
+  // Unique customers: a customer is "new" if any paid booking in the window was made as a new customer
+  const newCustomerIds = new Set(
+    paid.filter(b => b.customer_type_at_booking === 'new').map(b => b.customer_id)
+  )
+  const loyaltyCustomerIds = new Set(
+    paid
+      .filter(b => b.customer_type_at_booking !== 'new' && !newCustomerIds.has(b.customer_id))
+      .map(b => b.customer_id)
+  )
   const totalBookings = bookings.length
   const cancellationRate = totalBookings > 0 ? (cancelled.length / totalBookings) * 100 : 0
   const bookedMinutes = nonCancelled.reduce((s, b) => s + (b.duration_minutes || 0), 0)
@@ -101,6 +110,10 @@ function summarize(bookings: BookingRow[]) {
     loyaltyRevenue,
     newCount,
     loyaltyCount,
+    newCustomers: newCustomerIds.size,
+    loyaltyCustomers: loyaltyCustomerIds.size,
+    newAvgTicket: newCount > 0 ? newRevenue / newCount : 0,
+    loyaltyAvgTicket: loyaltyCount > 0 ? loyaltyRevenue / loyaltyCount : 0,
     cancellationRate,
     bookedMinutes,
     voidedCount: voided.length,
@@ -368,6 +381,10 @@ export async function GET(request: NextRequest) {
             loyaltyRevenue: currentSummary.loyaltyRevenue,
             newCount: currentSummary.newCount,
             loyaltyCount: currentSummary.loyaltyCount,
+            newCustomers: currentSummary.newCustomers,
+            loyaltyCustomers: currentSummary.loyaltyCustomers,
+            newAvgTicket: currentSummary.newAvgTicket,
+            loyaltyAvgTicket: currentSummary.loyaltyAvgTicket,
           },
           prior: priorSummary
             ? {
@@ -375,6 +392,10 @@ export async function GET(request: NextRequest) {
                 loyaltyRevenue: priorSummary.loyaltyRevenue,
                 newCount: priorSummary.newCount,
                 loyaltyCount: priorSummary.loyaltyCount,
+                newCustomers: priorSummary.newCustomers,
+                loyaltyCustomers: priorSummary.loyaltyCustomers,
+                newAvgTicket: priorSummary.newAvgTicket,
+                loyaltyAvgTicket: priorSummary.loyaltyAvgTicket,
               }
             : null,
         },
