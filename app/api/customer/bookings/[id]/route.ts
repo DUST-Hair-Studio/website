@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { GoogleCalendarService } from '@/lib/google-calendar'
 import { EmailService } from '@/lib/email-service'
+import { ReminderScheduler } from '@/lib/reminder-scheduler'
 import { createBusinessDateTime, getCurrentBusinessTime } from '@/lib/timezone-utils'
 
 export async function GET(
@@ -348,7 +349,31 @@ export async function PUT(
       // Continue with the response even if email fails
     }
 
-    return NextResponse.json({ 
+    // Re-sync reminders to the new date/time. The original reminders were scheduled
+    // off the OLD appointment date; without this they fire on the wrong day.
+    try {
+      const reminderScheduler = new ReminderScheduler()
+      await reminderScheduler.rescheduleRemindersForBooking({
+        id: updatedBooking.id,
+        booking_date: updatedBooking.booking_date,
+        booking_time: updatedBooking.booking_time,
+        duration_minutes: updatedBooking.duration_minutes,
+        services: {
+          name: updatedBooking.services.name,
+          duration_minutes: updatedBooking.services.duration_minutes
+        },
+        customers: {
+          name: updatedBooking.customers.name,
+          email: updatedBooking.customers.email,
+          phone: updatedBooking.customers.phone
+        }
+      })
+    } catch (error) {
+      console.error('Error rescheduling reminders:', error)
+      // Continue with the response even if reminder re-sync fails
+    }
+
+    return NextResponse.json({
       success: true,
       booking: updatedBooking,
       message: 'Booking rescheduled successfully'

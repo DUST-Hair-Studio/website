@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { GoogleCalendarService } from '@/lib/google-calendar'
 import { EmailService } from '@/lib/email-service'
+import { ReminderScheduler } from '@/lib/reminder-scheduler'
 import { waitlistService } from '@/lib/waitlist-service'
 import { createBusinessDateTime, calculateEndTime } from '@/lib/timezone-utils'
 
@@ -189,6 +190,30 @@ export async function PUT(
     } catch (error) {
       console.error('Error sending reschedule email:', error)
       // Continue with the response even if email fails
+    }
+
+    // Re-sync reminders to the new date/time. The original reminders were scheduled
+    // off the OLD appointment date; without this they fire on the wrong day.
+    try {
+      const reminderScheduler = new ReminderScheduler()
+      await reminderScheduler.rescheduleRemindersForBooking({
+        id: updatedBooking.id,
+        booking_date: updatedBooking.booking_date,
+        booking_time: updatedBooking.booking_time,
+        duration_minutes: updatedBooking.duration_minutes,
+        services: {
+          name: updatedBooking.services.name,
+          duration_minutes: updatedBooking.services.duration_minutes
+        },
+        customers: {
+          name: updatedBooking.customers.name,
+          email: updatedBooking.customers.email,
+          phone: updatedBooking.customers.phone
+        }
+      })
+    } catch (error) {
+      console.error('Error rescheduling reminders:', error)
+      // Continue with the response even if reminder re-sync fails
     }
 
     // Notify waitlist users about the freed up slot
@@ -404,6 +429,32 @@ export async function PATCH(
     if (error) {
       console.error('Error updating booking:', error)
       return NextResponse.json({ error: 'Failed to update booking' }, { status: 500 })
+    }
+
+    // A service/duration edit shifts the follow-up offset (appointment + duration),
+    // so re-sync reminders. Skip when cancelling — the send loop already skips
+    // cancelled bookings and the cancellation branch below handles that case.
+    if (updateData.duration_minutes !== undefined && booking.status !== 'cancelled') {
+      try {
+        const reminderScheduler = new ReminderScheduler()
+        await reminderScheduler.rescheduleRemindersForBooking({
+          id: booking.id,
+          booking_date: booking.booking_date,
+          booking_time: booking.booking_time,
+          duration_minutes: booking.duration_minutes,
+          services: {
+            name: booking.services.name,
+            duration_minutes: booking.services.duration_minutes
+          },
+          customers: {
+            name: booking.customers.name,
+            email: booking.customers.email,
+            phone: booking.customers.phone
+          }
+        })
+      } catch (reminderErr) {
+        console.error('Error re-syncing reminders after edit:', reminderErr)
+      }
     }
 
     // Send cancellation email and delete Google Calendar event if status changed to cancelled

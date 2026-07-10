@@ -112,14 +112,14 @@ export class ReminderScheduler {
     }
   }
 
-  // Cancel all pending reminders for a booking (when booking is cancelled)
-  async cancelRemindersForBooking(bookingId: string): Promise<void> {
+  // Cancel all pending reminders for a booking (when booking is cancelled or rescheduled)
+  async cancelRemindersForBooking(bookingId: string, reason = 'Booking was cancelled'): Promise<void> {
     try {
       const { error } = await this.supabase
         .from('reminder_history')
-        .update({ 
+        .update({
           status: 'failed',
-          error_message: 'Booking was cancelled',
+          error_message: reason,
           sent_at: new Date().toISOString()
         })
         .eq('booking_id', bookingId)
@@ -133,5 +133,14 @@ export class ReminderScheduler {
     } catch (error) {
       console.error(`Error cancelling reminders for booking ${bookingId}:`, error)
     }
+  }
+
+  // Re-sync reminders after a booking's date/time or duration changes.
+  // Cancels any still-pending reminders (which carry the OLD schedule) and
+  // schedules fresh ones from the booking's current date/time. Without this,
+  // a rescheduled booking keeps firing reminders based on its original date.
+  async rescheduleRemindersForBooking(booking: BookingData): Promise<void> {
+    await this.cancelRemindersForBooking(booking.id, 'Superseded by reschedule; reminders re-created for the new date/time')
+    await this.scheduleRemindersForBooking(booking)
   }
 }
