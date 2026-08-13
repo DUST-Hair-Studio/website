@@ -11,6 +11,7 @@ import { Calendar } from '@/components/ui/calendar'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import WaitlistForm from '@/components/customer/waitlist-form'
+import { Zap } from 'lucide-react'
 import { toast } from 'sonner'
 
 function BookPageContent() {
@@ -41,6 +42,7 @@ function BookPageContent() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [availableTimes, setAvailableTimes] = useState<string[]>([])
   const [loadingTimes, setLoadingTimes] = useState(false)
+  const [findingNext, setFindingNext] = useState(false)
   const [businessHours, setBusinessHours] = useState<{day_of_week: number; is_open: boolean; open_time: string; close_time: string; timezone: string}[]>([])
   const [bookingAvailableFromDate, setBookingAvailableFromDate] = useState<string | null>(null)
   const [overrideDates, setOverrideDates] = useState<string[]>([]) // one-time open dates (YYYY-MM-DD)
@@ -273,6 +275,37 @@ function BookPageContent() {
     setStep(3)
   }
 
+  const handleFindNextAvailable = async () => {
+    if (!selectedService) return
+
+    setFindingNext(true)
+    try {
+      const url = `/api/availability/next-available?serviceDuration=${selectedService.duration_minutes}`
+      const response = await fetch(url)
+      const data = await response.json() as { date: string | null; time: string | null }
+
+      if (response.ok && data.date && data.time) {
+        // Build a local Date (noon avoids any timezone day-shift) and load its times
+        const [year, month, day] = data.date.split('-').map(Number)
+        const nextDate = new Date(year, month - 1, day, 12, 0, 0)
+        setSelectedDate(nextDate)
+        setSelectedTime('')
+        await fetchAvailableTimes(nextDate)
+        setSelectedTime(data.time)
+        toast.success(
+          `Next available: ${nextDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} at ${data.time}`
+        )
+      } else {
+        toast.error('No available appointments found in the next few months. Try joining the waitlist below.')
+      }
+    } catch (error) {
+      console.error('Error finding next available appointment:', error)
+      toast.error('Something went wrong finding the next opening. Please try again.')
+    } finally {
+      setFindingNext(false)
+    }
+  }
+
   const handleCustomerInfoChange = (field: string, value: string) => {
     setCustomerInfo(prev => ({ ...prev, [field]: value }))
   }
@@ -475,6 +508,18 @@ function BookPageContent() {
                 <CardDescription>Choose your preferred date</CardDescription>
               </CardHeader>
               <CardContent className="p-0 overflow-x-hidden">
+                <div className="px-4 pt-4 sm:pt-6">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleFindNextAvailable}
+                    disabled={findingNext}
+                    className="w-full"
+                  >
+                    <Zap className="w-4 h-4 mr-2" fill="#04D96A" strokeWidth={1} />
+                    {findingNext ? 'Finding next opening…' : 'Find next available appointment'}
+                  </Button>
+                </div>
                 <div className="w-full pb-16 pt-2 px-4 sm:pb-10 sm:pt-0 overflow-hidden">
                   <Calendar
                     key={`cal-${overrideDates.length}`}
