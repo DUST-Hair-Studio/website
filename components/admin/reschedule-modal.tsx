@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createBusinessDateTime, DEFAULT_BUSINESS_TIMEZONE } from '@/lib/timezone-utils-client'
 import { Booking } from '@/types'
 import { Button } from '@/components/ui/button'
@@ -50,6 +50,7 @@ export default function RescheduleModal({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [findingNext, setFindingNext] = useState(false)
+  const timeCardRef = useRef<HTMLDivElement>(null)
   const [businessHours, setBusinessHours] = useState<{day_of_week: number; is_open: boolean; open_time: string; close_time: string; timezone: string}[]>([])
   const [overrideDates, setOverrideDates] = useState<string[]>([])
 
@@ -189,6 +190,10 @@ export default function RescheduleModal({
         toast.success(
           `Next available: ${nextDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} at ${data.time}`
         )
+        // On small screens the columns stack — scroll the found time into view
+        if (typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches) {
+          setTimeout(() => timeCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
+        }
       } else {
         toast.error('No available appointments found in the next few months.')
       }
@@ -385,7 +390,7 @@ export default function RescheduleModal({
           </Card>
 
           {/* Time Selection - Right column */}
-          <Card>
+          <Card ref={timeCardRef}>
             <CardHeader>
               <CardTitle>Select Time</CardTitle>
               <CardDescription>

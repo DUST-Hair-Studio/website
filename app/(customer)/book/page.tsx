@@ -2,7 +2,7 @@
 
 import { Navigation } from '@/components/navigation'
 import { useAuth } from '@/lib/auth-context'
-import { useState, useEffect, useCallback, Suspense } from 'react'
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
 import { Service } from '@/types'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -43,6 +43,7 @@ function BookPageContent() {
   const [availableTimes, setAvailableTimes] = useState<string[]>([])
   const [loadingTimes, setLoadingTimes] = useState(false)
   const [findingNext, setFindingNext] = useState(false)
+  const timeCardRef = useRef<HTMLDivElement>(null)
   const [businessHours, setBusinessHours] = useState<{day_of_week: number; is_open: boolean; open_time: string; close_time: string; timezone: string}[]>([])
   const [bookingAvailableFromDate, setBookingAvailableFromDate] = useState<string | null>(null)
   const [overrideDates, setOverrideDates] = useState<string[]>([]) // one-time open dates (YYYY-MM-DD)
@@ -295,6 +296,10 @@ function BookPageContent() {
         toast.success(
           `Next available: ${nextDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} at ${data.time}`
         )
+        // On small screens the columns stack — scroll the found time into view
+        if (typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches) {
+          setTimeout(() => timeCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
+        }
       } else {
         toast.error('No available appointments found in the next few months. Try joining the waitlist below.')
       }
@@ -545,7 +550,7 @@ function BookPageContent() {
             </Card>
 
             {/* Time Selection */}
-            <Card className="overflow-hidden">
+            <Card className="overflow-hidden" ref={timeCardRef}>
               <CardHeader>
                 <CardTitle>Select Time</CardTitle>
                 <CardDescription>Available times for {selectedDate?.toLocaleDateString()}</CardDescription>

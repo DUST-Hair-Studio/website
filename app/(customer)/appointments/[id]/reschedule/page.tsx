@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { Booking } from '@/types'
 import { Button } from '@/components/ui/button'
@@ -39,6 +39,7 @@ export default function ReschedulePage() {
   const [loadingTimes, setLoadingTimes] = useState(false)
   const [loadingCalendar, setLoadingCalendar] = useState(false)
   const [findingNext, setFindingNext] = useState(false)
+  const timeCardRef = useRef<HTMLDivElement>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [businessHours, setBusinessHours] = useState<{day_of_week: number; is_open: boolean; open_time: string; close_time: string; timezone: string}[]>([])
@@ -303,6 +304,10 @@ export default function ReschedulePage() {
         toast.success(
           `Next available: ${nextDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} at ${data.time}`
         )
+        // On small screens the columns stack — scroll the found time into view
+        if (typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches) {
+          setTimeout(() => timeCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
+        }
       } else {
         toast.error('No available appointments found in the next few months.')
       }
@@ -520,7 +525,7 @@ export default function ReschedulePage() {
           </Card>
 
           {/* Time Selection */}
-          <Card>
+          <Card ref={timeCardRef}>
             <CardHeader>
               <CardTitle>Select Time</CardTitle>
               <CardDescription>Available times for {selectedDate?.toLocaleDateString()}</CardDescription>
