@@ -703,7 +703,7 @@ export default function MyAppointmentsPage() {
               disabled={cancelling}
               className="bg-red-600 hover:bg-red-700"
             >
-              {cancelling ? 'Cancelling...' : 'Cancel'}
+              {cancelling ? 'Cancelling...' : 'Confirm Cancel'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
