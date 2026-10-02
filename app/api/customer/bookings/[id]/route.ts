@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase-server'
 import { GoogleCalendarService } from '@/lib/google-calendar'
 import { EmailService } from '@/lib/email-service'
 import { ReminderScheduler } from '@/lib/reminder-scheduler'
 import { createBusinessDateTime, getCurrentBusinessTime } from '@/lib/timezone-utils'
+import { checkTrimLimit } from '@/lib/trim-limit'
 
 export async function GET(
   request: NextRequest,
@@ -170,6 +171,17 @@ export async function PUT(
     
     if (currentBooking.status !== 'confirmed') {
       return NextResponse.json({ error: 'Only confirmed appointments can be rescheduled' }, { status: 400 })
+    }
+
+    const trimLimitError = await checkTrimLimit(createAdminSupabaseClient(), {
+      customerId: customer.id,
+      serviceId: currentBooking.service_id,
+      date: booking_date,
+      time: booking_time,
+      excludeBookingId: bookingId,
+    })
+    if (trimLimitError) {
+      return NextResponse.json({ error: trimLimitError }, { status: 409 })
     }
 
     // Update the booking

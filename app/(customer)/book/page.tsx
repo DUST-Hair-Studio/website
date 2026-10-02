@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label'
 import WaitlistForm from '@/components/customer/waitlist-form'
 import { Zap } from 'lucide-react'
 import { toast } from 'sonner'
+import { type TrimBlockedRange, firstUnblockedTrimDate, formatYMD, isTrimDateBlocked, toLocalYMD } from '@/lib/trim-ranges'
 
 function BookPageContent() {
   const { user, loading } = useAuth()
@@ -51,6 +52,7 @@ function BookPageContent() {
   
   const [step, setStep] = useState(1) // 1: Service, 2: Date/Time, 3: Details, 4: Confirmation
   const [bookingError, setBookingError] = useState<string | null>(null)
+  const [trimRanges, setTrimRanges] = useState<TrimBlockedRange[]>([]) // dates this customer can't book another trim
 
   // Handle authentication state changes - MUST be before other useEffects
   useEffect(() => {
@@ -138,8 +140,37 @@ function BookPageContent() {
       }
     }
 
+    const fetchTrimEligibility = async () => {
+      try {
+        const response = await fetch('/api/customer/trim-eligibility')
+        if (response.ok) {
+          const data = await response.json() as { ranges: TrimBlockedRange[] }
+          setTrimRanges(data.ranges || [])
+        }
+      } catch (error) {
+        console.error('Error fetching trim eligibility:', error)
+      }
+    }
+
     fetchCustomer()
+    fetchTrimEligibility()
   }, [user])
+
+  // One trim between haircuts: when (if ever) can this customer next book a trim?
+  const todayYMD = toLocalYMD(new Date())
+  const nextTrimDate = firstUnblockedTrimDate(trimRanges, todayYMD)
+  const trimNotice = (() => {
+    if (nextTrimDate === todayYMD) return null
+    const current = trimRanges.find(r => isTrimDateBlocked([r], todayYMD))
+    if (!current) return null
+    const existing = current.trimDate < todayYMD
+      ? `you had yours on ${formatYMD(current.trimDate)}`
+      : `yours is booked for ${formatYMD(current.trimDate)}`
+    return nextTrimDate === null || !current.to
+      ? `One trim is allowed between haircuts, and ${existing}.`
+      : `One trim is allowed between haircuts, and ${existing}. You can book another after your haircut on ${formatYMD(current.to)}.`
+  })()
+  const isTrimService = (service: Service | null) => service?.trim_role === 'trim'
 
   // Fetch business hours and one-time override dates (so override days are selectable in calendar)
   useEffect(() => {
@@ -281,11 +312,20 @@ function BookPageContent() {
 
     setFindingNext(true)
     try {
-      const url = `/api/availability/next-available?serviceDuration=${selectedService.duration_minutes}`
-      const response = await fetch(url)
-      const data = await response.json() as { date: string | null; time: string | null }
+      const trimLimited = isTrimService(selectedService)
+      let fromDate: string | null = trimLimited ? nextTrimDate : ''
+      let response: Response | null = null
+      let data: { date: string | null; time: string | null } = { date: null, time: null }
+      // Trims: re-scan past any blocked stretch the first opening falls in
+      for (let attempt = 0; fromDate !== null && attempt < 5; attempt++) {
+        response = await fetch(`/api/availability/next-available?serviceDuration=${selectedService.duration_minutes}${fromDate ? `&fromDate=${fromDate}` : ''}`)
+        data = await response.json() as { date: string | null; time: string | null }
+        if (!trimLimited || !data.date || !isTrimDateBlocked(trimRanges, data.date)) break
+        fromDate = firstUnblockedTrimDate(trimRanges, data.date)
+        data = { date: null, time: null }
+      }
 
-      if (response.ok && data.date && data.time) {
+      if (response?.ok && data.date && data.time) {
         // Build a local Date (noon avoids any timezone day-shift) and load its times
         const [year, month, day] = data.date.split('-').map(Number)
         const nextDate = new Date(year, month - 1, day, 12, 0, 0)
@@ -445,23 +485,31 @@ function BookPageContent() {
               {services.map((service) => {
                 // Calculate correct price for each service based on customer type
                 const servicePrice = customer?.is_existing_customer ? service.existing_customer_price : service.new_customer_price;
+                const trimLimited = isTrimService(service) && trimNotice
+                const trimUnavailable = trimLimited && nextTrimDate === null
                 
                 return (
                   <div
                     key={service.id}
-                    onClick={() => handleServiceSelect(service)}
-                    className="p-4 border-2 border-black rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                    onClick={trimUnavailable ? undefined : () => handleServiceSelect(service)}
+                    aria-disabled={trimUnavailable || undefined}
+                    className={`p-4 border-2 rounded-lg transition-colors ${
+                      trimUnavailable ? 'border-gray-300 bg-gray-50 cursor-not-allowed' : 'border-black cursor-pointer hover:bg-gray-50'
+                    }`}
                   >
                     <div className="flex justify-between items-start gap-4">
                       <div className="flex-1">
                         <h3 className="font-medium text-lg">{service.name}</h3>
                         <p className="text-gray-600 text-sm mt-1">{service.description}</p>
                         <p className="text-gray-500 text-sm mt-2">{formatDuration(service.duration_minutes)}</p>
+                        {trimLimited && (
+                          <p className="text-amber-700 text-sm mt-2">{trimNotice}</p>
+                        )}
                       </div>
                       <div className="text-right shrink-0">
                         <p className="font-medium">{formatPrice(servicePrice)}</p>
-                        <Button variant="outline" size="sm" className="mt-2">
-                          Select
+                        <Button variant="outline" size="sm" className="mt-2" disabled={!!trimUnavailable}>
+                          {trimUnavailable ? 'Unavailable' : 'Select'}
                         </Button>
                       </div>
                     </div>
@@ -496,6 +544,9 @@ function BookPageContent() {
                     <span className="text-sm font-medium">{formatPrice(getPrice())}</span>
                   </div>
                 </div>
+                {isTrimService(selectedService) && trimNotice && (
+                  <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-md p-3">{trimNotice}</p>
+                )}
                 <Button 
                   variant="outline" 
                   onClick={() => setStep(1)}
@@ -541,7 +592,8 @@ function BookPageContent() {
                         const minDate = new Date(bookingAvailableFromDate + 'T00:00:00')
                         beforeBookingStart = date < minDate
                       }
-                      return isPast || !isBusinessDayResult || beforeBookingStart
+                      const trimBlocked = isTrimService(selectedService) && isTrimDateBlocked(trimRanges, toLocalYMD(date))
+                      return isPast || !isBusinessDayResult || beforeBookingStart || trimBlocked
                     }}
                     className="w-full [&_.rdp-week]:border-none! [&_.rdp-week]:shadow-none!"
                   />

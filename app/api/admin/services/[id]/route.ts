@@ -48,6 +48,7 @@ export async function PATCH(
       is_existing_customer,
       is_new_customer,
       category,
+      trim_role,
       sort_order
     } = body
 
@@ -65,6 +66,7 @@ export async function PATCH(
     if (is_existing_customer !== undefined) updateData.is_existing_customer = Boolean(is_existing_customer)
     if (is_new_customer !== undefined) updateData.is_new_customer = Boolean(is_new_customer)
     if (category !== undefined) updateData.category = category
+    if (trim_role !== undefined) updateData.trim_role = trim_role || null
     if (sort_order !== undefined) updateData.sort_order = parseInt(sort_order)
 
     console.log('🔍 PATCH API: Attempting to update service with ID:', id)

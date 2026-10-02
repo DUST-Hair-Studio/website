@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { Plus, Edit, Trash2, Eye, EyeOff, Loader2, Clock } from 'lucide-react'
 
@@ -32,6 +33,7 @@ export default function AdminServicesPage() {
     is_existing_customer: true,
     is_new_customer: true,
     category: '',
+    trim_role: 'none',
     sort_order: ''
   })
 
@@ -67,6 +69,7 @@ export default function AdminServicesPage() {
       is_existing_customer: true,
       is_new_customer: true,
       category: '',
+      trim_role: 'none',
       sort_order: ''
     })
   }
@@ -88,6 +91,7 @@ export default function AdminServicesPage() {
       is_existing_customer: service.is_existing_customer,
       is_new_customer: service.is_new_customer,
       category: service.category || '',
+      trim_role: service.trim_role || 'none',
       sort_order: service.sort_order.toString()
     })
     setIsEditDialogOpen(true)
@@ -103,6 +107,7 @@ export default function AdminServicesPage() {
         duration_minutes: parseInt(formData.duration_minutes),
         new_customer_price: Math.round(parseFloat(formData.new_customer_price) * 100), // Convert to cents
         existing_customer_price: Math.round(parseFloat(formData.existing_customer_price) * 100), // Convert to cents
+        trim_role: formData.trim_role === 'none' ? null : formData.trim_role,
         sort_order: parseInt(formData.sort_order) || 0
       }
 
@@ -334,14 +339,21 @@ export default function AdminServicesPage() {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900">Availability and Settings</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="sort_order" className="text-sm font-medium">Sort Order</Label>
-                    <Input
-                      id="sort_order"
-                      type="number"
-                      value={formData.sort_order}
-                      onChange={(e) => setFormData({ ...formData, sort_order: e.target.value })}
-                      placeholder="0"
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="sort_order" className="text-sm font-medium">Sort Order</Label>
+                      <Input
+                        id="sort_order"
+                        type="number"
+                        value={formData.sort_order}
+                        onChange={(e) => setFormData({ ...formData, sort_order: e.target.value })}
+                        placeholder="0"
+                      />
+                    </div>
+                    <TrimRoleSelect
+                      id="trim_role"
+                      value={formData.trim_role}
+                      onChange={(trim_role) => setFormData({ ...formData, trim_role })}
                     />
                   </div>
                   <div className="space-y-3">
@@ -534,14 +546,21 @@ export default function AdminServicesPage() {
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-900">Availability and Settings</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-sort_order" className="text-sm font-medium">Sort Order</Label>
-                  <Input
-                    id="edit-sort_order"
-                    type="number"
-                    value={formData.sort_order}
-                    onChange={(e) => setFormData({ ...formData, sort_order: e.target.value })}
-                    placeholder="0"
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-sort_order" className="text-sm font-medium">Sort Order</Label>
+                    <Input
+                      id="edit-sort_order"
+                      type="number"
+                      value={formData.sort_order}
+                      onChange={(e) => setFormData({ ...formData, sort_order: e.target.value })}
+                      placeholder="0"
+                    />
+                  </div>
+                  <TrimRoleSelect
+                    id="edit-trim_role"
+                    value={formData.trim_role}
+                    onChange={(trim_role) => setFormData({ ...formData, trim_role })}
                   />
                 </div>
                 <div className="space-y-3">
@@ -594,6 +613,27 @@ export default function AdminServicesPage() {
   )
 }
 
+function TrimRoleSelect({ id, value, onChange }: { id: string; value: string; onChange: (value: string) => void }) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id} className="text-sm font-medium">Trim Limit Rule</Label>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger id={id}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="none">Not applicable</SelectItem>
+          <SelectItem value="haircut">Haircut (resets trim allowance)</SelectItem>
+          <SelectItem value="trim">Trim (max 1 between haircuts)</SelectItem>
+        </SelectContent>
+      </Select>
+      <p className="text-xs text-gray-500">
+        Customers can book only one trim between haircuts. Admin bookings are not restricted.
+      </p>
+    </div>
+  )
+}
+
 interface ServiceRowProps {
   service: Service
   onToggle: (service: Service) => void
@@ -618,6 +658,11 @@ function ServiceRow({ service, onToggle, onEdit, onDelete, formatPrice, formatDu
             {service.category && (
               <Badge variant="secondary" className="text-xs font-normal">
                 {service.category}
+              </Badge>
+            )}
+            {service.trim_role && (
+              <Badge variant="outline" className="text-xs font-normal" title="Trim limit rule">
+                {service.trim_role === 'trim' ? 'Trim · 1 per cut' : 'Resets trims'}
               </Badge>
             )}
             {isInactive && (

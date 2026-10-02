@@ -4,6 +4,7 @@ import { GoogleCalendarService } from '@/lib/google-calendar'
 import { EmailService } from '@/lib/email-service'
 import { ReminderScheduler } from '@/lib/reminder-scheduler'
 import { isFutureAppointment } from '@/lib/timezone-utils'
+import { checkTrimLimit } from '@/lib/trim-limit'
 
 export async function POST(request: NextRequest) {
   try {
@@ -189,6 +190,10 @@ export async function POST(request: NextRequest) {
     const isExistingCustomer = customer?.is_existing_customer || false
     const priceCharged = isExistingCustomer ? service.existing_customer_price : service.new_customer_price
 
+    const trimLimitError = await checkTrimLimit(adminSupabase, { customerId, serviceId, date, time })
+    if (trimLimitError) {
+      return NextResponse.json({ error: trimLimitError }, { status: 409 })
+    }
 
     // Create booking (use admin client so RLS does not block; we already validated user and customerId)
     const bookingData = {

@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
       is_existing_customer = true,
       is_new_customer = true,
       category,
+      trim_role,
       sort_order = 0
     } = body
 
@@ -63,6 +64,7 @@ export async function POST(request: NextRequest) {
         is_existing_customer: Boolean(is_existing_customer),
         is_new_customer: Boolean(is_new_customer),
         category: category || null,
+        trim_role: trim_role || null,
         sort_order: parseInt(sort_order) || 0
       })
       .select('*')

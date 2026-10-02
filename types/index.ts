@@ -40,6 +40,7 @@ export interface Service {
   is_existing_customer: boolean;
   is_new_customer: boolean;
   category?: string;
+  trim_role?: 'haircut' | 'trim' | null; // customers may book at most one 'trim' between 'haircut' appointments
   sort_order: number;
   created_at: string;
   updated_at: string;

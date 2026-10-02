@@ -11,6 +11,7 @@ import { ArrowLeft, Calendar as CalendarIcon, Clock, RefreshCw, AlertCircle, Zap
 import { createBusinessDateTime, DEFAULT_BUSINESS_TIMEZONE } from '@/lib/timezone-utils-client'
 import { useRouter, useParams } from 'next/navigation'
 import { toast } from 'sonner'
+import { type TrimBlockedRange, firstUnblockedTrimDate, isTrimDateBlocked, toLocalYMD } from '@/lib/trim-ranges'
 
 interface BookingWithDetails extends Booking {
   services: {
@@ -44,6 +45,8 @@ export default function ReschedulePage() {
   const [error, setError] = useState('')
   const [businessHours, setBusinessHours] = useState<{day_of_week: number; is_open: boolean; open_time: string; close_time: string; timezone: string}[]>([])
   const [overrideDates, setOverrideDates] = useState<string[]>([])
+  // Trims only: dates where moving this trim would put two trims between haircuts
+  const [trimRanges, setTrimRanges] = useState<TrimBlockedRange[]>([])
 
   // State to track dates with no availability (same as booking flow)
   const [datesWithNoAvailability, setDatesWithNoAvailability] = useState<Set<string>>(new Set())
@@ -70,6 +73,16 @@ export default function ReschedulePage() {
       
       const data = await response.json()
       setBooking(data.booking)
+
+      try {
+        const trimResponse = await fetch(`/api/customer/trim-eligibility?bookingId=${bookingId}`)
+        if (trimResponse.ok) {
+          const trimData = await trimResponse.json() as { ranges: TrimBlockedRange[]; isTrim: boolean }
+          setTrimRanges(trimData.isTrim ? trimData.ranges || [] : [])
+        }
+      } catch (trimError) {
+        console.error('Error fetching trim eligibility:', trimError)
+      }
       
       // Check if booking can be rescheduled
       if (data.booking && !canReschedule(data.booking)) {
@@ -289,11 +302,20 @@ export default function ReschedulePage() {
 
     setFindingNext(true)
     try {
-      const url = `/api/availability/next-available?serviceDuration=${booking.services.duration_minutes}`
-      const response = await fetch(url)
-      const data = await response.json() as { date: string | null; time: string | null }
+      const trimLimited = trimRanges.length > 0
+      let fromDate: string | null = trimLimited ? firstUnblockedTrimDate(trimRanges, toLocalYMD(new Date())) : ''
+      let response: Response | null = null
+      let data: { date: string | null; time: string | null } = { date: null, time: null }
+      // Trims: re-scan past any blocked stretch the first opening falls in
+      for (let attempt = 0; fromDate !== null && attempt < 5; attempt++) {
+        response = await fetch(`/api/availability/next-available?serviceDuration=${booking.services.duration_minutes}${fromDate ? `&fromDate=${fromDate}` : ''}`)
+        data = await response.json() as { date: string | null; time: string | null }
+        if (!trimLimited || !data.date || !isTrimDateBlocked(trimRanges, data.date)) break
+        fromDate = firstUnblockedTrimDate(trimRanges, data.date)
+        data = { date: null, time: null }
+      }
 
-      if (response.ok && data.date && data.time) {
+      if (response?.ok && data.date && data.time) {
         // Build a local Date (noon avoids any timezone day-shift) and load its times
         const [year, month, day] = data.date.split('-').map(Number)
         const nextDate = new Date(year, month - 1, day, 12, 0, 0)
@@ -455,6 +477,12 @@ export default function ReschedulePage() {
               <Badge className="bg-blue-100 text-blue-800 border-blue-200">
                 {booking.status}
               </Badge>
+
+              {trimRanges.length > 0 && (
+                <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-md p-3">
+                  Only one trim is allowed between haircuts, so dates that would put this trim next to another trim are unavailable.
+                </p>
+              )}
             </CardContent>
           </Card>
           {/* Date Selection */}
@@ -487,7 +515,8 @@ export default function ReschedulePage() {
                     const isBusinessDayResult = isBusinessDay(date)
                     const hasNoAvail = hasNoAvailability(date)
                     // Disable past dates, non-business days, AND dates with no availability
-                    const isDisabled = isPast || !isBusinessDayResult || hasNoAvail
+                    const trimBlocked = isTrimDateBlocked(trimRanges, toLocalYMD(date))
+                    const isDisabled = isPast || !isBusinessDayResult || hasNoAvail || trimBlocked
                     
                     console.log(`🔍 Reschedule - Calendar disabled check for ${date.toDateString()}:`, {
                       isPast,
