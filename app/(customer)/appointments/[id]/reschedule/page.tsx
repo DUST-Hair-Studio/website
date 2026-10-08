@@ -45,6 +45,7 @@ export default function ReschedulePage() {
   const [error, setError] = useState('')
   const [businessHours, setBusinessHours] = useState<{day_of_week: number; is_open: boolean; open_time: string; close_time: string; timezone: string}[]>([])
   const [overrideDates, setOverrideDates] = useState<string[]>([])
+  const [bookingWindowEnd, setBookingWindowEnd] = useState<string | null>(null) // last bookable date (YYYY-MM-DD), null = no limit
   // Trims only: dates where moving this trim would put two trims between haircuts
   const [trimRanges, setTrimRanges] = useState<TrimBlockedRange[]>([])
 
@@ -122,6 +123,7 @@ export default function ReschedulePage() {
         if (response.ok) {
           const data = await response.json()
           setBusinessHours(data.businessHours || [])
+          setBookingWindowEnd(data.booking_window_end || null)
         }
       } catch (error) {
         console.error('❌ Reschedule - Error fetching business hours:', error)
@@ -516,7 +518,8 @@ export default function ReschedulePage() {
                     const hasNoAvail = hasNoAvailability(date)
                     // Disable past dates, non-business days, AND dates with no availability
                     const trimBlocked = isTrimDateBlocked(trimRanges, toLocalYMD(date))
-                    const isDisabled = isPast || !isBusinessDayResult || hasNoAvail || trimBlocked
+                    const pastBookingWindow = !!bookingWindowEnd && toLocalYMD(date) > bookingWindowEnd
+                    const isDisabled = isPast || !isBusinessDayResult || hasNoAvail || trimBlocked || pastBookingWindow
                     
                     console.log(`🔍 Reschedule - Calendar disabled check for ${date.toDateString()}:`, {
                       isPast,

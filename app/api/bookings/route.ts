@@ -5,6 +5,8 @@ import { EmailService } from '@/lib/email-service'
 import { ReminderScheduler } from '@/lib/reminder-scheduler'
 import { isFutureAppointment } from '@/lib/timezone-utils'
 import { checkTrimLimit } from '@/lib/trim-limit'
+import { SLOT_UNAVAILABLE_MESSAGE, isCustomerBookingBlocked } from '@/lib/booking-block'
+import { bookingWindowMessage, loadBookingWindowEnd } from '@/lib/booking-window'
 
 export async function POST(request: NextRequest) {
   try {
@@ -55,6 +57,11 @@ export async function POST(request: NextRequest) {
         { error: `Booking is only available from ${bookingAvailableFromDate}. Please choose a date on or after that.` },
         { status: 400 }
       )
+    }
+
+    const bookingWindow = await loadBookingWindowEnd(adminSupabase)
+    if (bookingWindow.months && bookingWindow.endDate && date > bookingWindow.endDate) {
+      return NextResponse.json({ error: bookingWindowMessage(bookingWindow.months) }, { status: 400 })
     }
 
     // Get service details
@@ -178,6 +185,11 @@ export async function POST(request: NextRequest) {
 
         customerId = newCustomer.id
       }
+    }
+
+    // Blocked customers get the same response as a slot someone else just took
+    if (await isCustomerBookingBlocked(adminSupabase, customerId)) {
+      return NextResponse.json({ error: SLOT_UNAVAILABLE_MESSAGE }, { status: 409 })
     }
 
     // Determine customer type and price

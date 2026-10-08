@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminSupabaseClient } from '@/lib/supabase-server'
+import { BOOKING_WINDOW_SETTING_KEY, parseBookingWindowMonths } from '@/lib/booking-window'
 
 // GET all settings
 export async function GET() {
@@ -46,7 +47,8 @@ export async function GET() {
 
     const schedule = {
       buffer_time_minutes: settingsMap.buffer_time_minutes || 0,
-      booking_available_from_date: settingsMap.booking_available_from_date || null
+      booking_available_from_date: settingsMap.booking_available_from_date || null,
+      booking_window_months: parseBookingWindowMonths(settingsMap[BOOKING_WINDOW_SETTING_KEY])
     }
 
     const waitlist = {
@@ -131,6 +133,9 @@ export async function POST(request: NextRequest) {
       }
       if (scheduleData.booking_available_from_date !== undefined) {
         updates.push({ key: 'booking_available_from_date', value: scheduleData.booking_available_from_date || null, updated_at: now })
+      }
+      if (scheduleData.booking_window_months !== undefined) {
+        updates.push({ key: BOOKING_WINDOW_SETTING_KEY, value: parseBookingWindowMonths(scheduleData.booking_window_months), updated_at: now })
       }
     } else if (type === 'waitlist' || waitlist) {
       const waitlistData = waitlist || settings

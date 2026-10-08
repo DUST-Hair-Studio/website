@@ -47,6 +47,7 @@ function BookPageContent() {
   const timeCardRef = useRef<HTMLDivElement>(null)
   const [businessHours, setBusinessHours] = useState<{day_of_week: number; is_open: boolean; open_time: string; close_time: string; timezone: string}[]>([])
   const [bookingAvailableFromDate, setBookingAvailableFromDate] = useState<string | null>(null)
+  const [bookingWindowEnd, setBookingWindowEnd] = useState<string | null>(null) // last bookable date (YYYY-MM-DD), null = no limit
   const [overrideDates, setOverrideDates] = useState<string[]>([]) // one-time open dates (YYYY-MM-DD)
   const [waitlistEnabled, setWaitlistEnabled] = useState(true)
   
@@ -181,6 +182,7 @@ function BookPageContent() {
           const data = await response.json()
           setBusinessHours(data.businessHours || [])
           setBookingAvailableFromDate(data.booking_available_from_date || null)
+          setBookingWindowEnd(data.booking_window_end || null)
         }
       } catch (error) {
         console.error('Error fetching business hours:', error)
@@ -592,8 +594,9 @@ function BookPageContent() {
                         const minDate = new Date(bookingAvailableFromDate + 'T00:00:00')
                         beforeBookingStart = date < minDate
                       }
+                      const pastBookingWindow = !!bookingWindowEnd && toLocalYMD(date) > bookingWindowEnd
                       const trimBlocked = isTrimService(selectedService) && isTrimDateBlocked(trimRanges, toLocalYMD(date))
-                      return isPast || !isBusinessDayResult || beforeBookingStart || trimBlocked
+                      return isPast || !isBusinessDayResult || beforeBookingStart || pastBookingWindow || trimBlocked
                     }}
                     className="w-full [&_.rdp-week]:border-none! [&_.rdp-week]:shadow-none!"
                   />

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminSupabaseClient } from '@/lib/supabase-server'
 import { GoogleCalendarService } from '@/lib/google-calendar'
 import { generateAvailableSlots } from '@/lib/schedule-utils'
+import { isRequestCustomerBlocked } from '@/lib/booking-block'
+import { BOOKING_WINDOW_SETTING_KEY, getBookingWindowEnd, parseBookingWindowMonths } from '@/lib/booking-window'
 
 /**
  * Public availability API — used by customer booking and reschedule flows.
@@ -19,10 +21,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'start_date and end_date are required' }, { status: 400 })
     }
 
+    // Blocked customers always see a fully booked schedule
+    if (await isRequestCustomerBlocked()) {
+      return NextResponse.json({ availableSlots: [] })
+    }
+
     const { data: settings, error: settingsError } = await supabase
       .from('settings')
       .select('key, value')
-      .in('key', ['business_hours', 'business_hours_timezone', 'buffer_time_minutes', 'booking_available_from_date'])
+      .in('key', ['business_hours', 'business_hours_timezone', 'buffer_time_minutes', 'booking_available_from_date', BOOKING_WINDOW_SETTING_KEY])
 
     if (settingsError) {
       console.error('Error fetching settings:', settingsError)
@@ -40,13 +47,26 @@ export async function GET(request: NextRequest) {
     const bookingAvailableFromDate = (settingsMap.booking_available_from_date as string) || null
 
     let effectiveStartDate = startDate
-    const effectiveEndDate = endDate
+    let effectiveEndDate = endDate
     if (bookingAvailableFromDate) {
       if (endDate < bookingAvailableFromDate) {
         return NextResponse.json({ availableSlots: [] })
       }
       if (startDate < bookingAvailableFromDate) {
         effectiveStartDate = bookingAvailableFromDate
+      }
+    }
+
+    // Customers can only book up to N months out (admin reschedule passes scope=admin)
+    const bookingWindowEnd = searchParams.get('scope') === 'admin'
+      ? null
+      : getBookingWindowEnd(parseBookingWindowMonths(settingsMap[BOOKING_WINDOW_SETTING_KEY]), timezone)
+    if (bookingWindowEnd) {
+      if (effectiveStartDate > bookingWindowEnd) {
+        return NextResponse.json({ availableSlots: [] })
+      }
+      if (effectiveEndDate > bookingWindowEnd) {
+        effectiveEndDate = bookingWindowEnd
       }
     }
 

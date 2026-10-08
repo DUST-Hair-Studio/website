@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminSupabaseClient } from '@/lib/supabase-server'
+import { BOOKING_WINDOW_SETTING_KEY, getBookingWindowEnd, parseBookingWindowMonths } from '@/lib/booking-window'
 
 // GET business hours
 export async function GET() {
@@ -9,7 +10,7 @@ export async function GET() {
     const { data: settings, error } = await supabase
       .from('settings')
       .select('key, value')
-      .in('key', ['business_hours', 'business_hours_timezone', 'booking_available_from_date'])
+      .in('key', ['business_hours', 'business_hours_timezone', 'booking_available_from_date', BOOKING_WINDOW_SETTING_KEY])
 
     if (error) {
       console.error('Error fetching business hours settings:', error)
@@ -48,7 +49,10 @@ export async function GET() {
       }
     })
 
-    return NextResponse.json({ businessHours, booking_available_from_date: bookingAvailableFromDate })
+    // Last date customers can book (null = no limit), in the business timezone
+    const bookingWindowEnd = getBookingWindowEnd(parseBookingWindowMonths(settingsMap[BOOKING_WINDOW_SETTING_KEY]), timezone)
+
+    return NextResponse.json({ businessHours, booking_available_from_date: bookingAvailableFromDate, booking_window_end: bookingWindowEnd })
   } catch (error) {
     console.error('Admin business hours API error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

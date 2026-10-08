@@ -3,6 +3,8 @@ import { createAdminSupabaseClient, createServerSupabaseClient } from '@/lib/sup
 import { DEFAULT_BUSINESS_TIMEZONE, createBusinessDateTimeSync, getBusinessHour } from '@/lib/timezone-utils'
 import { GoogleCalendarService } from '@/lib/google-calendar'
 import { waitlistService } from '@/lib/waitlist-service'
+import { getBlockedCustomerIds } from '@/lib/booking-block'
+import { BOOKING_WINDOW_SETTING_KEY, getBookingWindowEnd, parseBookingWindowMonths } from '@/lib/booking-window'
 
 /**
  * Waitlist availability cron.
@@ -74,8 +76,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Get all pending waitlist requests
-    const { data: waitlistRequests, error: waitlistError } = await supabase
+    // Get all pending waitlist requests (blocked customers stay pending and are never notified)
+    const blockedCustomerIds = await getBlockedCustomerIds(supabase)
+    const { data: allWaitlistRequests, error: waitlistError } = await supabase
       .from('waitlist_requests')
       .select(`
         *,
@@ -99,6 +102,8 @@ export async function GET(request: NextRequest) {
       console.error('❌ [WAITLIST CRON] Error fetching waitlist requests:', waitlistError)
       return NextResponse.json({ error: 'Failed to fetch waitlist requests' }, { status: 500 })
     }
+
+    const waitlistRequests = (allWaitlistRequests || []).filter(r => !blockedCustomerIds.has(r.customer_id))
 
     if (!waitlistRequests || waitlistRequests.length === 0) {
       console.log('✅ [WAITLIST CRON] No pending waitlist requests')
@@ -226,7 +231,7 @@ async function findAvailableSlots(
     const { data: settings, error: settingsError } = await supabase
       .from('settings')
       .select('key, value')
-      .in('key', ['business_hours', 'business_hours_timezone', 'booking_available_from_date'])
+      .in('key', ['business_hours', 'business_hours_timezone', 'booking_available_from_date', BOOKING_WINDOW_SETTING_KEY])
 
     if (settingsError) {
       console.error('❌ [WAITLIST CRON] Error fetching business hours settings:', settingsError)
@@ -247,6 +252,14 @@ async function findAvailableSlots(
     if (bookingAvailableFromDate) {
       if (endDate < bookingAvailableFromDate) return []
       if (startDate < bookingAvailableFromDate) effectiveStartDate = bookingAvailableFromDate
+    }
+
+    // Don't offer slots past the customer booking window (they'd be notified but couldn't book)
+    let effectiveEndDate = endDate
+    const bookingWindowEnd = getBookingWindowEnd(parseBookingWindowMonths(settingsMap[BOOKING_WINDOW_SETTING_KEY]), timezone)
+    if (bookingWindowEnd) {
+      if (effectiveStartDate > bookingWindowEnd) return []
+      if (effectiveEndDate > bookingWindowEnd) effectiveEndDate = bookingWindowEnd
     }
 
     // Convert to array format (same as debug endpoint)
@@ -284,7 +297,7 @@ async function findAvailableSlots(
       .from('bookings')
       .select('booking_date, booking_time, duration_minutes, status')
       .gte('booking_date', effectiveStartDate)
-      .lte('booking_date', endDate)
+      .lte('booking_date', effectiveEndDate)
       .in('status', ['confirmed', 'pending'])
 
     // Get one-time availability overrides for this range
@@ -292,7 +305,7 @@ async function findAvailableSlots(
       .from('availability_overrides')
       .select('date, open_time, close_time')
       .gte('date', effectiveStartDate)
-      .lte('date', endDate)
+      .lte('date', effectiveEndDate)
     const overridesByDate = new Map(
       (overrides || []).map(o => [
         typeof o.date === 'string' ? o.date.slice(0, 10) : o.date,
@@ -301,12 +314,12 @@ async function findAvailableSlots(
     )
 
     // Get Google Calendar blocked time
-    const blockedTimes = await googleCalendar.getBlockedTime(effectiveStartDate, endDate)
+    const blockedTimes = await googleCalendar.getBlockedTime(effectiveStartDate, effectiveEndDate)
     console.log(`🔍 [WAITLIST CRON] Found ${blockedTimes.length} blocked time slots from Google Calendar`)
 
     // Check each day in the range
     const currentDate = new Date(effectiveStartDate)
-    const lastDate = new Date(endDate)
+    const lastDate = new Date(effectiveEndDate)
 
     while (currentDate <= lastDate) {
       const dateStr = currentDate.toISOString().split('T')[0]

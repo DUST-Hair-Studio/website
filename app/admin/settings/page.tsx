@@ -11,7 +11,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
-import { Loader2, Calendar, Clock, Link as LinkIcon, Unlink, CheckCircle, XCircle, CreditCard, Building, ListChecks, UserPlus, Users, Mail, UserMinus, CalendarPlus, Trash2 } from 'lucide-react'
+import { Loader2, Calendar, Clock, Link as LinkIcon, Unlink, CheckCircle, XCircle, CreditCard, Building, ListChecks, UserPlus, Users, Mail, UserMinus, CalendarPlus, CalendarClock, Trash2, Contact } from 'lucide-react'
+import { BlockedCustomersSettings } from '@/components/admin/blocked-customers-settings'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth-context'
@@ -60,6 +61,7 @@ interface SavedCredentialInfo {
 interface ScheduleSettings {
   buffer_time_minutes: number
   booking_available_from_date: string | null
+  booking_window_months: number | null
 }
 
 interface WaitlistSettings {
@@ -157,7 +159,8 @@ function AdminSettingsContent() {
   // Schedule Settings State
   const [scheduleSettings, setScheduleSettings] = useState<ScheduleSettings>({
     buffer_time_minutes: 0,
-    booking_available_from_date: null
+    booking_available_from_date: null,
+    booking_window_months: null
   })
 
   // One-time open dates (availability overrides)
@@ -336,7 +339,7 @@ function AdminSettingsContent() {
     
     // Check for tab parameter in URL
     const tab = searchParams.get('tab')
-    if (tab && ['business', 'schedule', 'payments', 'integrations', 'admins'].includes(tab)) {
+    if (tab && ['business', 'schedule', 'payments', 'integrations', 'admins', 'customers'].includes(tab)) {
       setActiveTab(tab)
     }
   }, [searchParams])
@@ -586,7 +589,7 @@ function AdminSettingsContent() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 mb-6 h-auto p-1">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-6 mb-6 h-auto p-1">
           <TabsTrigger value="business" className="flex items-center justify-center gap-2 text-sm py-3 px-2 data-[state=active]:bg-black data-[state=active]:text-white">
             <Building className="hidden sm:block h-4 w-4" />
             <span className="hidden sm:inline">Business</span>
@@ -611,6 +614,10 @@ function AdminSettingsContent() {
             <Users className="hidden sm:block h-4 w-4" />
             <span className="hidden sm:inline">Admins</span>
             <span className="sm:hidden">Admins</span>
+          </TabsTrigger>
+          <TabsTrigger value="customers" className="flex items-center justify-center gap-2 text-sm py-3 px-2 data-[state=active]:bg-black data-[state=active]:text-white">
+            <Contact className="hidden sm:block h-4 w-4" />
+            <span>Customers</span>
           </TabsTrigger>
         </TabsList>
 
@@ -792,6 +799,47 @@ function AdminSettingsContent() {
               <Button onClick={saveBusinessHours} disabled={saving}>
                 {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Save Booking Start Date
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Booking Window */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CalendarClock className="h-5 w-5" />
+                Booking Window
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 p-4 sm:p-6">
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="booking_window_months">How far ahead customers can book (months)</Label>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Customers can book and reschedule up to this many months from today. Leave empty for no limit. Admins can always book further out.
+                  </p>
+                </div>
+                <Input
+                  id="booking_window_months"
+                  type="number"
+                  min="1"
+                  max="24"
+                  placeholder="No limit"
+                  value={scheduleSettings.booking_window_months ?? ''}
+                  onChange={(e) => {
+                    const months = parseInt(e.target.value, 10)
+                    setScheduleSettings(prev => ({
+                      ...prev,
+                      booking_window_months: Number.isFinite(months) && months > 0 ? months : null
+                    }))
+                  }}
+                  className="w-full sm:w-48"
+                />
+              </div>
+
+              <Button onClick={saveBusinessHours} disabled={saving}>
+                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Save Booking Window
               </Button>
             </CardContent>
           </Card>
@@ -1404,6 +1452,11 @@ function AdminSettingsContent() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Customers Tab */}
+        <TabsContent value="customers" className="space-y-6 mt-6">
+          <BlockedCustomersSettings />
         </TabsContent>
       </Tabs>
       

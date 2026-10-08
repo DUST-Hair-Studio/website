@@ -147,7 +147,8 @@ export default function RescheduleModal({
       const day = String(date.getDate()).padStart(2, '0')
       const dateStr = `${year}-${month}-${day}`
 
-      const url = `/api/availability?startDate=${dateStr}&endDate=${dateStr}&serviceDuration=${duration}`
+      // scope=admin: admins aren't limited by the customer booking window
+      const url = `/api/availability?startDate=${dateStr}&endDate=${dateStr}&serviceDuration=${duration}&scope=admin`
       
       const response = await fetch(url)
       
@@ -175,7 +176,7 @@ export default function RescheduleModal({
 
     setFindingNext(true)
     try {
-      const url = `/api/availability/next-available?serviceDuration=${duration}`
+      const url = `/api/availability/next-available?serviceDuration=${duration}&scope=admin`
       const response = await fetch(url)
       const data = await response.json() as { date: string | null; time: string | null }
 

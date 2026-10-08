@@ -5,6 +5,7 @@ import { EmailService } from '@/lib/email-service'
 import { ReminderScheduler } from '@/lib/reminder-scheduler'
 import { createBusinessDateTime, getCurrentBusinessTime } from '@/lib/timezone-utils'
 import { checkTrimLimit } from '@/lib/trim-limit'
+import { bookingWindowMessage, loadBookingWindowEnd } from '@/lib/booking-window'
 
 export async function GET(
   request: NextRequest,
@@ -171,6 +172,11 @@ export async function PUT(
     
     if (currentBooking.status !== 'confirmed') {
       return NextResponse.json({ error: 'Only confirmed appointments can be rescheduled' }, { status: 400 })
+    }
+
+    const bookingWindow = await loadBookingWindowEnd(createAdminSupabaseClient())
+    if (bookingWindow.months && bookingWindow.endDate && booking_date > bookingWindow.endDate) {
+      return NextResponse.json({ error: bookingWindowMessage(bookingWindow.months) }, { status: 400 })
     }
 
     const trimLimitError = await checkTrimLimit(createAdminSupabaseClient(), {

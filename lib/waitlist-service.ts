@@ -1,6 +1,8 @@
 import { createAdminSupabaseClient } from './supabase-server'
 import { DEFAULT_BUSINESS_TIMEZONE, createBusinessDateTimeSync, getBusinessTodayString } from './timezone-utils'
 import { Resend } from 'resend'
+import { getBlockedCustomerIds } from './booking-block'
+import { loadBookingWindowEnd } from './booking-window'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
@@ -22,6 +24,13 @@ export class WaitlistService {
       console.log('🔔 Checking waitlist for available slot:', data)
 
       const { booking_date, booking_time, service_id } = data
+
+      // Customers couldn't book a slot past the booking window, so don't offer it
+      const bookingWindow = await loadBookingWindowEnd(this.supabase)
+      if (bookingWindow.endDate && booking_date > bookingWindow.endDate) {
+        console.log('Freed slot is past the booking window; not notifying waitlist')
+        return
+      }
 
       // Find pending waitlist requests that match this date and service
       const { data: waitlistRequests, error: waitlistError } = await this.supabase
@@ -59,8 +68,12 @@ export class WaitlistService {
       // Get business settings for email
       const businessSettings = await this.getBusinessSettings()
 
+      // Blocked customers stay pending and are never notified
+      const blockedCustomerIds = await getBlockedCustomerIds(this.supabase)
+
       // Notify all matching waitlist users
       for (const request of waitlistRequests) {
+        if (blockedCustomerIds.has(request.customer_id)) continue
         try {
           // Send notification email
           const emailSent = await this.sendWaitlistNotificationEmail(

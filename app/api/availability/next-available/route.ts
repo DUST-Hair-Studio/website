@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminSupabaseClient } from '@/lib/supabase-server'
 import { GoogleCalendarService } from '@/lib/google-calendar'
 import { generateAvailableSlots } from '@/lib/schedule-utils'
+import { isRequestCustomerBlocked } from '@/lib/booking-block'
+import { BOOKING_WINDOW_SETTING_KEY, getBookingWindowEnd, parseBookingWindowMonths } from '@/lib/booking-window'
 
 /**
  * Next-available API — scans forward day by day and returns the first date that
@@ -19,10 +21,15 @@ export async function GET(request: NextRequest) {
     const duration = parseInt(searchParams.get('serviceDuration') || searchParams.get('duration') || '60')
     const daysToScan = Math.min(parseInt(searchParams.get('daysToScan') || '120'), 365)
 
+    // Blocked customers always see a fully booked schedule
+    if (await isRequestCustomerBlocked()) {
+      return NextResponse.json({ date: null, time: null, slots: [] })
+    }
+
     const { data: settings, error: settingsError } = await supabase
       .from('settings')
       .select('key, value')
-      .in('key', ['business_hours', 'business_hours_timezone', 'buffer_time_minutes', 'booking_available_from_date'])
+      .in('key', ['business_hours', 'business_hours_timezone', 'buffer_time_minutes', 'booking_available_from_date', BOOKING_WINDOW_SETTING_KEY])
 
     if (settingsError) {
       console.error('Error fetching settings:', settingsError)
@@ -83,7 +90,18 @@ export async function GET(request: NextRequest) {
     endDateObj.setDate(endDateObj.getDate() + daysToScan)
     const toYMD = (d: Date) =>
       `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-    const scanEnd = toYMD(endDateObj)
+    let scanEnd = toYMD(endDateObj)
+
+    // Customers can only book up to N months out (admin reschedule passes scope=admin)
+    const bookingWindowEnd = searchParams.get('scope') === 'admin'
+      ? null
+      : getBookingWindowEnd(parseBookingWindowMonths(settingsMap[BOOKING_WINDOW_SETTING_KEY]), timezone)
+    if (bookingWindowEnd) {
+      if (effectiveStart > bookingWindowEnd) {
+        return NextResponse.json({ date: null, time: null, slots: [] })
+      }
+      if (scanEnd > bookingWindowEnd) scanEnd = bookingWindowEnd
+    }
 
     // Fetch bookings, blocks and overrides once for the whole scan window
     const { data: bookings, error: bookingsError } = await supabase
