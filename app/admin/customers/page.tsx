@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Switch } from '@/components/ui/switch'
-import { Loader2, Search, Users, Filter, CheckSquare, Square, Edit, UserX, UserCheck, Phone, MessageSquare, Mail, Calendar, Clock, CreditCard } from 'lucide-react'
+import { Loader2, Search, Users, Filter, CheckSquare, Square, Edit, UserX, UserCheck, Phone, MessageSquare, Mail, Calendar, Clock, CreditCard, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Customer } from '@/types'
 
@@ -36,11 +36,26 @@ interface BillingHistoryItem {
   createdAt: string
 }
 
+type SortKey = 'name' | 'type' | 'bookings' | 'last_booking'
+
+const SORT_OPTIONS: { value: string; label: string }[] = [
+  { value: 'last_booking:desc', label: 'Last booking (newest)' },
+  { value: 'last_booking:asc', label: 'Last booking (oldest)' },
+  { value: 'bookings:desc', label: 'Most bookings' },
+  { value: 'bookings:asc', label: 'Fewest bookings' },
+  { value: 'name:asc', label: 'Name (A–Z)' },
+  { value: 'name:desc', label: 'Name (Z–A)' },
+  { value: 'type:desc', label: 'Type (Loyalty first)' },
+  { value: 'type:asc', label: 'Type (New first)' },
+]
+
 export default function AdminCustomersPage() {
   const [customers, setCustomers] = useState<CustomerWithStats[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<'all' | 'new' | 'loyalty'>('all')
+  const [sortKey, setSortKey] = useState<SortKey>('last_booking')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [selectedCustomers, setSelectedCustomers] = useState<Set<string>>(new Set())
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerWithStats | null>(null)
@@ -267,9 +282,43 @@ export default function AdminCustomersPage() {
       filterType === 'all' ||
       (filterType === 'new' && !customer.is_existing_customer) ||
       (filterType === 'loyalty' && customer.is_existing_customer)
-    
+
     return matchesSearch && matchesFilter
+  }).sort((a, b) => {
+    const dir = sortDir === 'asc' ? 1 : -1
+    switch (sortKey) {
+      case 'name':
+        return a.name.localeCompare(b.name) * dir
+      case 'type':
+        return (Number(a.is_existing_customer) - Number(b.is_existing_customer)) * dir || a.name.localeCompare(b.name)
+      case 'bookings':
+        return ((a.total_bookings || 0) - (b.total_bookings || 0)) * dir
+      case 'last_booking': {
+        // Customers who have never booked always sort to the bottom
+        if (!a.last_booking_date && !b.last_booking_date) return 0
+        if (!a.last_booking_date) return 1
+        if (!b.last_booking_date) return -1
+        return a.last_booking_date.localeCompare(b.last_booking_date) * dir
+      }
+      default:
+        return 0
+    }
   })
+
+  // Click a column header: toggle direction if already sorted by it, otherwise use its natural default
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(prev => (prev === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortKey(key)
+      setSortDir(key === 'name' ? 'asc' : 'desc')
+    }
+  }
+
+  const renderSortIcon = (key: SortKey) => {
+    if (sortKey !== key) return <ArrowUpDown className="w-3 h-3 opacity-40" />
+    return sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+  }
 
   // Open edit dialog
   const openEditDialog = (customer: CustomerWithStats) => {
@@ -491,11 +540,30 @@ export default function AdminCustomersPage() {
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value as 'all' | 'new' | 'loyalty')}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full md:w-auto px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            aria-label="Filter by type"
           >
             <option value="all">All Customers</option>
             <option value="new">New Customers</option>
             <option value="loyalty">Loyalty Customers</option>
+          </select>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <ArrowUpDown className="w-4 h-4 text-gray-500" />
+          <select
+            value={`${sortKey}:${sortDir}`}
+            onChange={(e) => {
+              const [key, dir] = e.target.value.split(':')
+              setSortKey(key as SortKey)
+              setSortDir(dir as 'asc' | 'desc')
+            }}
+            className="w-full md:w-auto px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            aria-label="Sort customers"
+          >
+            {SORT_OPTIONS.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
           </select>
         </div>
       </div>
@@ -538,6 +606,20 @@ export default function AdminCustomersPage() {
         </div>
       )}
 
+      {/* Customer Count */}
+      <div className="flex items-center gap-2 mb-3 text-sm text-gray-600">
+        <Users className="w-4 h-4 text-gray-500" />
+        {filteredCustomers.length === customers.length ? (
+          <span>
+            <span className="font-semibold text-gray-900">{customers.length}</span> customer{customers.length !== 1 ? 's' : ''}
+          </span>
+        ) : (
+          <span>
+            Showing <span className="font-semibold text-gray-900">{filteredCustomers.length}</span> of {customers.length} customers
+          </span>
+        )}
+      </div>
+
       {/* Customers Table */}
       <Card className="border border-gray-200 shadow-sm">
         <CardContent className="p-0">
@@ -546,7 +628,7 @@ export default function AdminCustomersPage() {
               <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No customers found</h3>
               <p className="text-gray-600">
-                {searchTerm || filterType !== 'all' 
+                {searchTerm || filterType !== 'all'
                   ? 'Try adjusting your search or filter criteria.'
                   : 'No customers have been created yet.'
                 }
@@ -653,10 +735,23 @@ export default function AdminCustomersPage() {
                           )}
                         </Button>
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bookings</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Booking</th>
+                      {([
+                        ['name', 'Customer'],
+                        ['type', 'Type'],
+                        ['bookings', 'Bookings'],
+                        ['last_booking', 'Last Booking'],
+                      ] as [SortKey, string][]).map(([key, label]) => (
+                        <th key={key} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <button
+                            type="button"
+                            onClick={() => toggleSort(key)}
+                            className={`inline-flex items-center gap-1 uppercase tracking-wider hover:text-gray-900 ${sortKey === key ? 'text-gray-900' : ''}`}
+                          >
+                            {label}
+                            {renderSortIcon(key)}
+                          </button>
+                        </th>
+                      ))}
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
