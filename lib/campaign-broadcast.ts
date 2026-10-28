@@ -1,8 +1,14 @@
 /**
  * Shared campaign broadcast logic - used by API (sync) and Inngest worker (async).
+ *
+ * Sends campaigns as personalized individual emails via the Resend batch API
+ * (resend.batch.send, batches of 50) rather than a broadcast to a managed
+ * segment. This avoids the segment-churn/throttle overhead and the associated
+ * timeout, and lets us personalize and tag each message in code.
  */
 import { createAdminSupabaseClient } from '@/lib/supabase-server'
 import { Resend } from 'resend'
+import type { CreateEmailOptions } from 'resend'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
@@ -72,18 +78,59 @@ function renderMessageBody(message: string): string {
   return formatCampaignMessage(trimmed)
 }
 
-function toResendTemplate(
+/**
+ * Substitute campaign template tokens with real values for a single recipient.
+ * (The broadcast path used Resend merge tags like {{{FIRST_NAME}}}; those only
+ * resolve inside a managed segment, so per-recipient sends substitute directly.)
+ */
+function personalize(
   text: string,
-  opts: { businessName: string; campaignName: string; currentDate: string }
+  opts: { email: string; firstName: string; businessName: string; campaignName: string; currentDate: string }
 ): string {
   return text
-    .replace(/{email}/g, '{{{EMAIL}}}')
-    .replace(/{customer_email}/g, '{{{EMAIL}}}')
-    .replace(/{customer_name}/g, '{{{FIRST_NAME}}}')
+    .replace(/{email}/g, opts.email)
+    .replace(/{customer_email}/g, opts.email)
+    .replace(/{customer_name}/g, opts.firstName)
     .replace(/{current_date}/g, opts.currentDate)
     .replace(/{campaign_id}/g, opts.campaignName)
     .replace(/{your_name}/g, opts.businessName)
     .replace(/{business_name}/g, opts.businessName)
+}
+
+// Resend tag values allow only [A-Za-z0-9_-], max 256 chars.
+function sanitizeTagValue(value: string): string {
+  return value.replace(/[^A-Za-z0-9_-]/g, '-').slice(0, 256)
+}
+
+/**
+ * Look up customer names by email, matched case-insensitively.
+ * Customer emails are not guaranteed to be stored lowercase, and PostgREST
+ * `.in()` matches case-sensitively — so we compare on a lowercased key on both
+ * sides. Returns a map keyed by lowercased email. Paginated to stay correct if
+ * the customers table grows beyond a single page.
+ */
+async function fetchCustomerNames(
+  supabase: ReturnType<typeof createAdminSupabaseClient>,
+  emails: string[]
+): Promise<Map<string, string>> {
+  const wanted = new Set(emails.map((e) => e.toLowerCase()))
+  const nameByEmail = new Map<string, string>()
+  if (wanted.size === 0) return nameByEmail
+  const PAGE = 1000
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from('customers')
+      .select('email, name')
+      .range(from, from + PAGE - 1)
+    if (error || !data || data.length === 0) break
+    for (const row of data as { email: string | null; name: string | null }[]) {
+      if (!row.email) continue
+      const key = row.email.toLowerCase()
+      if (wanted.has(key)) nameByEmail.set(key, (row.name || '').trim())
+    }
+    if (data.length < PAGE) break
+  }
+  return nameByEmail
 }
 
 export interface CampaignBroadcastInput {
@@ -96,9 +143,19 @@ export interface CampaignBroadcastInput {
   sentBy: string
 }
 
+export interface CampaignSendDetail {
+  email: string
+  success: boolean
+  messageId?: string
+  error?: string
+}
+
 export interface CampaignBroadcastResult {
   success: true
   total: number
+  successful: number
+  failed: number
+  details: CampaignSendDetail[]
   broadcastId: string
 }
 
@@ -109,6 +166,8 @@ export interface CampaignBroadcastError {
 }
 
 export type CampaignBroadcastOutput = CampaignBroadcastResult | CampaignBroadcastError
+
+const BATCH_SIZE = 50
 
 export async function executeCampaignBroadcast(
   input: CampaignBroadcastInput
@@ -134,6 +193,7 @@ export async function executeCampaignBroadcast(
   const businessAddress = settingsMap.business_address || '1942 Riverside Dr, Los Angeles, CA 90039'
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
   const finalRegistrationUrl = input.registrationUrl ? `${baseUrl}${input.registrationUrl}` : `${baseUrl}/register/existing`
+  const finalButtonText = input.buttonText || ''
   const currentDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
@@ -141,18 +201,28 @@ export async function executeCampaignBroadcast(
     day: 'numeric'
   })
 
-  const subjectTemplate = toResendTemplate(input.subject, { businessName, campaignName: input.campaignName || '', currentDate })
-  const messageTemplate = toResendTemplate(input.message, { businessName, campaignName: input.campaignName || '', currentDate })
-  const htmlBody = renderMessageBody(messageTemplate)
-  const finalButtonText = input.buttonText || ''
+  const campaignFrom =
+    process.env.RESEND_FROM_CAMPAIGN ||
+    process.env.RESEND_FROM_OVERRIDE ||
+    process.env.RESEND_FROM_EMAIL ||
+    'DUST Hair Studio <onboarding@resend.dev>'
 
-  const html = `
+  const tagValue = input.campaignName ? sanitizeTagValue(input.campaignName) : ''
+
+  // Build the branded HTML shell around a personalized subject + body.
+  // NOTE: the old broadcast footer carried {{{RESEND_UNSUBSCRIBE_URL}}}, which
+  // only resolves for Resend broadcasts to a managed segment. Batch/transactional
+  // sends have no managed audience, so that token would render literally and the
+  // opt-out would not be honored. The unsubscribe link is intentionally omitted
+  // here — TODO: add self-hosted unsubscribe (List-Unsubscribe header + suppression
+  // table) before relying on this for marketing sends.
+  const buildHtml = (subject: string, htmlBody: string): string => `
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${escapeHtml(subjectTemplate)}</title>
+  <title>${escapeHtml(subject)}</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.7; color: #1C1C1D; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #FAFAFA; }
     .container { background: #FAFAFA; padding: 40px 20px; }
@@ -188,7 +258,6 @@ export async function executeCampaignBroadcast(
     <div class="footer">
       <div class="footer-logo">DUST</div>
       <p>${escapeHtml(businessAddress)}</p>
-      <p><a href="{{{RESEND_UNSUBSCRIBE_URL}}}">Unsubscribe</a></p>
       <p>Questions? Reply to this email.</p>
     </div>
   </div>
@@ -196,115 +265,69 @@ export async function executeCampaignBroadcast(
 </html>
 `
 
-  const REUSE_SEGMENT_NAME = 'DUST Campaign'
-  let segmentId: string | null = (process.env.RESEND_CAMPAIGN_SEGMENT_ID?.trim() as string) || null
+  // Resolve real customer names (the customers table stores a single `name`),
+  // matched by email case-insensitively. Falls back to "there" when a recipient
+  // isn't a known customer, so greetings never show an email prefix or empty name.
+  const nameByEmail = await fetchCustomerNames(supabase, input.normalizedEmails)
 
-  if (!segmentId) {
-    const { data: segments } = await resend.segments.list()
-    const found = segments?.data?.find((s) => s.name === REUSE_SEGMENT_NAME)
-    if (found?.id) segmentId = found.id
-  }
-
-  if (!segmentId) {
-    const { data: created, error: createErr } = await resend.segments.create({ name: REUSE_SEGMENT_NAME })
-    if (createErr || !created?.id) {
-      const errMsg = createErr?.message || JSON.stringify(createErr)
-      return {
-        success: false,
-        error: 'Failed to get campaign segment',
-        details: errMsg
-      }
+  // One personalized email per recipient.
+  const emails: CreateEmailOptions[] = input.normalizedEmails.map((email) => {
+    const firstName = (nameByEmail.get(email) || '').split(/\s+/)[0] || 'there'
+    const opts = { email, firstName, businessName, campaignName: input.campaignName || '', currentDate }
+    const subject = personalize(input.subject, opts)
+    const htmlBody = renderMessageBody(personalize(input.message, opts))
+    const message: CreateEmailOptions = {
+      from: campaignFrom,
+      to: [email],
+      subject,
+      html: buildHtml(subject, htmlBody)
     }
-    segmentId = created.id
-  }
-
-  const delayMs = 600
-  const delay = () => new Promise((r) => setTimeout(r, delayMs))
-
-  const toRemove: string[] = []
-  let after: string | undefined
-  do {
-    const { data: listData } = await resend.contacts.list({ segmentId, limit: 100, after })
-    const contacts = listData?.data ?? []
-    for (const c of contacts) {
-      if (c.email) toRemove.push(c.email)
-    }
-    after = contacts.length === 100 && contacts[99]?.id ? contacts[99].id : undefined
-  } while (after)
-  for (let i = 0; i < toRemove.length; i++) {
-    await resend.contacts.segments.remove({ email: toRemove[i], segmentId })
-    if (i < toRemove.length - 1) await delay()
-  }
-
-  for (let i = 0; i < input.normalizedEmails.length; i++) {
-    const email = input.normalizedEmails[i]
-    const firstName = email.split('@')[0]
-    const createRes = await resend.contacts.create({ email, firstName })
-    if (createRes.error) {
-      // Contact may already exist
-    }
-    await delay()
-    const addRes = await resend.contacts.segments.add({ email, segmentId })
-    if (addRes.error) {
-      console.warn(`Failed to add ${email} to segment:`, addRes.error)
-    }
-    if (i < input.normalizedEmails.length - 1) await delay()
-  }
-
-  // Verify segment matches intended recipients before sending
-  const verifyEmails: string[] = []
-  let verifyAfter: string | undefined
-  do {
-    const { data: verifyData } = await resend.contacts.list({ segmentId, limit: 100, after: verifyAfter })
-    const contacts = verifyData?.data ?? []
-    for (const c of contacts) {
-      if (c.email) verifyEmails.push(c.email.toLowerCase())
-    }
-    verifyAfter = contacts.length === 100 && contacts[99]?.id ? contacts[99].id : undefined
-  } while (verifyAfter)
-
-  const actualSorted = [...verifyEmails].sort()
-  const expectedSorted = [...input.normalizedEmails].sort()
-  if (JSON.stringify(actualSorted) !== JSON.stringify(expectedSorted)) {
-    return {
-      success: false,
-      error: 'Segment mismatch — aborting send',
-      details: `Expected: ${expectedSorted.join(', ')} | Actual: ${actualSorted.join(', ')}`
-    }
-  }
-
-  const campaignFrom =
-    process.env.RESEND_FROM_CAMPAIGN ||
-    process.env.RESEND_FROM_OVERRIDE ||
-    process.env.RESEND_FROM_EMAIL ||
-    'DUST Hair Studio <onboarding@resend.dev>'
-
-  const broadcastName = `${input.campaignName || 'Campaign'} — ${new Date().toISOString().split('T')[0]}`
-
-  const { data: broadcastData, error: broadcastError } = await resend.broadcasts.create({
-    name: broadcastName,
-    segmentId,
-    from: campaignFrom,
-    replyTo: businessEmail || undefined,
-    subject: subjectTemplate,
-    html
+    if (businessEmail) message.replyTo = businessEmail
+    if (tagValue) message.tags = [{ name: 'campaign_id', value: tagValue }]
+    return message
   })
 
-  if (broadcastError || !broadcastData?.id) {
-    const errMsg = broadcastError?.message || JSON.stringify(broadcastError)
-    return {
-      success: false,
-      error: 'Failed to create broadcast',
-      details: errMsg
+  // Send in batches of 50 via the Resend batch API. The batch response returns
+  // ids in the same order as the input array, so each recipient is matched to
+  // its result by position. Failures are captured per recipient, never thrown —
+  // a thrown error would let a caller retry and re-send to recipients who
+  // already received the email.
+  const details: CampaignSendDetail[] = []
+  let firstId: string | null = null
+
+  for (let start = 0; start < emails.length; start += BATCH_SIZE) {
+    const chunk = emails.slice(start, start + BATCH_SIZE)
+    const chunkEmails = input.normalizedEmails.slice(start, start + BATCH_SIZE)
+    try {
+      const { data, error } = await resend.batch.send(chunk)
+      if (error || !data?.data) {
+        const message = error?.message || JSON.stringify(error) || 'Batch send failed'
+        for (const email of chunkEmails) details.push({ email, success: false, error: message })
+        continue
+      }
+      chunkEmails.forEach((email, j) => {
+        const id = data.data[j]?.id
+        if (id) {
+          details.push({ email, success: true, messageId: id })
+          if (!firstId) firstId = id
+        } else {
+          details.push({ email, success: false, error: 'No message id returned' })
+        }
+      })
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e)
+      for (const email of chunkEmails) details.push({ email, success: false, error: message })
     }
   }
 
-  const { error: sendError } = await resend.broadcasts.send(broadcastData.id)
-  if (sendError) {
+  const successfulSends = details.filter((d) => d.success).length
+  const failedSends = details.length - successfulSends
+
+  if (successfulSends === 0) {
     return {
       success: false,
-      error: 'Broadcast created but failed to send',
-      details: sendError.message
+      error: 'Campaign failed to send',
+      details: details.map((d) => d.error).filter(Boolean).join('; ') || undefined
     }
   }
 
@@ -313,14 +336,14 @@ export async function executeCampaignBroadcast(
     campaign_name: input.campaignName || 'Unknown Campaign',
     subject: input.subject,
     total_recipients: input.normalizedEmails.length,
-    successful_sends: input.normalizedEmails.length,
-    failed_sends: 0,
+    successful_sends: successfulSends,
+    failed_sends: failedSends,
     recipient_emails: input.normalizedEmails,
     sent_by: input.sentBy
   }
   const { error: insertError } = await supabase
     .from('campaign_send_history')
-    .insert({ ...insertPayload, send_details: null })
+    .insert({ ...insertPayload, send_details: details })
 
   if (insertError?.code === '42703') {
     await supabase.from('campaign_send_history').insert(insertPayload)
@@ -331,6 +354,9 @@ export async function executeCampaignBroadcast(
   return {
     success: true,
     total: input.normalizedEmails.length,
-    broadcastId: broadcastData.id
+    successful: successfulSends,
+    failed: failedSends,
+    details,
+    broadcastId: firstId || 'batch'
   }
 }
