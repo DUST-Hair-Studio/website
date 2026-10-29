@@ -36,6 +36,16 @@ export default function AdminWaitlistPage() {
   const [waitlistToCancel, setWaitlistToCancel] = useState<WaitlistRequestWithDetails | null>(null)
   const [cancelling, setCancelling] = useState(false)
 
+  // Same Loyalty/New styling as Admin > Customers
+  const getCustomerTypeBadge = (isExisting: boolean) => (
+    <Badge
+      variant={isExisting ? 'default' : 'secondary'}
+      className={isExisting ? 'bg-indigo-100 text-indigo-800' : 'bg-green-100 text-green-800'}
+    >
+      {isExisting ? 'Loyalty' : 'New'}
+    </Badge>
+  )
+
   // Fetch waitlist requests
   const fetchWaitlistRequests = async () => {
     try {
@@ -394,7 +404,10 @@ export default function AdminWaitlistPage() {
                       <div className="flex items-start space-x-2">
                         <User className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
                         <div className="min-w-0 flex-1">
-                          <div className="font-medium text-gray-900 text-sm">{request.customers.name}</div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-gray-900 text-sm">{request.customers.name}</span>
+                            {getCustomerTypeBadge(request.customers.is_existing_customer)}
+                          </div>
                           <div className="text-xs text-gray-500 flex items-center mt-0.5">
                             <Mail className="w-3 h-3 mr-1 shrink-0" />
                             <span className="truncate">{request.customers.email}</span>
@@ -497,6 +510,7 @@ export default function AdminWaitlistPage() {
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Range</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -519,6 +533,9 @@ export default function AdminWaitlistPage() {
                               </div>
                             </div>
                           </div>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {getCustomerTypeBadge(request.customers.is_existing_customer)}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">{request.services.name}</div>

@@ -49,7 +49,8 @@ export async function GET(request: NextRequest) {
         customers (
           name,
           email,
-          phone
+          phone,
+          is_existing_customer
         )
       `)
 

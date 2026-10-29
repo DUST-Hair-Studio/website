@@ -123,5 +123,6 @@ export interface WaitlistRequestWithDetails extends WaitlistRequest {
     name: string;
     email: string;
     phone: string;
+    is_existing_customer: boolean;
   };
 }
